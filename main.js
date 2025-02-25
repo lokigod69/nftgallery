@@ -46,17 +46,20 @@ viewerOverlay.appendChild(purchaseLink);
 
 document.body.appendChild(viewerOverlay);
 
-// Close viewer on left-click if it’s already open
+// Close viewer on left-click if it's already open
 window.addEventListener('click', (event) => {
   if (event.button !== 0) return; // Only process left clicks
   if (viewerOverlay.style.display === 'flex') {
     viewerOverlay.style.display = 'none';
+    controls.lock(); // Re-enable controls when closing the viewer
     return;
   }
 });
+
 function openImageViewer(imageUrl) {
   viewerImage.src = imageUrl;
   viewerOverlay.style.display = 'flex';
+  controls.unlock(); // Disable controls when viewing an NFT
 }
 
 // ----------------------------------------------------------------------
@@ -75,6 +78,9 @@ const camera = new THREE.PerspectiveCamera(
 );
 // Start camera at ground level.
 camera.position.set(0, groundLevels[1], 5);
+
+// Clock for animation timing
+const clock = new THREE.Clock();
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -100,7 +106,13 @@ audioLoader.load('/assets/ambient.mp3', function (buffer) {
 // Controls & Movement Setup
 // ----------------------------------------------------------------------
 const controls = new PointerLockControls(camera, document.body);
-document.addEventListener('click', () => controls.lock());
+
+// Only lock controls on click if we're not viewing an NFT
+document.addEventListener('click', () => {
+  if (viewerOverlay.style.display !== 'flex') {
+    controls.lock();
+  }
+});
 
 let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
 const velocity = new THREE.Vector3();
@@ -117,6 +129,14 @@ document.addEventListener('keydown', (event) => {
       if (!isJumping) {
         isJumping = true;
         jumpVelocity = 8; // initial jump velocity
+      }
+      break;
+    case 'Escape':
+      if (viewerOverlay.style.display === 'flex') {
+        viewerOverlay.style.display = 'none';
+        controls.lock(); // Re-enable controls when closing the viewer
+      } else {
+        controls.unlock(); // Allow normal escape functionality when not viewing NFT
       }
       break;
   }
@@ -326,7 +346,7 @@ rightWallNFTPositions.forEach((data, i) => createNFT(i + 10, data.pos, data.rot)
 frontWallNFTPositions.forEach((data, i) => createNFT(i + 15, data.pos, data.rot));
 
 // ----------------------------------------------------------------------
-// Particle/Snow Effects on Outer Walls (unchanged)
+// Particle/Snow Effects on Outer Walls
 // ----------------------------------------------------------------------
 function createSnowForWall(wallMesh, frameCenters) {
   const particleCount = 300;
@@ -447,10 +467,6 @@ function checkCollisions() {
 // ----------------------------------------------------------------------
 window.addEventListener('click', (event) => {
   if (event.button !== 0) return;
-  if (viewerOverlay.style.display === 'flex') {
-    viewerOverlay.style.display = 'none';
-    return;
-  }
   const mouse = new THREE.Vector2();
   mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
   mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
@@ -469,7 +485,6 @@ window.addEventListener('click', (event) => {
 // ----------------------------------------------------------------------
 // Animation Loop
 // ----------------------------------------------------------------------
-const clock = new THREE.Clock();
 function animate() {
   requestAnimationFrame(animate);
   const delta = clock.getDelta();
@@ -501,6 +516,7 @@ function animate() {
   }
 
   checkCollisions();
+
   renderer.render(scene, camera);
 }
 animate();
