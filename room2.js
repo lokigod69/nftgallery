@@ -4,7 +4,7 @@ import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockCont
 // ----------------------------------------------------------------------
 // Global Variables for Jump Physics
 // ----------------------------------------------------------------------
-const groundLevels = { 1: 2 };
+const groundLevels = { 1: 3.5 };
 let isJumping = false;
 let jumpVelocity = 0;
 const gravity = -30;
@@ -12,7 +12,7 @@ const gravity = -30;
 // ----------------------------------------------------------------------
 // Global Variables and Picture Viewer Setup
 // ----------------------------------------------------------------------
-let picturePlanes = [];  // Store picture plane meshes for click detection
+let picturePlanes = [];
 
 // Keep track of all NFTs in the room for the slider functionality
 const allNFTs = [];
@@ -29,7 +29,7 @@ viewerOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
 viewerOverlay.style.display = 'none';
 viewerOverlay.style.alignItems = 'center';
 viewerOverlay.style.justifyContent = 'center';
-viewerOverlay.style.flexDirection = 'column'; // stack image and link vertically
+viewerOverlay.style.flexDirection = 'column';
 viewerOverlay.style.zIndex = '1000';
 
 // Create a container for the image and navigation arrows
@@ -87,7 +87,7 @@ nftInfo.style.textAlign = 'center';
 viewerOverlay.appendChild(nftInfo);
 
 const purchaseLink = document.createElement('a');
-purchaseLink.href = 'https://opensea.io';  // Placeholder link – update as needed.
+purchaseLink.href = 'https://opensea.io';
 purchaseLink.innerText = 'Buy NFT on OpenSea';
 purchaseLink.style.marginTop = '20px';
 purchaseLink.style.color = '#fff';
@@ -169,7 +169,7 @@ document.addEventListener('keydown', (event) => {
   if (viewerOverlay.style.display === 'flex') {
     if (event.key === 'Escape') {
       viewerOverlay.style.display = 'none';
-      controls.lock(); // Re-enable controls when closing the viewer
+      controls.lock();
     } else if (event.key === 'ArrowLeft') {
       showPreviousNFT();
     } else if (event.key === 'ArrowRight') {
@@ -202,15 +202,14 @@ function openImageViewer(imageUrl, nftIndex) {
   
   updateNFTViewer();
   viewerOverlay.style.display = 'flex';
-  controls.unlock(); // Disable controls when viewing an NFT
+  controls.unlock();
 }
 
 // ----------------------------------------------------------------------
 // Scene, Camera & Renderer Setup
 // ----------------------------------------------------------------------
 const scene = new THREE.Scene();
-// Permanently set to night mode:
-scene.background = new THREE.Color(0x0a0a0a); // Night mode background
+scene.background = new THREE.Color(0x0a0a0a);
 scene.fog = new THREE.FogExp2(0x0a0a0a, 0.02);
 
 const camera = new THREE.PerspectiveCamera(
@@ -219,38 +218,20 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   1000
 );
-// Start camera at ground level.
 camera.position.set(0, groundLevels[1], 5);
 
-// Clock for animation timing
 const clock = new THREE.Clock();
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
-// Set output encoding to Linear so that the pictures use their original brightness.
 renderer.outputEncoding = THREE.LinearEncoding;
 document.body.appendChild(renderer.domElement);
-
-// ----------------------------------------------------------------------
-// Audio Setup
-// ----------------------------------------------------------------------
-const listener = new THREE.AudioListener();
-camera.add(listener);
-const ambientSound = new THREE.Audio(listener);
-const audioLoader = new THREE.AudioLoader();
-audioLoader.load('/assets/ambient.mp3', function (buffer) {
-  ambientSound.setBuffer(buffer);
-  ambientSound.setLoop(true);
-  ambientSound.setVolume(0.5);
-  ambientSound.play();
-});
 
 // ----------------------------------------------------------------------
 // Controls & Movement Setup
 // ----------------------------------------------------------------------
 const controls = new PointerLockControls(camera, document.body);
 
-// Only lock controls on click if we're not viewing an NFT
 document.addEventListener('click', () => {
   if (viewerOverlay.style.display !== 'flex') {
     controls.lock();
@@ -271,19 +252,20 @@ document.addEventListener('keydown', (event) => {
     case 'Space':
       if (!isJumping) {
         isJumping = true;
-        jumpVelocity = 8; // initial jump velocity
+        jumpVelocity = 8;
       }
       break;
     case 'Escape':
       if (viewerOverlay.style.display === 'flex') {
         viewerOverlay.style.display = 'none';
-        controls.lock(); // Re-enable controls when closing the viewer
+        controls.lock();
       } else {
-        controls.unlock(); // Allow normal escape functionality when not viewing NFT
+        controls.unlock();
       }
       break;
   }
 });
+
 document.addEventListener('keyup', (event) => {
   switch (event.code) {
     case 'KeyW': moveForward = false; break;
@@ -296,24 +278,42 @@ document.addEventListener('keyup', (event) => {
 // ----------------------------------------------------------------------
 // Lighting
 // ----------------------------------------------------------------------
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.3); // Lower intensity for night mode
-scene.add(ambientLight);
-const directionalLight = new THREE.DirectionalLight(0x00aaff, 0.5); // Cool blue tint
-directionalLight.position.set(0, 10, 0);
-scene.add(directionalLight);
+function createLights() {
+  // Ambient light for overall brightness
+  const ambientLight = new THREE.AmbientLight(0xffffff, 1.0); 
+  scene.add(ambientLight);
+
+  // Main directional light
+  const mainLight = new THREE.DirectionalLight(0xffffff, 1.2); 
+  mainLight.position.set(0, 10, 0);
+  scene.add(mainLight);
+
+  // Additional point lights for better NFT visibility
+  const pointLightPositions = [
+    { pos: [0, 8, 0], intensity: 0.8 },
+    { pos: [-15, 8, -15], intensity: 0.6 },
+    { pos: [15, 8, -15], intensity: 0.6 },
+    { pos: [-15, 8, 15], intensity: 0.6 },
+    { pos: [15, 8, 15], intensity: 0.6 }
+  ];
+
+  pointLightPositions.forEach(config => {
+    const pointLight = new THREE.PointLight(0xffffff, config.intensity);
+    pointLight.position.set(...config.pos);
+    scene.add(pointLight);
+  });
+}
 
 // ----------------------------------------------------------------------
-// Floor: Create a Random Tiled Texture (unchanged)
+// Floor Texture
 // ----------------------------------------------------------------------
 function createFloorTexture() {
   const canvas = document.createElement('canvas');
   canvas.width = 512;
   canvas.height = 512;
   const ctx = canvas.getContext('2d');
-  // Fill entire canvas with a base color
   ctx.fillStyle = '#888888';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  // Divide the canvas into a 10x10 grid and randomly adjust some tiles
   const cols = 10, rows = 10;
   const tileWidth = canvas.width / cols;
   const tileHeight = canvas.height / rows;
@@ -334,105 +334,120 @@ function createFloorTexture() {
 }
 
 // ----------------------------------------------------------------------
-// Room Structure: Outer Walls, Floor & Ceiling (Single Room)
+// Room Structure
 // ----------------------------------------------------------------------
-let walls = {};
-
 function createWallsAndFloor() {
-  // Subtle reflective wall material
+  const walls = {};
   const wallMaterial = new THREE.MeshStandardMaterial({
     color: 0x404040,
-    roughness: 0.5,  // Lower roughness for subtle reflections
-    metalness: 0.2   // Increased metalness for a slight sheen
+    roughness: 0.5,
+    metalness: 0.2
   });
 
-  const floorTexture = createFloorTexture();
-  const floorMaterial = new THREE.MeshStandardMaterial({ map: floorTexture });
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), floorMaterial);
+  // Floor
+  const floorGeometry = new THREE.PlaneGeometry(40, 40);
+  const floorMaterial = new THREE.MeshStandardMaterial({
+    map: createFloorTexture(),
+    roughness: 0.8,
+    metalness: 0.2
+  });
+  const floor = new THREE.Mesh(floorGeometry, floorMaterial);
   floor.rotation.x = -Math.PI / 2;
-  floor.position.y = -5;
   scene.add(floor);
+  walls.floor = floor;
 
-  const wallGeometry = new THREE.PlaneGeometry(40, 15);
-  const backWall = new THREE.Mesh(wallGeometry, wallMaterial);
-  backWall.position.set(0, 2.5, -20);
+  // Walls
+  const wallGeometry = new THREE.PlaneGeometry(40, 8);
+  
+  // Back wall
+  const backWall = new THREE.Mesh(wallGeometry, wallMaterial.clone());
+  backWall.position.z = -20;
+  backWall.position.y = 4;
   scene.add(backWall);
+  walls.backWall = backWall;
 
+  // Left wall
   const leftWall = new THREE.Mesh(wallGeometry, wallMaterial.clone());
+  leftWall.position.x = -20;
+  leftWall.position.y = 4;
   leftWall.rotation.y = Math.PI / 2;
-  leftWall.position.set(-20, 2.5, 0);
   scene.add(leftWall);
+  walls.leftWall = leftWall;
 
+  // Right wall
   const rightWall = new THREE.Mesh(wallGeometry, wallMaterial.clone());
+  rightWall.position.x = 20;
+  rightWall.position.y = 4;
   rightWall.rotation.y = -Math.PI / 2;
-  rightWall.position.set(20, 2.5, 0);
   scene.add(rightWall);
+  walls.rightWall = rightWall;
 
+  // Front wall
   const frontWall = new THREE.Mesh(wallGeometry, wallMaterial.clone());
+  frontWall.position.z = 20;
+  frontWall.position.y = 4;
   frontWall.rotation.y = Math.PI;
-  frontWall.position.set(0, 2.5, 20);
   scene.add(frontWall);
+  walls.frontWall = frontWall;
 
-  return { backWall, leftWall, rightWall, frontWall };
+  return walls;
 }
-walls = createWallsAndFloor();
 
 // ----------------------------------------------------------------------
-// Ceiling with an Optical Illusion (unchanged)
+// Ceiling
 // ----------------------------------------------------------------------
 function createCeiling() {
-  const canvas = document.createElement('canvas');
-  canvas.width = 512;
-  canvas.height = 512;
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.strokeStyle = "#000000";
-  ctx.lineWidth = 4;
-  const gridSize = 64;
-  for (let x = 0; x <= canvas.width; x += gridSize) {
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, canvas.height);
-    ctx.stroke();
-  }
-  for (let y = 0; y <= canvas.height; y += gridSize) {
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(canvas.width, y);
-    ctx.stroke();
-  }
-  const ceilingTexture = new THREE.CanvasTexture(canvas);
-  ceilingTexture.wrapS = THREE.RepeatWrapping;
-  ceilingTexture.wrapT = THREE.RepeatWrapping;
-  ceilingTexture.repeat.set(1, 1);
-
+  const ceilingGeometry = new THREE.PlaneGeometry(40, 40);
   const ceilingMaterial = new THREE.MeshStandardMaterial({
-    map: ceilingTexture
+    color: 0x0a0a0a,
+    roughness: 0.9,
+    metalness: 0.1,
+    side: THREE.DoubleSide
   });
-  const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), ceilingMaterial);
+
+  const ceiling = new THREE.Mesh(ceilingGeometry, ceilingMaterial);
+  ceiling.position.y = 8;
   ceiling.rotation.x = Math.PI / 2;
-  ceiling.position.y = 10;
   scene.add(ceiling);
+
+  // Add some random stars
+  const starsGeometry = new THREE.BufferGeometry();
+  const starsMaterial = new THREE.PointsMaterial({
+    color: 0xffffff,
+    size: 0.1
+  });
+
+  const starsVertices = [];
+  for (let i = 0; i < 1000; i++) {
+    const x = Math.random() * 40 - 20;
+    const z = Math.random() * 40 - 20;
+    starsVertices.push(x, 7.9, z);
+  }
+
+  starsGeometry.setAttribute(
+    'position',
+    new THREE.Float32BufferAttribute(starsVertices, 3)
+  );
+
+  const stars = new THREE.Points(starsGeometry, starsMaterial);
+  scene.add(stars);
 }
-createCeiling();
 
 // ----------------------------------------------------------------------
-// Helper: Compute Evenly Spaced Positions for a Given Width
+// NFT Frame Positioning
 // ----------------------------------------------------------------------
 function getPositions(totalWidth, numFrames) {
   const positions = [];
-  const gap = totalWidth / (numFrames + 1);
-  for (let i = 0; i < numFrames; i++) {
-    positions.push(-totalWidth / 2 + (i + 1) * gap);
+  const spacing = totalWidth / (numFrames + 1);
+  for (let i = 1; i <= numFrames; i++) {
+    positions.push((i * spacing) - (totalWidth / 2));
   }
   return positions;
 }
-const wallPositions5 = getPositions(40, 5);
 
 // ----------------------------------------------------------------------
-// NFT Frames on Outer Walls
-// Using MeshBasicMaterial so that the images display unlit.
+// NFT Creation
+// ----------------------------------------------------------------------
 const photographicGreyMaterial = new THREE.MeshStandardMaterial({
   color: 0x808080,
   metalness: 0.1,
@@ -450,9 +465,12 @@ function createNFT(index, position, rotation) {
   );
   frameGroup.add(frameBox);
 
+  const nftIndex = index + 29; // Adjusted to start from nft29
+  const imageUrl = `/assets/nft${nftIndex}.png`;
+  
   const loader = new THREE.TextureLoader();
   loader.load(
-    `/assets/nft${index + 1}.png`,
+    imageUrl,
     (tex) => {
       tex.encoding = THREE.LinearEncoding;
       const picturePlane = new THREE.Mesh(
@@ -462,14 +480,19 @@ function createNFT(index, position, rotation) {
           side: THREE.DoubleSide
         })
       );
-      picturePlane.userData.imageUrl = `/assets/nft${index + 1}.png`;
+      // Add necessary userData properties for click detection and slider functionality
+      picturePlane.userData = {
+        isNFT: true,
+        index: nftIndex,
+        imageUrl: imageUrl
+      };
       picturePlane.position.z = 0.11;
       frameGroup.add(picturePlane);
       picturePlanes.push(picturePlane);
     },
     undefined,
     (err) => {
-      console.error(`Error loading texture: nft${index + 1}.png`, err);
+      console.error(`Error loading texture: ${imageUrl}`, err);
     }
   );
 
@@ -478,146 +501,25 @@ function createNFT(index, position, rotation) {
   scene.add(frameGroup);
 }
 
-const backWallNFTPositions = wallPositions5.map(x => ({ pos: { x: x, y: 2, z: -19.5 }, rot: { x: 0, y: 0, z: 0 } }));
-const leftWallNFTPositions = getPositions(40, 5).map(z => ({ pos: { x: -19.5, y: 2, z: z }, rot: { x: 0, y: Math.PI / 2, z: 0 } }));
-const rightWallNFTPositions = getPositions(40, 5).map(z => ({ pos: { x: 19.5, y: 2, z: z }, rot: { x: 0, y: -Math.PI / 2, z: 0 } }));
-const frontWallNFTPositions = wallPositions5.map(x => ({ pos: { x: x, y: 2, z: 19.5 }, rot: { x: 0, y: Math.PI, z: 0 } }));
-
-backWallNFTPositions.forEach((data, i) => createNFT(i, data.pos, data.rot));
-leftWallNFTPositions.forEach((data, i) => createNFT(i + 5, data.pos, data.rot));
-rightWallNFTPositions.forEach((data, i) => createNFT(i + 10, data.pos, data.rot));
-frontWallNFTPositions.forEach((data, i) => createNFT(i + 15, data.pos, data.rot));
-
 // ----------------------------------------------------------------------
-// Particle/Snow Effects on Outer Walls
+// Centralized Click Handler
 // ----------------------------------------------------------------------
-function createSnowForWall(wallMesh, frameCenters) {
-  const particleCount = 300;
-  const positions = [];
-  const margin = 0.3;
-  const halfPicW = 0.9 + margin;
-  const halfPicH = 1.35 + margin;
-  for (let i = 0; i < particleCount; i++) {
-    const x = THREE.MathUtils.randFloat(-20, 20);
-    const y = THREE.MathUtils.randFloat(-7.5, 7.5);
-    let skip = false;
-    for (const center of frameCenters) {
-      if (Math.abs(x - center.x) < halfPicW && Math.abs(y - center.y) < halfPicH) {
-        skip = true;
-        break;
-      }
-    }
-    if (!skip) positions.push(x, y, 0);
-  }
-  const particlesGeometry = new THREE.BufferGeometry();
-  particlesGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-  const particlesMaterial = new THREE.PointsMaterial({
-    color: 0xffffff,
-    size: 0.2,
-    transparent: true,
-    opacity: 0.8
-  });
-  const particleSystem = new THREE.Points(particlesGeometry, particlesMaterial);
-  particleSystem.position.z = 0.01;
-  wallMesh.add(particleSystem);
-}
-
-const backWallFrameCenters = backWallNFTPositions.map(data => ({ x: data.pos.x, y: data.pos.y - 2.5 }));
-const frontWallFrameCenters = frontWallNFTPositions.map(data => ({ x: data.pos.x, y: data.pos.y - 2.5 }));
-const leftWallFrameCenters = leftWallNFTPositions.map(data => ({ x: data.pos.z, y: data.pos.y - 2.5 }));
-const rightWallFrameCenters = rightWallNFTPositions.map(data => ({ x: -data.pos.z, y: data.pos.y - 2.5 }));
-
-createSnowForWall(walls.backWall, backWallFrameCenters);
-createSnowForWall(walls.frontWall, frontWallFrameCenters);
-createSnowForWall(walls.leftWall, leftWallFrameCenters);
-createSnowForWall(walls.rightWall, rightWallFrameCenters);
-
-// ----------------------------------------------------------------------
-// Divider (Mid-Room Wall) with Additional NFTs (Numbers 21-28)
-// ----------------------------------------------------------------------
-function createDivider() {
-  const dividerGroup = new THREE.Group();
-  const dividerGeometry = new THREE.BoxGeometry(30, 13, 0.2);
-  const dividerMaterial = new THREE.MeshStandardMaterial({
-    color: 0x505050,
-    roughness: 0.7,
-    metalness: 0.1
-  });
-  const dividerMesh = new THREE.Mesh(dividerGeometry, dividerMaterial);
-  dividerGroup.add(dividerMesh);
-  dividerGroup.position.set(0, 1.5, 0);
-  scene.add(dividerGroup);
-
-  function createDividerNFT(nftNumber, localX, localZ, rotationY) {
-    const frameGroup = new THREE.Group();
-    const frameWidth = 2.0, frameHeight = 3.0;
-    const pictureWidth = 1.8, pictureHeight = 2.7;
-    const frameBox = new THREE.Mesh(
-      new THREE.BoxGeometry(frameWidth, frameHeight, 0.2),
-      photographicGreyMaterial
-    );
-    frameGroup.add(frameBox);
-
-    const loader = new THREE.TextureLoader();
-    loader.load(
-      `/assets/nft${nftNumber}.png`,
-      (tex) => {
-        tex.encoding = THREE.LinearEncoding;
-        const picturePlane = new THREE.Mesh(
-          new THREE.PlaneGeometry(pictureWidth, pictureHeight),
-          new THREE.MeshBasicMaterial({
-            map: tex,
-            side: THREE.DoubleSide
-          })
-        );
-        picturePlane.userData.imageUrl = `/assets/nft${nftNumber}.png`;
-        picturePlane.position.z = 0.11;
-        frameGroup.add(picturePlane);
-        picturePlanes.push(picturePlane);
-      },
-      undefined,
-      (err) => { console.error(`Error loading texture: nft${nftNumber}.png`, err); }
-    );
-    frameGroup.position.set(localX, 0.5, localZ);
-    frameGroup.rotation.y = rotationY;
-    dividerGroup.add(frameGroup);
-  }
-
-  const dividerPositions = getPositions(30, 4);
-  dividerPositions.forEach((localX, i) => {
-    createDividerNFT(21 + i, localX, 0.21, 0);
-  });
-  dividerPositions.forEach((localX, i) => {
-    createDividerNFT(25 + i, localX, -0.21, Math.PI);
-  });
-}
-createDivider();
-
-// ----------------------------------------------------------------------
-// Collision Boundaries (for the single room)
-// ----------------------------------------------------------------------
-function checkCollisions() {
-  camera.position.x = Math.max(-19, Math.min(19, camera.position.x));
-  camera.position.z = Math.max(-19, Math.min(19, camera.position.z));
-  const safeZone = 0.5;
-  if (camera.position.x > -15 && camera.position.x < 15 && Math.abs(camera.position.z) < safeZone) {
-    camera.position.z = (camera.position.z >= 0) ? safeZone : -safeZone;
-  }
-}
-
-// ----------------------------------------------------------------------
-// Add click detection functionality for NFTs
-// ----------------------------------------------------------------------
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
-
-function onNFTClick(event) {
-  if (controls.isLocked === false) return;
+function handleClick(event) {
+  // If the viewer is open, clicks are handled by the viewer's event listener
+  if (viewerOverlay.style.display === 'flex') return;
   
+  // Check if we clicked on an NFT
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2();
+  
+  // Calculate mouse position in normalized device coordinates
   mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
   mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
   
+  // Update the picking ray with the camera and mouse position
   raycaster.setFromCamera(mouse, camera);
+  
+  // Calculate objects intersecting the picking ray
   const intersects = raycaster.intersectObjects(picturePlanes, false);
   
   if (intersects.length > 0) {
@@ -625,30 +527,230 @@ function onNFTClick(event) {
     if (object.userData && object.userData.isNFT) {
       console.log("NFT clicked:", object.userData.index); // Debug log
       openImageViewer(object.userData.imageUrl, object.userData.index);
+      event.stopPropagation(); // Prevent other click handlers from firing
+      return;
+    }
+  }
+  
+  // If we didn't click on an NFT and controls are not locked, lock them
+  if (!controls.isLocked) {
+    controls.lock();
+    event.stopPropagation(); // Prevent other click handlers from firing
+  }
+}
+
+// Remove any existing click listeners to prevent duplicates
+window.removeEventListener('click', onNFTClick);
+window.removeEventListener('click', handleClick);
+window.addEventListener('click', handleClick);
+
+// ----------------------------------------------------------------------
+// NFT Click Detection (Legacy function - now handled by handleClick)
+// ----------------------------------------------------------------------
+function onNFTClick(event) {
+  // This function is now handled by the centralized click handler
+  console.log("onNFTClick is deprecated, using centralized click handler instead");
+}
+
+// ----------------------------------------------------------------------
+// Separate handler for divider NFTs
+// ----------------------------------------------------------------------
+function createDividerNFT(nftNumber, localX, localZ, rotationY, parentGroup) {
+  const frameGroup = new THREE.Group();
+  const frameWidth = 2.0, frameHeight = 3.0;
+  const pictureWidth = 1.8, pictureHeight = 2.7;
+  
+  // Create frame
+  const frameBox = new THREE.Mesh(
+    new THREE.BoxGeometry(frameWidth, frameHeight, 0.2),
+    photographicGreyMaterial
+  );
+  frameGroup.add(frameBox);
+
+  // Load NFT texture
+  const textureUrl = `/assets/nft${nftNumber}.png`;
+  const loader = new THREE.TextureLoader();
+  loader.load(
+    textureUrl,
+    (tex) => {
+      tex.encoding = THREE.LinearEncoding;
+      const picturePlane = new THREE.Mesh(
+        new THREE.PlaneGeometry(pictureWidth, pictureHeight),
+        new THREE.MeshBasicMaterial({
+          map: tex,
+          side: THREE.DoubleSide
+        })
+      );
+      picturePlane.userData = {
+        isNFT: true,
+        index: nftNumber,
+        imageUrl: textureUrl
+      };
+      picturePlane.position.z = 0.11;
+      frameGroup.add(picturePlane);
+      picturePlanes.push(picturePlane);
+    },
+    undefined,
+    (err) => { console.error(`Error loading texture: ${textureUrl}`, err); }
+  );
+  
+  frameGroup.position.set(localX, 0, localZ);  // Adjusted Y position to 0, relative to divider wall
+  frameGroup.rotation.y = rotationY;
+  parentGroup.add(frameGroup);
+  
+  return frameGroup;
+}
+
+// ----------------------------------------------------------------------
+// Create Room Elements
+// ----------------------------------------------------------------------
+const walls = createWallsAndFloor();
+createCeiling();
+createLights();
+
+// Create NFTs on outer walls (28 NFTs, numbers 29-56)
+const wallPositions7 = getPositions(40, 7); // 7 NFTs per wall
+
+// Back wall NFTs (29-35)
+const backWallNFTPositions = wallPositions7.map(x => ({ pos: { x: x, y: 4, z: -19.5 }, rot: { x: 0, y: 0, z: 0 } }));
+backWallNFTPositions.forEach((data, i) => createNFT(i, data.pos, data.rot));
+
+// Left wall NFTs (36-42)
+const leftWallNFTPositions = wallPositions7.map(z => ({ pos: { x: -19.5, y: 4, z: z }, rot: { x: 0, y: Math.PI / 2, z: 0 } }));
+leftWallNFTPositions.forEach((data, i) => createNFT(i + 7, data.pos, data.rot));
+
+// Right wall NFTs (43-49)
+const rightWallNFTPositions = wallPositions7.map(z => ({ pos: { x: 19.5, y: 4, z: z }, rot: { x: 0, y: -Math.PI / 2, z: 0 } }));
+rightWallNFTPositions.forEach((data, i) => createNFT(i + 14, data.pos, data.rot));
+
+// Front wall NFTs (50-56)
+const frontWallNFTPositions = wallPositions7.map(x => ({ pos: { x: x, y: 4, z: 19.5 }, rot: { x: 0, y: Math.PI, z: 0 } }));
+frontWallNFTPositions.forEach((data, i) => createNFT(i + 21, data.pos, data.rot));
+
+// ----------------------------------------------------------------------
+// Divider Wall with NFTs
+// ----------------------------------------------------------------------
+function createDivider() {
+  // Create divider groups for left and right sections
+  const leftDividerGroup = new THREE.Group();
+  const rightDividerGroup = new THREE.Group();
+
+  // Thicker wall but same style as room1
+  const dividerGeometry = new THREE.BoxGeometry(15, 8, 0.5);
+  const dividerMaterial = new THREE.MeshStandardMaterial({
+    color: 0x505050,
+    roughness: 0.7,
+    metalness: 0.1
+  });
+
+  // Left divider wall
+  const leftDividerMesh = new THREE.Mesh(dividerGeometry, dividerMaterial);
+  leftDividerGroup.add(leftDividerMesh);
+  leftDividerGroup.position.set(-10, 4, 0);
+  scene.add(leftDividerGroup);
+
+  // Right divider wall
+  const rightDividerMesh = new THREE.Mesh(dividerGeometry, dividerMaterial);
+  rightDividerGroup.add(rightDividerMesh);
+  rightDividerGroup.position.set(10, 4, 0);
+  scene.add(rightDividerGroup);
+
+  // Calculate positions for 4 NFTs on each side
+  const wallLength = 15; // Total length of each divider wall
+  const margin = 1.5; // Margin from wall edges
+  const usableLength = wallLength - (2 * margin); // Length available for frames
+  const spacing = usableLength / 3; // Space between frames (3 gaps for 4 frames)
+  const frameOffset = 0.4; // Offset from wall surface
+
+  // Left divider - front side (NFTs 57-60)
+  for (let i = 0; i < 4; i++) {
+    const localX = -wallLength/2 + margin + (i * spacing);
+    createDividerNFT(57 + i, localX, frameOffset, 0, leftDividerGroup);
+  }
+
+  // Left divider - back side (NFTs 61-64)
+  for (let i = 0; i < 4; i++) {
+    const localX = -wallLength/2 + margin + (i * spacing);
+    createDividerNFT(61 + i, localX, -frameOffset, Math.PI, leftDividerGroup);
+  }
+
+  // Right divider - front side (NFTs 65-68)
+  for (let i = 0; i < 4; i++) {
+    const localX = -wallLength/2 + margin + (i * spacing);
+    createDividerNFT(65 + i, localX, frameOffset, 0, rightDividerGroup);
+  }
+
+  // Right divider - back side (NFTs 69-72)
+  for (let i = 0; i < 4; i++) {
+    const localX = -wallLength/2 + margin + (i * spacing);
+    createDividerNFT(69 + i, localX, -frameOffset, Math.PI, rightDividerGroup);
+  }
+}
+
+// ----------------------------------------------------------------------
+// Collision Detection
+// ----------------------------------------------------------------------
+function checkCollisions() {
+  const playerRadius = 1.5;
+  const cameraPosition = camera.position.clone();
+  const wallOffset = 1.0; // Distance to keep from walls
+  
+  // Check outer wall collisions
+  if (cameraPosition.x < -19 + playerRadius) camera.position.x = -19 + playerRadius;
+  if (cameraPosition.x > 19 - playerRadius) camera.position.x = 19 - playerRadius;
+  if (cameraPosition.z < -19 + playerRadius) camera.position.z = -19 + playerRadius;
+  if (cameraPosition.z > 19 - playerRadius) camera.position.z = 19 - playerRadius;
+
+  // Left divider section (from x=-17 to x=-3)
+  if (cameraPosition.x < -3 && cameraPosition.x > -17) {
+    if (Math.abs(cameraPosition.z) < wallOffset) {
+      // Push player to the nearest side of the wall
+      if (cameraPosition.z > 0) {
+        camera.position.z = wallOffset;
+      } else {
+        camera.position.z = -wallOffset;
+      }
+    }
+  }
+  
+  // Right divider section (from x=3 to x=17)
+  if (cameraPosition.x > 3 && cameraPosition.x < 17) {
+    if (Math.abs(cameraPosition.z) < wallOffset) {
+      // Push player to the nearest side of the wall
+      if (cameraPosition.z > 0) {
+        camera.position.z = wallOffset;
+      } else {
+        camera.position.z = -wallOffset;
+      }
+    }
+  }
+
+  // Prevent getting stuck in corners
+  const cornerBuffer = 2;
+  // Outer corners
+  if (Math.abs(cameraPosition.x) > 19 - cornerBuffer && Math.abs(cameraPosition.z) > 19 - cornerBuffer) {
+    if (Math.abs(cameraPosition.x) > Math.abs(cameraPosition.z)) {
+      camera.position.x = Math.sign(cameraPosition.x) * (19 - cornerBuffer);
+    } else {
+      camera.position.z = Math.sign(cameraPosition.z) * (19 - cornerBuffer);
+    }
+  }
+
+  // Divider wall corners
+  if ((Math.abs(cameraPosition.x + 10) < cornerBuffer || Math.abs(cameraPosition.x - 10) < cornerBuffer) && 
+      Math.abs(cameraPosition.z) < wallOffset) {
+    if (cameraPosition.z > 0) {
+      camera.position.z = wallOffset;
+    } else {
+      camera.position.z = -wallOffset;
     }
   }
 }
 
-// Make sure we only add the click event listener once
-window.removeEventListener('click', onNFTClick);
-window.addEventListener('click', onNFTClick, false);
+createDivider();
 
 // ----------------------------------------------------------------------
-// Loading Overlay Management
-// ----------------------------------------------------------------------
-const loadingOverlay = document.getElementById('loading-overlay');
-loadingOverlay.style.opacity = '1';
-
-// Fade out loading overlay
-setTimeout(() => {
-  loadingOverlay.style.opacity = '0';
-  setTimeout(() => {
-    loadingOverlay.style.display = 'none';
-  }, 1000);
-}, 3000);
-
-// ----------------------------------------------------------------------
-// Portal Management
+// Portal
 // ----------------------------------------------------------------------
 function createPortal() {
   const portalGeometry = new THREE.CircleGeometry(1.2, 32);
@@ -660,14 +762,45 @@ function createPortal() {
   });
   const portal = new THREE.Mesh(portalGeometry, portalMaterial);
   
-  // Move portal to back-right corner on the ground
+  portal.position.set(0, 2, 0);
+  scene.add(portal);
+
+  const glowGeometry = new THREE.CircleGeometry(1.4, 32);
+  const glowMaterial = new THREE.MeshBasicMaterial({
+    color: 0x0000ff,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.3
+  });
+  const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+  glow.position.copy(portal.position);
+  scene.add(glow);
+
+  return { portal, glow };
+}
+
+// Create portal to Room 1
+const portal = createPortal();
+
+// Create portal to Room 3
+function createRoom3Portal() {
+  const portalGeometry = new THREE.CircleGeometry(1.2, 32);
+  const portalMaterial = new THREE.MeshBasicMaterial({
+    color: 0x44ff44, // Green color to distinguish from the blue portal
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.8
+  });
+  const portal = new THREE.Mesh(portalGeometry, portalMaterial);
+  
+  // Position in the corner of room 2
   portal.position.set(18, 1.2, -18);
   portal.rotation.x = -Math.PI / 2; // Lay flat on ground
   scene.add(portal);
 
   const glowGeometry = new THREE.CircleGeometry(1.4, 32);
   const glowMaterial = new THREE.MeshBasicMaterial({
-    color: 0x0000ff,
+    color: 0x00ff00, // Green glow
     side: THREE.DoubleSide,
     transparent: true,
     opacity: 0.3
@@ -680,22 +813,20 @@ function createPortal() {
   return { portal, glow };
 }
 
-const portal = createPortal();
+const room3Portal = createRoom3Portal();
 
 // ----------------------------------------------------------------------
 // Portal Interaction
 // ----------------------------------------------------------------------
-// Add portal timer variable
-let portalTimer = null;
-
 function checkPortalProximity() {
-  const portalPosition = new THREE.Vector3(18, 1.2, -18);
-  const distance = camera.position.distanceTo(portalPosition);
+  // Check proximity to Room 1 portal
+  const distance = camera.position.distanceTo(portal.portal.position);
   
-  if (distance < 3) {
+  if (distance < 2) {
     // Only teleport if the player has been close to the portal for a short time
     if (!portalTimer) {
       portalTimer = setTimeout(() => {
+        const loadingOverlay = document.getElementById('loading-overlay');
         loadingOverlay.style.display = 'flex';
         loadingOverlay.style.opacity = '1';
         
@@ -708,7 +839,7 @@ function checkPortalProximity() {
             }, 500);
           }, 5000);
           
-          window.location.href = 'room2.html';
+          window.location.href = 'index.html';
         } catch (error) {
           console.error("Navigation error:", error);
           // Hide the loading overlay if there's an error
@@ -726,7 +857,56 @@ function checkPortalProximity() {
       portalTimer = null;
     }
   }
+  
+  // Check proximity to Room 3 portal
+  const room3PortalPosition = new THREE.Vector3(18, 1.2, -18);
+  const distanceToRoom3Portal = camera.position.distanceTo(room3PortalPosition);
+  
+  if (distanceToRoom3Portal < 3) {
+    // Only teleport if the player has been close to the portal for a short time
+    if (!room3PortalTimer) {
+      room3PortalTimer = setTimeout(() => {
+        const loadingOverlay = document.getElementById('loading-overlay');
+        loadingOverlay.style.display = 'flex';
+        loadingOverlay.style.opacity = '1';
+        
+        try {
+          // Add a safety timeout to hide the overlay if navigation fails
+          const navigationTimeout = setTimeout(() => {
+            loadingOverlay.style.opacity = '0';
+            setTimeout(() => {
+              loadingOverlay.style.display = 'none';
+            }, 500);
+          }, 5000);
+          
+          window.location.href = 'room3.html';
+        } catch (error) {
+          console.error("Navigation error:", error);
+          // Hide the loading overlay if there's an error
+          loadingOverlay.style.opacity = '0';
+          setTimeout(() => {
+            loadingOverlay.style.display = 'none';
+          }, 500);
+        }
+      }, 500); // Delay teleportation by 500ms to prevent accidental teleportation
+    }
+  } else {
+    // Clear the timer if player moves away from portal
+    if (room3PortalTimer) {
+      clearTimeout(room3PortalTimer);
+      room3PortalTimer = null;
+    }
+  }
 }
+
+// Add portal timer variables
+let portalTimer = null;
+let room3PortalTimer = null;
+
+// ----------------------------------------------------------------------
+// Loading Overlay Management
+// ----------------------------------------------------------------------
+const loadingOverlay = document.getElementById('loading-overlay');
 
 // Add safety mechanism to ensure loading overlay doesn't stay stuck
 document.addEventListener('keydown', function(event) {
@@ -738,6 +918,14 @@ document.addEventListener('keydown', function(event) {
     }, 500);
   }
 });
+
+// Hide loading overlay after initial load
+setTimeout(() => {
+  loadingOverlay.style.opacity = '0';
+  setTimeout(() => {
+    loadingOverlay.style.display = 'none';
+  }, 500);
+}, 1000);
 
 // ----------------------------------------------------------------------
 // Animation Loop
@@ -783,13 +971,14 @@ function animate() {
 
   renderer.render(scene, camera);
 }
+
 animate();
 
 // ----------------------------------------------------------------------
 // Handle Window Resize
 // ----------------------------------------------------------------------
 window.addEventListener('resize', () => {
-  renderer.setSize(window.innerWidth, window.innerHeight);
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
 });
