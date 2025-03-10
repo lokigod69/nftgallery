@@ -26,6 +26,7 @@
 // - Improved light positioning to have exactly one light between each pair of NFTs
 // - Fixed portal functionality to properly teleport to Room 4
 // - Fixed NFT 107 orientation to properly face outward instead of toward the wall
+// - Updated portal proximity check to use a simpler approach with larger detection ranges
 
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
@@ -262,8 +263,8 @@ const camera = new THREE.PerspectiveCamera(
 
 // Define safe spawn positions that are away from NFTs and walls
 const spawnPositions = {
-  default: new THREE.Vector3(0, groundLevels[1], 5),
-  safe: new THREE.Vector3(0, groundLevels[1], 0), // Center of the room
+  default: new THREE.Vector3(-10, groundLevels[1], -10), // Offset from center, away from walls and pictures
+  safe: new THREE.Vector3(10, groundLevels[1], -10), // Alternative safe position
   room4: new THREE.Vector3(10, groundLevels[1], 10) // Coming from room 4, spawn in a safe area
 };
 
@@ -1220,22 +1221,30 @@ function checkPortalProximity() {
   const distance4 = camera.position.distanceTo(portal4Position);
   
   // Update instructions based on proximity
-  if (distance < 3) {
-    document.getElementById('controls-description').textContent = 'Press E to enter Room 2';
-    
-    // Teleport to Room 2 when E is pressed
-    if (keyStates['KeyE']) {
+  if (distance < 5) {
+    // If very close to the portal, teleport automatically
+    if (distance < 2.5) {
       console.log("Teleporting to Room 2...");
+      const loadingOverlay = document.getElementById('loading-overlay');
+      if (loadingOverlay) {
+        loadingOverlay.style.display = 'flex';
+      }
       window.location.href = 'room2.html';
+    } else {
+      document.getElementById('controls-description').textContent = 'Move closer to enter Room 2';
     }
   } 
-  else if (distance4 < 3) {
-    document.getElementById('controls-description').textContent = 'Press E to enter Room 4';
-    
-    // Teleport to Room 4 when E is pressed
-    if (keyStates['KeyE']) {
+  else if (distance4 < 5) {
+    // If very close to the portal, teleport automatically
+    if (distance4 < 2.5) {
       console.log("Teleporting to Room 4...");
+      const loadingOverlay = document.getElementById('loading-overlay');
+      if (loadingOverlay) {
+        loadingOverlay.style.display = 'flex';
+      }
       window.location.href = 'room4.html';
+    } else {
+      document.getElementById('controls-description').textContent = 'Move closer to enter Room 4';
     }
   } 
   else {
