@@ -660,9 +660,9 @@ function createPortal() {
   });
   const portal = new THREE.Mesh(portalGeometry, portalMaterial);
   
-  // Move portal to back-right corner on the ground
-  portal.position.set(18, 2, -18);
-  portal.rotation.y = Math.PI / 4; // Rotate to face diagonally into the room
+  // Move portal to back-left corner
+  portal.position.set(-18, 2, -18);
+  portal.rotation.y = -Math.PI / 4; // Rotate to face diagonally into the room
   scene.add(portal);
 
   const glowGeometry = new THREE.CircleGeometry(1.4, 32);
@@ -689,7 +689,7 @@ const portal = createPortal();
 let portalTimer = null;
 
 function checkPortalProximity() {
-  const portalPosition = new THREE.Vector3(18, 2, -18);
+  const portalPosition = new THREE.Vector3(-18, 2, -18);
   const distance = camera.position.distanceTo(portalPosition);
   
   if (distance < 3) {
