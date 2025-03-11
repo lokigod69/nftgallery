@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite';
+import { resolve } from 'path';
 
 export default defineConfig({
   // This tells Vite to treat the "public" folder as the place for static assets
@@ -6,6 +7,15 @@ export default defineConfig({
 
   build: {
     // This tells Vite to place the production build in a folder called "dist"
-    outDir: 'dist'
+    outDir: 'dist',
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, 'index.html'),
+        room2: resolve(__dirname, 'room2.html'),
+        room3: resolve(__dirname, 'room3.html'),
+        room4: resolve(__dirname, 'room4.html'),
+        room5: resolve(__dirname, 'room5.html')
+      }
+    }
   }
 });
