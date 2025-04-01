@@ -2,9 +2,13 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>NFT Gallery</title>
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline';">
+    <title>NFT Gallery - Entry Point</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline';">
     <link rel="stylesheet" href="style.css" />
+    <script>
+      // Immediately redirect to Room 0 (Ocean Room) as the new entry point
+      window.location.replace('room0.html');
+    </script>
   </head>
   <body>
     <div id="loading-overlay" class="loading-overlay">
@@ -12,12 +16,11 @@
         <div class="loading-bar"></div>
       </div>
     </div>
-    <div id="controls-description">
-      <p>Controls:</p>
-      <p>WASD - Move around</p>
-      <p>Mouse - Control camera</p>
-      <p>ESC - Toggle camera control</p>
+    <div style="text-align: center; margin-top: 40vh; font-size: 24px;">
+      Redirecting to Room 0...
+      <noscript>
+        <p style="color: red;">JavaScript is required for this application. Please enable JavaScript and <a href="room0.html">click here to continue</a>.</p>
+      </noscript>
     </div>
-    <script type="module" src="main.js"></script>
   </body>
 </html>

@@ -680,21 +680,88 @@ function createPortal() {
   return { portal, glow };
 }
 
+// Create a portal back to Room 0
+function createPortalToRoom0() {
+  const portalGeometry = new THREE.CircleGeometry(1.8, 32); // Increased size from 1.2 to 1.8
+  const portalMaterial = new THREE.MeshBasicMaterial({
+    color: 0x00aaaa, // Teal color for Room 0 portal
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.8
+  });
+  const portal = new THREE.Mesh(portalGeometry, portalMaterial);
+  
+  // Move portal to back-right corner
+  portal.position.set(18, 2, -18);
+  portal.rotation.y = Math.PI / 4; // Rotate to face diagonally into the room
+  scene.add(portal);
+
+  const glowGeometry = new THREE.CircleGeometry(2.2, 32); // Increased size from 1.4 to 2.2
+  const glowMaterial = new THREE.MeshBasicMaterial({
+    color: 0x00cccc, // Brighter teal for better visibility
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.4 // Increased from 0.3 to 0.4
+  });
+  const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+  glow.position.copy(portal.position);
+  glow.rotation.copy(portal.rotation);
+  scene.add(glow);
+
+  // Add a light to make the portal more visible
+  const portalLight = new THREE.PointLight(0x00aaaa, 1, 10);
+  portalLight.position.copy(portal.position);
+  portalLight.position.x -= 1; // Position light slightly in front of portal
+  scene.add(portalLight);
+
+  // Add a label above the portal
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d');
+  canvas.width = 256;
+  canvas.height = 64;
+  context.fillStyle = '#ffffff';
+  context.font = 'Bold 28px Arial'; // Increased font size
+  context.textAlign = 'center';
+  context.fillText('Back to Ocean', canvas.width / 2, canvas.height / 2);
+  
+  const labelTexture = new THREE.CanvasTexture(canvas);
+  const labelMaterial = new THREE.MeshBasicMaterial({
+    map: labelTexture,
+    side: THREE.DoubleSide,
+    transparent: true
+  });
+  
+  const labelGeometry = new THREE.PlaneGeometry(2.5, 0.6); // Increased size
+  const label = new THREE.Mesh(labelGeometry, labelMaterial);
+  label.position.set(portal.position.x, portal.position.y + 1.8, portal.position.z); // Raised label
+  label.rotation.y = portal.rotation.y;
+  scene.add(label);
+
+  return { portal, glow, label, light: portalLight };
+}
+
 const portal = createPortal();
+const portalToRoom0 = createPortalToRoom0();
 
 // ----------------------------------------------------------------------
 // Portal Interaction
 // ----------------------------------------------------------------------
-// Add portal timer variable
+// Add portal timer variables
 let portalTimer = null;
+let portalToRoom0Timer = null;
 
 function checkPortalProximity() {
+  // Check Room 2 portal
   const portalPosition = new THREE.Vector3(-18, 2, -18);
   const distance = camera.position.distanceTo(portalPosition);
   
   if (distance < 3) {
+    // When close to the portal, display instructions
+    document.getElementById('controls-description').textContent = 'Approach the portal to enter Room 2';
+    document.getElementById('controls-description').style.display = 'block';
+    
     // Only teleport if the player has been close to the portal for a short time
-    if (!portalTimer) {
+    if (!portalTimer && distance < 1.5) {
       portalTimer = setTimeout(() => {
         loadingOverlay.style.display = 'flex';
         loadingOverlay.style.opacity = '1';
@@ -719,25 +786,62 @@ function checkPortalProximity() {
         }
       }, 500); // Delay teleportation by 500ms to prevent accidental teleportation
     }
+    return; // Exit early if we're near the Room 2 portal
   } else {
-    // Clear the timer if player moves away from portal
+    // Clear the portal timer if we move away
     if (portalTimer) {
       clearTimeout(portalTimer);
       portalTimer = null;
     }
   }
-}
-
-// Add safety mechanism to ensure loading overlay doesn't stay stuck
-document.addEventListener('keydown', function(event) {
-  // Allow escape key to hide loading overlay if it gets stuck
-  if (event.key === 'Escape' && loadingOverlay.style.display === 'flex') {
-    loadingOverlay.style.opacity = '0';
-    setTimeout(() => {
-      loadingOverlay.style.display = 'none';
-    }, 500);
+  
+  // Check Room 0 portal
+  const portalToRoom0Position = new THREE.Vector3(18, 2, -18);
+  const distanceToRoom0 = camera.position.distanceTo(portalToRoom0Position);
+  
+  if (distanceToRoom0 < 3) {
+    // When close to the portal, display instructions
+    document.getElementById('controls-description').textContent = 'Approach the portal to return to Ocean Room';
+    document.getElementById('controls-description').style.display = 'block';
+    
+    // Only teleport if the player has been close to the portal for a short time
+    if (!portalToRoom0Timer && distanceToRoom0 < 1.5) {
+      portalToRoom0Timer = setTimeout(() => {
+        loadingOverlay.style.display = 'flex';
+        loadingOverlay.style.opacity = '1';
+        
+        try {
+          // Add a safety timeout to hide the overlay if navigation fails
+          const navigationTimeout = setTimeout(() => {
+            loadingOverlay.style.opacity = '0';
+            setTimeout(() => {
+              loadingOverlay.style.display = 'none';
+            }, 500);
+          }, 5000);
+          
+          window.location.href = 'room0.html';
+        } catch (error) {
+          console.error("Navigation error:", error);
+          // Hide the loading overlay if there's an error
+          loadingOverlay.style.opacity = '0';
+          setTimeout(() => {
+            loadingOverlay.style.display = 'none';
+          }, 500);
+        }
+      }, 500); // Delay teleportation by 500ms to prevent accidental teleportation
+    }
+    return; // Exit early if we're near the Room 0 portal
+  } else {
+    // Clear the portal timer if we move away
+    if (portalToRoom0Timer) {
+      clearTimeout(portalToRoom0Timer);
+      portalToRoom0Timer = null;
+    }
   }
-});
+  
+  // Reset controls description if not near any portal
+  document.getElementById('controls-description').textContent = 'Controls: WASD - Move, Mouse - Look, ESC - Toggle camera';
+}
 
 // ----------------------------------------------------------------------
 // Animation Loop
@@ -777,9 +881,21 @@ function animate() {
 
   checkCollisions();
 
-  // Animate portal
+  // Get current time for animations
+  const time = Date.now() * 0.001;
+
+  // Animate Room 2 portal
   portal.glow.rotation.z += delta * 0.5;
   portal.portal.rotation.z -= delta * 0.3;
+
+  // Animate Room 0 portal
+  portalToRoom0.glow.rotation.z -= delta * 0.5; // Opposite rotation from Room 2 portal
+  portalToRoom0.portal.rotation.z += delta * 0.3;
+  
+  // Pulse the Room 0 portal light
+  if (portalToRoom0.light) {
+    portalToRoom0.light.intensity = 0.8 + Math.sin(time * 2) * 0.5;
+  }
 
   renderer.render(scene, camera);
 }

@@ -27,6 +27,7 @@
 // - Fixed portal functionality to properly teleport to Room 4
 // - Fixed NFT 107 orientation to properly face outward instead of toward the wall
 // - Updated portal proximity check to use a simpler approach with larger detection ranges
+// - Updated the loading overlay handling to properly hide it with a fade-out effect after loading
 
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
@@ -145,7 +146,13 @@ document.body.appendChild(viewerOverlay);
 window.addEventListener('load', () => {
   const loadingOverlay = document.getElementById('loading-overlay');
   if (loadingOverlay) {
-    loadingOverlay.style.display = 'none';
+    // Add a short delay to ensure all resources are loaded
+    setTimeout(() => {
+      loadingOverlay.style.opacity = '0';
+      setTimeout(() => {
+        loadingOverlay.style.display = 'none';
+      }, 500);
+    }, 500);
   }
 });
 

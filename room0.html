@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>NFT Gallery - Room 0 (Ocean)</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline';">
+    <link rel="stylesheet" href="style.css" />
+    <script>
+      // Safety timeout to ensure loading overlay is hidden even if there are script errors
+      setTimeout(function() {
+        const loadingOverlay = document.getElementById('loading-overlay');
+        if (loadingOverlay && loadingOverlay.style.display !== 'none') {
+          console.warn('Forcing loading overlay to hide after timeout');
+          loadingOverlay.style.display = 'none';
+        }
+      }, 8000);
+    </script>
+  </head>
+  <body>
+    <div id="loading-overlay" class="loading-overlay">
+      <div class="loading-bar-container">
+        <div class="loading-bar"></div>
+      </div>
+    </div>
+    <div id="controls-description">
+      <p>Controls:</p>
+      <p>WASD - Move around</p>
+      <p>Mouse - Control camera</p>
+      <p>ESC - Toggle camera control</p>
+    </div>
+    <script type="module" src="room0.js"></script>
+  </body>
+</html> 

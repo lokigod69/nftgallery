@@ -11,6 +11,8 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
+        room0: resolve(__dirname, 'room0.html'),
+        room1: resolve(__dirname, 'room1.html'),
         room2: resolve(__dirname, 'room2.html'),
         room3: resolve(__dirname, 'room3.html'),
         room4: resolve(__dirname, 'room4.html'),
