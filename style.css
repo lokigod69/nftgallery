@@ -63,3 +63,43 @@ canvas {
         width: 100%;
     }
 }
+/* Navigation menu styles */
+#nav-container {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    z-index: 1500;
+}
+
+#nav-toggle {
+    cursor: pointer;
+    font-size: 24px;
+    color: white;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 4px 6px;
+    border-radius: 4px;
+}
+
+#nav-menu {
+    display: none;
+    margin: 5px 0 0;
+    padding: 8px;
+    list-style: none;
+    background: rgba(0, 0, 0, 0.8);
+    border-radius: 4px;
+}
+
+#nav-menu li {
+    margin: 4px 0;
+}
+
+#nav-menu a {
+    color: white;
+    text-decoration: none;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+}
+
+#nav-container:hover #nav-menu {
+    display: block;
+}
