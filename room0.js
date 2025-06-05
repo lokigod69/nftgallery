@@ -726,19 +726,19 @@ function createWoodenDoors() {
   // Updated positions - doors at the edge of the circle (radius 22), all face inward
   const locations = [
     // Main Gallery door - at north edge (z = 22)
-    { x: 0, z: 22, y: 2, rotation: Math.PI, destination: 'room1.html', name: 'Main Gallery' },
+    { x: 0, z: 22, y: 2.75, rotation: Math.PI, destination: 'room1.html', name: 'Main Gallery' },
     
     // Room A door - northeast edge
-    { x: 15.56, z: 15.56, y: 2, rotation: Math.PI + Math.PI / 4, destination: 'roomA.html', name: 'Undersea Observatory' },
+    { x: 15.56, z: 15.56, y: 2.75, rotation: Math.PI + Math.PI / 4, destination: 'roomA.html', name: 'Undersea Observatory' },
     
     // Room B door - southeast edge
-    { x: 15.56, z: -15.56, y: 2, rotation: Math.PI + Math.PI / 1.25, destination: 'roomB.html', name: 'NFT Gallery Room' },
+    { x: 15.56, z: -15.56, y: 2.75, rotation: Math.PI + Math.PI / 1.25, destination: 'roomB.html', name: 'NFT Gallery Room' },
     
     // Room C door - southwest edge - Updated to point to roomC.html
-    { x: -15.56, z: -15.56, y: 2, rotation: Math.PI - Math.PI / 1.25, destination: 'roomC.html', name: 'Frame Waterfall Gallery' },
+    { x: -15.56, z: -15.56, y: 2.75, rotation: Math.PI - Math.PI / 1.25, destination: 'roomC.html', name: 'Frame Waterfall Gallery' },
     
     // Room D door - northwest edge
-    { x: -15.56, z: 15.56, y: 2, rotation: Math.PI - Math.PI / 4, destination: 'future_roomD.html', name: 'Room D (Coming Soon)' }
+    { x: -15.56, z: 15.56, y: 2.75, rotation: Math.PI - Math.PI / 4, destination: 'future_roomD.html', name: 'Room D (Coming Soon)' }
   ];
   
   // We'll still use textures as normal maps for minimal detail
@@ -778,13 +778,12 @@ function createWoodenDoors() {
     
     // --- Special Case: Room A Door (Index 1) - Replace with Mirror ---
     if (i === 1) {
-      const mirrorGeometry = new THREE.PlaneGeometry(2.5, 4); // Rectangular shape
+      const mirrorGeometry = new THREE.PlaneGeometry(3.5, 5); // Larger shape
       const mirrorMaterial = new THREE.MeshStandardMaterial({
-          color: 0xffffff,
-          metalness: 1.0,
-          roughness: 0.05,
-          side: THREE.DoubleSide // Reflective on both sides
-          // envMap will be applied automatically by initializeCustomReflections
+          color: 0xffff00,
+          metalness: 0.2,
+          roughness: 0.4,
+          side: THREE.DoubleSide
       });
 
       const mirror = new THREE.Mesh(mirrorGeometry, mirrorMaterial);
@@ -793,13 +792,12 @@ function createWoodenDoors() {
       mirror.castShadow = false;
       mirror.receiveShadow = true; // Allow receiving shadows
 
-      // Mark as door, platform element (for reflections), and store destination/name
+      // Mark as door and store destination/name
       mirror.userData = {
         isDoor: true,
         destination: loc.destination,
         name: loc.name,
-        index: i,
-        isPlatformElement: true // IMPORTANT: Mark to receive envMap reflections
+        index: i
       };
       scene.add(mirror);
 
@@ -811,8 +809,8 @@ function createWoodenDoors() {
     // --- End Special Case for Room A Mirror ---
 
     // --- Default Door Creation (for indices other than 1) ---
-    // Door frame - barely visible
-    const frameGeometry = new THREE.BoxGeometry(3, 4, 0.2);
+    // Door frame - enlarged
+    const frameGeometry = new THREE.BoxGeometry(4, 5.5, 0.2);
     const frameMaterial = new THREE.MeshPhysicalMaterial({ 
       color: 0x66ccff,          // Light blue tint
       roughness: 0.05,          // Very smooth surface
@@ -834,34 +832,27 @@ function createWoodenDoors() {
     frame.receiveShadow = false;
     scene.add(frame);
     
-    // Door - almost completely invisible
-    const doorGeometry = new THREE.PlaneGeometry(2.5, 3.5);
+    // Door panel
+    const doorGeometry = new THREE.PlaneGeometry(3.5, 5);
     
-    // Choose color based on destination with extremely low opacity
+    // Choose a bright color for each door
     let doorColor;
     switch(i) {
-      case 0: doorColor = 0x66ccff; break; // Main Gallery - blue
-      case 1: doorColor = 0x66ffcc; break; // Undersea - aqua
-      case 2: doorColor = 0xaaddff; break; // Room B - light blue
-      case 3: doorColor = 0xddaaff; break; // Room C - purple
-      case 4: doorColor = 0xffaaaa; break; // Room D - pink
-      default: doorColor = 0x88ccff;
+      case 0: doorColor = 0xff0000; break; // Main Gallery - red
+      case 1: doorColor = 0x00ff00; break; // Undersea - green
+      case 2: doorColor = 0x0000ff; break; // Room B - blue
+      case 3: doorColor = 0xffff00; break; // Room C - yellow
+      case 4: doorColor = 0xff00ff; break; // Room D - magenta
+      default: doorColor = 0xffffff;
     }
     
-    const doorMaterial = new THREE.MeshPhysicalMaterial({ 
+    const doorMaterial = new THREE.MeshStandardMaterial({
       color: doorColor,
-      roughness: 0.01,         // Almost mirror smooth
-      metalness: 0.05,         // Very low metalness
-      transmission: 0.99,      // Nearly complete transparency
-      transparent: true,
-      opacity: 0.1,            // Extremely low opacity
-      reflectivity: 0.1,       // Minimal reflectivity
-      clearcoat: 0.2,          // Very subtle clearcoat
-      clearcoatRoughness: 0.01,
-      ior: 1.8,                // High index of refraction
+      roughness: 0.4,
+      metalness: 0.2,
       side: THREE.DoubleSide,
-      emissive: doorColor,     // Matching emissive color
-      emissiveIntensity: 0.05  // Very subtle glow
+      emissive: doorColor,
+      emissiveIntensity: 0.2
     });
     
     const door = new THREE.Mesh(doorGeometry, doorMaterial);
@@ -921,7 +912,7 @@ function createWoodenDoors() {
     // Position above the door
     label.position.set(
       loc.x,
-      loc.y + 2.2,
+      loc.y + 3.2,
       loc.z
     );
     label.rotation.y = loc.rotation;
@@ -943,9 +934,9 @@ const { sky, sun } = createSky();
 const platform = createPlatform();
 const doors = createWoodenDoors();
 
-// Now that doors is defined, we can initialize the reflections
-initializeCustomReflections();
-
+// // Now that doors is defined, we can initialize the reflections
+// initializeCustomReflections();
+// 
 // Add ambient light
 const ambientLight = new THREE.AmbientLight(0x404040, 1);
 scene.add(ambientLight);
@@ -1090,7 +1081,7 @@ function animate() {
   }
   
   // Update reflections with delay effect
-  updateReflections();
+//   updateReflections();
   
   // Door animation removed
   
