@@ -13,6 +13,16 @@ document.addEventListener('DOMContentLoaded', function() {
     menu.appendChild(li);
   }
 
+  // Ensure Room 7 link exists in the menu
+  if (!menu.querySelector('a[href="room7.html"]')) {
+    const li = document.createElement('li');
+    const link = document.createElement('a');
+    link.href = 'room7.html';
+    link.textContent = 'Room 7';
+    li.appendChild(link);
+    menu.appendChild(li);
+  }
+
   function hideMenu() {
     menu.style.display = 'none';
   }
