@@ -14,7 +14,15 @@ execSync('npm run build', { stdio: 'inherit' });
 
 // Ensure all HTML files are properly copied to dist
 console.log('Ensuring all HTML files are in dist...');
-const htmlFiles = ['index.html', 'room2.html', 'room3.html', 'room4.html', 'room5.html'];
+const htmlFiles = [
+  'index.html',
+  'room2.html',
+  'room3.html',
+  'room4.html',
+  'room5.html',
+  'room6.html',
+  'room7.html'
+];
 
 htmlFiles.forEach(file => {
   // Check if the file exists in dist after build
