@@ -6,7 +6,7 @@ const corridorLength = 100;
 const corridorWidth = 20;
 const wallHeight = 10;
 const eyeHeight = 2.5;
-const speed = 60.0;
+const speed = 100.0;
 const gravity = -30;
 
 let moveForward = false;
@@ -50,13 +50,13 @@ scene.add(light);
 
 // Floor
 const floorGeo = new THREE.PlaneGeometry(corridorWidth, corridorLength);
-const floorMat = new THREE.MeshStandardMaterial({ color: 0xe0e0e0 });
+const floorMat = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.5, roughness: 0.2 });
 const floor = new THREE.Mesh(floorGeo, floorMat);
 floor.rotation.x = -Math.PI / 2;
 scene.add(floor);
 
 // Walls
-const wallMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f5 });
+const wallMat = new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 0.7, roughness: 0.1 });
 const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(corridorLength, wallHeight), wallMat);
 leftWall.position.set(-corridorWidth / 2, wallHeight / 2, -corridorLength / 2);
 leftWall.rotation.y = Math.PI / 2;
@@ -69,7 +69,7 @@ scene.add(rightWall);
 
 // Curved ceiling
 const ceilingGeo = new THREE.CylinderGeometry(corridorWidth / 2, corridorWidth / 2, corridorLength, 32, 1, true, 0, Math.PI);
-const ceilingMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.BackSide });
+const ceilingMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.8, roughness: 0.1, side: THREE.BackSide });
 const ceiling = new THREE.Mesh(ceilingGeo, ceilingMat);
 ceiling.position.set(0, wallHeight, -corridorLength / 2);
 ceiling.rotation.z = Math.PI / 2;
@@ -188,3 +188,29 @@ function animate() {
 }
 
 animate();
+
+// Loading overlay management
+window.addEventListener('load', () => {
+  const loadingOverlay = document.getElementById('loading-overlay');
+  if (loadingOverlay) {
+    setTimeout(() => {
+      loadingOverlay.style.opacity = '0';
+      setTimeout(() => {
+        loadingOverlay.style.display = 'none';
+      }, 500);
+    }, 500);
+  }
+});
+
+// Allow escape key to dismiss stuck loading overlay
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape') {
+    const loadingOverlay = document.getElementById('loading-overlay');
+    if (loadingOverlay && loadingOverlay.style.display === 'flex') {
+      loadingOverlay.style.opacity = '0';
+      setTimeout(() => {
+        loadingOverlay.style.display = 'none';
+      }, 500);
+    }
+  }
+});
