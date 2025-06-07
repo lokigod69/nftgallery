@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 
 const eyeHeight = 2;
-const speed = 40.0;
+const speed = 80.0;
 const gravity = -30;
 
 let moveForward = false;
@@ -51,6 +51,19 @@ scene.add(ambient);
 const dir = new THREE.DirectionalLight(0xffffff, 0.6);
 dir.position.set(5, 10, 7);
 scene.add(dir);
+
+// Scatter warm spotlights around the scene for better illumination
+for (let i = 0; i < 20; i++) {
+  const spot = new THREE.SpotLight(0xffaa88, 0.5, 50, Math.PI / 6, 0.5);
+  spot.position.set(
+    (Math.random() - 0.5) * 40,
+    Math.random() * 10 + 5,
+    (Math.random() - 0.5) * 40
+  );
+  spot.target.position.set(0, 0, -i * 2);
+  scene.add(spot);
+  scene.add(spot.target);
+}
 
 // Reflective black floor
 const floorGeo = new THREE.PlaneGeometry(100, 100);
@@ -229,3 +242,28 @@ function animate() {
 }
 
 animate();
+
+// Loading overlay management
+window.addEventListener('load', () => {
+  const loadingOverlay = document.getElementById('loading-overlay');
+  if (loadingOverlay) {
+    setTimeout(() => {
+      loadingOverlay.style.opacity = '0';
+      setTimeout(() => {
+        loadingOverlay.style.display = 'none';
+      }, 500);
+    }, 500);
+  }
+});
+
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape') {
+    const loadingOverlay = document.getElementById('loading-overlay');
+    if (loadingOverlay && loadingOverlay.style.display === 'flex') {
+      loadingOverlay.style.opacity = '0';
+      setTimeout(() => {
+        loadingOverlay.style.display = 'none';
+      }, 500);
+    }
+  }
+});
