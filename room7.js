@@ -73,7 +73,7 @@ const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.2 });
 const stars = new THREE.Points(starGeo, starMat);
 scene.add(stars);
 
-// Images from assets/Room7
+// Images from /assets/Room7
 const imageFiles = [
 "lokigod69._A_female_model_standing_in_a_stark_monochrome_space__461d3cd1-91d2-4213-90e0-567676b9955d.png",
 "lokigod69._A_female_model_standing_in_a_stark_monochrome_space__466af283-1d72-466f-bfc1-54e1ee6876c2.png",
@@ -117,7 +117,7 @@ const nftTiles = [];
 const tileSize = 2;
 const spacing = 4;
 imageFiles.forEach((file, index) => {
-  const texture = loader.load(`assets/Room7/${file}`);
+  const texture = loader.load(`/assets/Room7/${file}`);
   const material = new THREE.MeshStandardMaterial({ map: texture, emissive: 0x000000 });
   const tile = new THREE.Mesh(new THREE.PlaneGeometry(tileSize, tileSize), material);
   tile.rotation.x = -Math.PI / 2;

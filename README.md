@@ -55,10 +55,10 @@ To add new room branches from Room 0:
 ### Required Assets
 
 The application uses the following asset files:
-- `public/assets/waternormals.jpg` - Normal map for water
-- `public/assets/wooden_door.jpg` - Texture for doors
-- `public/assets/wooden_frame.jpg` - Texture for door frames
-- `public/assets/wood_texture.jpg` - Texture for platforms
+- `/assets/waternormals.jpg` - Normal map for water
+- `/assets/wooden_door.jpg` - Texture for doors
+- `/assets/wooden_frame.jpg` - Texture for door frames
+- `/assets/wood_texture.jpg` - Texture for platforms
 
 Fallback procedural textures are included if these files are not available.
 

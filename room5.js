@@ -810,9 +810,9 @@ function createDoubleSidedNFT(index, position, angle) {
   const timestamp = Date.now();
   const pathFormats = [
     `/assets/nft${index}.png?t=${timestamp}`,
-    `public/assets/nft${index}.png?t=${timestamp}`,
+    `/assets/nft${index}.png?t=${timestamp}`,
     `/assets/nft${index}.png`,
-    `public/assets/nft${index}.png`,
+    `/assets/nft${index}.png`,
     `../assets/nft${index}.png?t=${timestamp}`,
     `./assets/nft${index}.png?t=${timestamp}`
   ];
