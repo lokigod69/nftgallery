@@ -5,6 +5,8 @@
     { "source": "/room3", "destination": "/room3.html" },
     { "source": "/room4", "destination": "/room4.html" },
     { "source": "/room5", "destination": "/room5.html" },
+    { "source": "/room6", "destination": "/room6.html" },
+    { "source": "/room7", "destination": "/room7.html" },
     { "source": "/(.*)", "destination": "/$1" }
   ],
   "cleanUrls": true,
