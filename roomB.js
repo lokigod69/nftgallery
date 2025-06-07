@@ -263,7 +263,7 @@ function createMixedFloor() {
   const textureLoader = new THREE.TextureLoader();
   
   // Load wood_floor2 texture (main floor)
-  const woodTexture2 = textureLoader.load('public/assets/wood_floor2.jpeg', function(texture) {
+  const woodTexture2 = textureLoader.load('/assets/wood_floor2.jpeg', function(texture) {
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
     // Instead of repeating the whole texture 10x10 times, we'll use a smaller repeat
@@ -276,7 +276,7 @@ function createMixedFloor() {
   });
   
   // Load wood_floor1 texture (inlay sections)
-  const woodTexture1 = textureLoader.load('public/assets/wood_floor1.jpeg', function(texture) {
+  const woodTexture1 = textureLoader.load('/assets/wood_floor1.jpeg', function(texture) {
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
     texture.repeat.set(12, 12);
@@ -405,7 +405,7 @@ function createTexturedWalls() {
 function createBaseWalls(thickness) {
   // Load metal2 texture for walls
   const textureLoader = new THREE.TextureLoader();
-  const metalTexture = textureLoader.load('public/assets/metal2.jpeg', function(texture) {
+  const metalTexture = textureLoader.load('/assets/metal2.jpeg', function(texture) {
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
     texture.repeat.set(8, 4); // Repeat to cover the large walls
@@ -514,13 +514,13 @@ function addCopperWavePatterns() {
   const copperTextures = [];
   
   const copperFiles = [
-    'public/assets/copper1.jpeg',
-    'public/assets/copper2.jpeg',
-    'public/assets/copper3.jpeg',
-    'public/assets/copper4.jpeg',
-    'public/assets/copper4a.jpeg',
-    'public/assets/copper4b.jpeg',
-    'public/assets/copper4c.jpeg'
+    /assets/copper1.jpeg',
+    /assets/copper2.jpeg',
+    /assets/copper3.jpeg',
+    /assets/copper4.jpeg',
+    /assets/copper4a.jpeg',
+    /assets/copper4b.jpeg',
+    /assets/copper4c.jpeg'
   ];
   
   // Load all copper textures
@@ -913,13 +913,13 @@ function addMixedDecorationsToWalls() {
   const copperTextures = [];
   
   const copperFiles = [
-    'public/assets/copper1.jpeg',
-    'public/assets/copper2.jpeg',
-    'public/assets/copper3.jpeg',
-    'public/assets/copper4.jpeg',
-    'public/assets/copper4a.jpeg',
-    'public/assets/copper4b.jpeg',
-    'public/assets/copper4c.jpeg'
+    /assets/copper1.jpeg',
+    /assets/copper2.jpeg',
+    /assets/copper3.jpeg',
+    /assets/copper4.jpeg',
+    /assets/copper4a.jpeg',
+    /assets/copper4b.jpeg',
+    /assets/copper4c.jpeg'
   ];
   
   // Load all copper textures
@@ -957,7 +957,7 @@ function addMixedDecorationsToWalls() {
   
   // Preload all Room B NFT images
   for (const filename of nftFiles) {
-    const texture = textureLoader.load('public/assets/' + filename, function(tex) {
+    const texture = textureLoader.load('/assets/' + filename, function(tex) {
       tex.encoding = THREE.sRGBEncoding;
       
       // Store the actual dimensions of the loaded texture
@@ -1590,7 +1590,7 @@ function loadGLBModel() {
   // Load the model
   gltfLoader.load(
     // Path to your GLB file
-    'public/assets/aviary_gallery.glb',
+    /assets/aviary_gallery.glb',
     
     // On successful load
     function(gltf) {

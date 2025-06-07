@@ -189,7 +189,7 @@ function createMixedFloor() {
   const textureLoader = new THREE.TextureLoader();
   
   // Load wood_floor2 texture (main floor)
-  const woodTexture2 = textureLoader.load('public/assets/wood_floor2.jpeg', function(texture) {
+  const woodTexture2 = textureLoader.load('/assets/wood_floor2.jpeg', function(texture) {
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
     // Instead of repeating the whole texture 10x10 times, we'll use a smaller repeat
@@ -202,7 +202,7 @@ function createMixedFloor() {
   });
   
   // Load wood_floor1 texture (inlay sections)
-  const woodTexture1 = textureLoader.load('public/assets/wood_floor1.jpeg', function(texture) {
+  const woodTexture1 = textureLoader.load('/assets/wood_floor1.jpeg', function(texture) {
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
     texture.repeat.set(12, 12);
@@ -401,7 +401,7 @@ function addArtworkToWalls() {
   
   // Preload all NFT images
   for (const filename of nftFiles) {
-    const texture = textureLoader.load('public/assets/' + filename, function(tex) {
+    const texture = textureLoader.load('/assets/' + filename, function(tex) {
       tex.encoding = THREE.sRGBEncoding;
       console.log(`Loaded NFT texture: ${filename}`);
     }, undefined, function(error) {
@@ -805,7 +805,7 @@ function loadGLBModel() {
   // Load the model
   gltfLoader.load(
     // Path to your GLB file
-    'public/assets/aviary_gallery.glb',
+    /assets/aviary_gallery.glb',
     
     // On successful load
     function(gltf) {
