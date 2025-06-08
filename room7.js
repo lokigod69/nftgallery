@@ -133,7 +133,8 @@ imageFiles.forEach((file, index) => {
   const texture = loader.load(`/assets/Room7/${file}`);
 
   // Main image tile
-  const material = new THREE.MeshStandardMaterial({ map: texture, emissive: 0x000000 });
+  // MeshBasicMaterial keeps colors unaffected by scene lighting
+  const material = new THREE.MeshBasicMaterial({ map: texture });
   const tile = new THREE.Mesh(new THREE.PlaneGeometry(tileSize, tileSize), material);
   tile.rotation.x = -Math.PI / 2;
 
