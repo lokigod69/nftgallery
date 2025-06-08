@@ -15,12 +15,13 @@ let moveLeft = false;
 let moveRight = false;
 let isJumping = false;
 let jumpVelocity = 0;
+let videosStarted = false;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xffffff);
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(0, eyeHeight, 5);
+camera.position.set(0, eyeHeight, -5);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -53,6 +54,7 @@ const floorGeo = new THREE.PlaneGeometry(corridorWidth, corridorLength);
 const floorMat = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.5, roughness: 0.2 });
 const floor = new THREE.Mesh(floorGeo, floorMat);
 floor.rotation.x = -Math.PI / 2;
+floor.position.z = -corridorLength / 2;
 scene.add(floor);
 
 // Walls
@@ -66,6 +68,17 @@ const rightWall = leftWall.clone();
 rightWall.position.set(corridorWidth / 2, wallHeight / 2, -corridorLength / 2);
 rightWall.rotation.y = -Math.PI / 2;
 scene.add(rightWall);
+
+// Front and back walls to fully enclose the corridor
+const frontWall = new THREE.Mesh(new THREE.PlaneGeometry(corridorWidth, wallHeight), wallMat);
+frontWall.position.set(0, wallHeight / 2, 0);
+frontWall.rotation.y = Math.PI;
+scene.add(frontWall);
+
+const backWall = frontWall.clone();
+backWall.position.set(0, wallHeight / 2, -corridorLength);
+backWall.rotation.y = 0;
+scene.add(backWall);
 
 // Curved ceiling
 const ceilingGeo = new THREE.CylinderGeometry(corridorWidth / 2, corridorWidth / 2, corridorLength, 32, 1, true, 0, Math.PI);
@@ -97,11 +110,23 @@ videoFiles.forEach((file, index) => {
   const plane = new THREE.Mesh(new THREE.PlaneGeometry(4, 4), material);
   const z = -spacing * (index + 1);
   const side = index % 2 === 0 ? -1 : 1;
-  plane.position.set(side * (corridorWidth / 2 - 2), eyeHeight + 0.5, z);
+  plane.position.set(side * (corridorWidth / 2 - 0.1), eyeHeight + 0.5, z);
   plane.rotation.y = side === 1 ? -Math.PI / 2 : Math.PI / 2;
   scene.add(plane);
   videoPlanes.push(plane);
 });
+
+// Start all videos on first user interaction
+document.addEventListener('click', () => {
+  if (!videosStarted) {
+    document.querySelectorAll('video').forEach(v => {
+      if (v.paused) {
+        v.play().catch(() => {});
+      }
+    });
+    videosStarted = true;
+  }
+}, { once: true });
 
 function onKeyDown(event) {
   switch (event.code) {
@@ -182,6 +207,14 @@ function animate() {
 
     controls.moveRight(-velocity.x * delta);
     controls.moveForward(-velocity.z * delta);
+
+    // Keep the camera inside the corridor bounds
+    const buffer = 0.5;
+    const halfWidth = corridorWidth / 2 - buffer;
+    const minZ = -corridorLength + buffer;
+    const maxZ = -buffer;
+    camera.position.x = Math.max(-halfWidth, Math.min(halfWidth, camera.position.x));
+    camera.position.z = Math.max(minZ, Math.min(maxZ, camera.position.z));
   }
 
   renderer.render(scene, camera);
