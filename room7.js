@@ -65,8 +65,8 @@ for (let i = 0; i < 20; i++) {
   scene.add(spot.target);
 }
 
-// Reflective black floor
-const floorGeo = new THREE.PlaneGeometry(100, 100);
+// Reflective black floor that extends all the way under the curved platform
+const floorGeo = new THREE.PlaneGeometry(100, 300);
 const floorMat = new THREE.MeshStandardMaterial({ color: 0x000000, metalness: 0.8, roughness: 0.2 });
 const floor = new THREE.Mesh(floorGeo, floorMat);
 floor.rotation.x = -Math.PI / 2;
@@ -75,10 +75,11 @@ scene.add(floor);
 // Starry ceiling
 const starGeo = new THREE.BufferGeometry();
 const starVerts = [];
-for (let i = 0; i < 1000; i++) {
+// Fewer stars spread further to follow the full length of the platform
+for (let i = 0; i < 400; i++) {
   const x = Math.random() * 100 - 50;
   const y = Math.random() * 20 + 10;
-  const z = Math.random() * 100 - 50;
+  const z = Math.random() * 200 - 160;
   starVerts.push(x, y, z);
 }
 starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starVerts, 3));
@@ -126,21 +127,17 @@ const imageFiles = [
 ];
 
 const loader = new THREE.TextureLoader();
-const nftTiles = [];
 const tileSize = 2;
 const spacing = 4;
 imageFiles.forEach((file, index) => {
   const texture = loader.load(`/assets/Room7/${file}`);
-  const material = new THREE.MeshStandardMaterial({ map: texture, emissive: 0x000000 });
+  // MeshBasicMaterial keeps colors unaffected by scene lighting
+  const material = new THREE.MeshBasicMaterial({ map: texture });
   const tile = new THREE.Mesh(new THREE.PlaneGeometry(tileSize, tileSize), material);
   tile.rotation.x = -Math.PI / 2;
   const t = index * spacing;
   tile.position.set(Math.sin(t * 0.1) * 5, 0.01, -t);
   scene.add(tile);
-  if (index % 5 === 0) {
-    tile.userData.isNFT = true;
-    nftTiles.push(tile);
-  }
 });
 
 function onKeyDown(event) {
@@ -223,20 +220,6 @@ function animate() {
     controls.moveRight(-velocity.x * delta);
     controls.moveForward(-velocity.z * delta);
   }
-
-  nftTiles.forEach(tile => {
-    const dx = camera.position.x - tile.position.x;
-    const dz = camera.position.z - tile.position.z;
-    const dist = Math.sqrt(dx * dx + dz * dz);
-    if (dist < 1 && !tile.userData.glowing) {
-      tile.userData.glowing = true;
-      tile.material.emissive.setHex(0x4444ff);
-      setTimeout(() => {
-        tile.material.emissive.setHex(0x000000);
-        tile.userData.glowing = false;
-      }, 1000);
-    }
-  });
 
   renderer.render(scene, camera);
 }
