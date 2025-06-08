@@ -131,12 +131,44 @@ const tileSize = 2;
 const spacing = 4;
 imageFiles.forEach((file, index) => {
   const texture = loader.load(`/assets/Room7/${file}`);
+
+  // Main image tile
   const material = new THREE.MeshStandardMaterial({ map: texture, emissive: 0x000000 });
   const tile = new THREE.Mesh(new THREE.PlaneGeometry(tileSize, tileSize), material);
   tile.rotation.x = -Math.PI / 2;
+
+  // Mirrored base beneath the tile for a 3D effect
+  const baseHeight = 0.3;
+  const mirroredTexture = texture.clone();
+  mirroredTexture.center.set(0.5, 0.5);
+  mirroredTexture.rotation = Math.PI;
+  mirroredTexture.needsUpdate = true;
+  const sideMaterial = new THREE.MeshStandardMaterial({
+    map: mirroredTexture,
+    metalness: 1.0,
+    roughness: 0.0,
+  });
+
+  const baseMaterials = [
+    sideMaterial, // right
+    sideMaterial, // left
+    new THREE.MeshStandardMaterial({ color: 0x000000 }), // top
+    new THREE.MeshStandardMaterial({ color: 0x000000 }), // bottom
+    sideMaterial, // front
+    sideMaterial, // back
+  ];
+
+  const base = new THREE.Mesh(new THREE.BoxGeometry(tileSize, baseHeight, tileSize), baseMaterials);
+
   const t = index * spacing;
-  tile.position.set(Math.sin(t * 0.1) * 5, 0.01, -t);
+  const x = Math.sin(t * 0.1) * 5;
+  const z = -t;
+  tile.position.set(x, baseHeight / 2 + 0.01, z);
+  base.position.set(x, -baseHeight / 2, z);
+
+  scene.add(base);
   scene.add(tile);
+
   if (index % 5 === 0) {
     tile.userData.isNFT = true;
     nftTiles.push(tile);
