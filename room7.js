@@ -66,7 +66,8 @@ for (let i = 0; i < 20; i++) {
 }
 
 // Reflective black floor
-const floorGeo = new THREE.PlaneGeometry(100, 100);
+const floorSize = 100;
+const floorGeo = new THREE.PlaneGeometry(floorSize, floorSize);
 const floorMat = new THREE.MeshStandardMaterial({ color: 0x000000, metalness: 0.8, roughness: 0.2 });
 const floor = new THREE.Mesh(floorGeo, floorMat);
 floor.rotation.x = -Math.PI / 2;
@@ -128,7 +129,6 @@ const imageFiles = [
 const loader = new THREE.TextureLoader();
 const nftTiles = [];
 const tileSize = 2;
-const spacing = 4;
 imageFiles.forEach((file, index) => {
   const texture = loader.load(`/assets/Room7/${file}`);
 
@@ -161,9 +161,9 @@ imageFiles.forEach((file, index) => {
 
   const base = new THREE.Mesh(new THREE.BoxGeometry(tileSize, baseHeight, tileSize), baseMaterials);
 
-  const t = index * spacing;
-  const x = Math.sin(t * 0.1) * 5;
-  const z = -t;
+  const halfLimit = floorSize / 2 - tileSize;
+  const x = (Math.random() - 0.5) * 2 * halfLimit;
+  const z = (Math.random() - 0.5) * 2 * halfLimit;
   tile.position.set(x, baseHeight / 2 + 0.01, z);
   base.position.set(x, -baseHeight / 2, z);
 
@@ -255,6 +255,10 @@ function animate() {
 
     controls.moveRight(-velocity.x * delta);
     controls.moveForward(-velocity.z * delta);
+
+    const limit = floorSize / 2 - 1;
+    camera.position.x = THREE.MathUtils.clamp(camera.position.x, -limit, limit);
+    camera.position.z = THREE.MathUtils.clamp(camera.position.z, -limit, limit);
   }
 
   nftTiles.forEach(tile => {
