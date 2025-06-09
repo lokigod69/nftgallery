@@ -39,6 +39,19 @@ window.addEventListener('load', () => {
     }
   }, 1000);
 });
+function checkOrientation() {
+  const msg = document.getElementById("rotate-message");
+  if (!msg) return;
+  if (window.innerWidth < window.innerHeight) {
+    msg.style.display = "flex";
+  } else {
+    msg.style.display = "none";
+  }
+}
+window.addEventListener("load", checkOrientation);
+window.addEventListener("resize", checkOrientation);
+window.addEventListener("orientationchange", checkOrientation);
+
 
 // Global error handler to ensure loading overlay is hidden if there's an error
 window.addEventListener('error', function(event) {
@@ -105,22 +118,31 @@ window.addEventListener('resize', () => {
 // ----------------------------------------------------------------------
 // Controls Setup
 // ----------------------------------------------------------------------
-const controls = new PointerLockControls(camera, document.body);
+const isMobile = /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+let controls;
+let yaw=0,pitch=0;
+if(isMobile){
+  camera.rotation.order="YXZ";
+  controls={isLocked:true,moveRight:(d)=>camera.translateX(d),moveForward:(d)=>camera.translateZ(d)};
+  document.getElementById("controls-description").innerHTML="Use joysticks to move and look";
+}else{
+  controls = new PointerLockControls(camera, document.body);
+}
 
-// Click handler to lock controls
-window.addEventListener('click', () => {
-  if (!controls.isLocked) {
-    controls.lock();
-  }
-});
 
-controls.addEventListener('lock', () => {
-  document.getElementById('controls-description').style.display = 'none';
-});
-
-controls.addEventListener('unlock', () => {
-  document.getElementById('controls-description').style.display = 'block';
-});
+if (!isMobile) {
+  window.addEventListener("click", () => {
+    if (!controls.isLocked) {
+      controls.lock();
+    }
+  });
+  controls.addEventListener("lock", () => {
+    document.getElementById("controls-description").style.display = "none";
+  });
+  controls.addEventListener("unlock", () => {
+    document.getElementById("controls-description").style.display = "block";
+  });
+}
 
 // Movement variables
 let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
@@ -178,6 +200,23 @@ const onKeyUp = function (event) {
 
 document.addEventListener('keydown', onKeyDown);
 document.addEventListener('keyup', onKeyUp);
+
+if (isMobile) {
+  const moveJoystick = nipplejs.create({ zone: document.getElementById("move-joystick"), mode: "static", position: { left: "60px", bottom: "80px" }, color: "white" });
+  const lookJoystick = nipplejs.create({ zone: document.getElementById("look-joystick"), mode: "static", position: { right: "60px", bottom: "80px" }, color: "white" });
+  moveJoystick.on("move", (evt, data) => {
+    moveForward = data.vector.y < -0.3;
+    moveBackward = data.vector.y > 0.3;
+    moveLeft = data.vector.x < -0.3;
+    moveRight = data.vector.x > 0.3;
+  });
+  moveJoystick.on("end", () => { moveForward = moveBackward = moveLeft = moveRight = false; });
+  lookJoystick.on("move", (evt, data) => {
+    yaw -= data.vector.x * 0.05;
+    pitch -= data.vector.y * 0.05;
+    pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitch));
+  });
+}
 
 // ----------------------------------------------------------------------
 // Create Infinite Ocean (with fallback)
@@ -1087,6 +1126,10 @@ function animate() {
   
   if (controls.isLocked === true) {
     // Handle jumping and gravity
+    if (isMobile) {
+      camera.rotation.y = yaw;
+      camera.rotation.x = pitch;
+    }
     if (isJumping) {
       camera.position.y += jumpVelocity * delta;
       jumpVelocity += gravity * delta;
