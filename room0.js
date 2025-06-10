@@ -973,9 +973,9 @@ const { sky, sun } = createSky();
 const platform = createPlatform();
 const doors = createWoodenDoors();
 
-// // Now that doors is defined, we can initialize the reflections
-// initializeCustomReflections();
-// 
+// Now that doors are created, initialize reflections
+initializeCustomReflections();
+
 // Add ambient light
 const ambientLight = new THREE.AmbientLight(0x404040, 1);
 scene.add(ambientLight);
@@ -1190,8 +1190,13 @@ function initializeCustomReflections() {
   });
   
   const reflectionCamera = new THREE.CubeCamera(0.1, 1000, cubeRenderTarget);
-  reflectionCamera.position.set(0, waterLevel + 0.5, 0); // Position at platform level
+  // Start at the player's position
+  reflectionCamera.position.set(camera.position.x, waterLevel + 0.5, camera.position.z);
   scene.add(reflectionCamera);
+
+  // Track a delayed position for a trailing effect
+  const delayedPos = new THREE.Vector3().copy(reflectionCamera.position);
+  const lagFactor = 0.02; // lower value = more lag
   
   // Make environment map available to platform materials
   const updateReflectionMap = () => {
@@ -1199,23 +1204,15 @@ function initializeCustomReflections() {
     let platform = scene.getObjectByName('transparentPlatform');
     if (platform) platform.visible = false;
     
-    // Hide all door-related objects before updating the cube camera
-    doors.forEach(doorObj => {
-      if (doorObj.door) doorObj.door.visible = false;
-      if (doorObj.frame) doorObj.frame.visible = false;
-      if (doorObj.label) doorObj.label.visible = false;
-    });
-    
-    // Update the cube camera
+    // Slowly move the reflection camera toward the player's current position
+    delayedPos.lerp(camera.position, lagFactor);
+    reflectionCamera.position.set(delayedPos.x, waterLevel + 0.5, delayedPos.z);
+
+    // Update the cube camera from the lagged position
     reflectionCamera.update(renderer, scene);
     
-    // Show platform and doors again
+    // Show platform again
     if (platform) platform.visible = true;
-    doors.forEach(doorObj => {
-      if (doorObj.door) doorObj.door.visible = true;
-      if (doorObj.frame) doorObj.frame.visible = true;
-      if (doorObj.label) doorObj.label.visible = true;
-    });
     
     // Apply the reflection map to platform materials
     scene.traverse((object) => {
