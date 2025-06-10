@@ -15,13 +15,11 @@
 // - Increased central platform size
 // - Updated door positions to match larger platform
 // - Made platform and flower-of-life patterns highly transparent/glass-like
-// - Added dynamic reflections using CubeCamera
-// - Optimized reflection updates and added subtle lag effect
 // - Changed Room C door destination to roomC.html
-// - Removed reflection lag effect causing flashes during movement
 // - Increased initial camera height slightly
 // - Replaced Room A portal (door index 1) with a double-sided mirror
 // - Reduced base reflectivity of platform and tiles slightly
+// - Simplified platform geometry and removed dynamic reflections for performance
 
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
@@ -456,307 +454,20 @@ function createSky() {
 
 // Create central floating platform with flower of life pattern
 function createPlatform() {
-  // Increased radius from 10 to 22 (more than double)
   const platformGeometry = new THREE.CylinderGeometry(22, 22, 1, 64);
-  
-  // Create transparent glass-like material for the platform
   const platformMaterial = new THREE.MeshPhysicalMaterial({
-    color: 0x88ccff,         // Light blue tint
-    roughness: 0.1,          // Very smooth surface
-    metalness: 0.2,          // Slight metallic look
-    transmission: 0.85,      // High transparency
-    transparent: true,       // Enable transparency
-    opacity: 0.4,            // Base opacity
-    reflectivity: 0.4,       // Reduced reflectivity
-    clearcoat: 0.2,          // Reduced clearcoat for glass effect
-    clearcoatRoughness: 0.1, // Smooth clearcoat
-    ior: 1.5                 // Glass-like index of refraction
+    color: 0x88ccff,
+    roughness: 0.1,
+    metalness: 0.2,
+    transmission: 0.85,
+    transparent: true,
+    opacity: 0.4
   });
-  
+
   const platform = new THREE.Mesh(platformGeometry, platformMaterial);
   platform.position.y = waterLevel;
-  platform.receiveShadow = true;
-  platform.userData.isPlatformElement = true; // Mark as reflective platform element
-  platform.name = 'transparentPlatform';     // Name for finding it later
   scene.add(platform);
-  
-  // Now create the flower of life pattern using transparent materials
-  const flowerOfLifeGroup = new THREE.Group();
-  // Position the group just above the platform surface
-  flowerOfLifeGroup.position.y = waterLevel + 0.5; // Positioned exactly at the top surface of the platform
-  scene.add(flowerOfLifeGroup);
-  
-  // Pre-load the water normal textures for use in overlapping areas
-  let twoOverlapTexture = null; // For areas where two patterns overlap
-  let threeOverlapTexture = null; // For areas where three patterns overlap
-  
-  // Load waternormals.jpg for two-texture overlaps
-  textureLoader.load('/assets/waternormals.jpg', function(texture) {
-    console.log("Successfully loaded waternormals.jpg for pattern overlaps");
-    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(2, 2); // Smaller repeat to show more texture detail
-    twoOverlapTexture = texture;
-    
-    // Update any existing two-texture overlap areas - make this more robust
-    flowerOfLifeGroup.children.forEach(tile => {
-      if (tile.userData && tile.userData.overlapType === 'two') {
-        // Save the previous color
-        const prevColor = tile.material.color.clone();
-        
-        // Replace the material entirely to avoid any texture blending issues
-        const newMaterial = new THREE.MeshPhysicalMaterial({
-          roughness: 0.2,
-          metalness: 0.1,
-          transmission: 0.9,     // High transparency
-          transparent: true,     // Enable transparency
-          opacity: 0.5,          // Base opacity
-          normalMap: texture,    // Use the water normals as normal map
-          normalScale: new THREE.Vector2(0.2, 0.2),
-          clearcoat: 0.3,        // Subtle clearcoat for glass effect
-          color: prevColor
-        });
-        
-        tile.material = newMaterial;
-        tile.material.needsUpdate = true;
-      }
-    });
-  }, undefined, function() {
-    console.warn("Failed to load waternormals.jpg for pattern overlaps, using fallback");
-  });
-  
-  // Load waternormals1.jpg for three-texture overlaps
-  textureLoader.load('/assets/waternormals1.jpg', function(texture) {
-    console.log("Successfully loaded waternormals1.jpg for pattern overlaps");
-    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(2, 2); // Smaller repeat to show more texture detail
-    threeOverlapTexture = texture;
-    
-    // Update any existing three-texture overlap areas with the same robust approach
-    flowerOfLifeGroup.children.forEach(tile => {
-      if (tile.userData && tile.userData.overlapType === 'three') {
-        // Save the previous color
-        const prevColor = tile.material.color.clone();
-        
-        // Replace the material entirely to avoid any texture blending issues
-        const newMaterial = new THREE.MeshPhysicalMaterial({
-          roughness: 0.2,
-          metalness: 0.1,
-          transmission: 0.9,     // High transparency
-          transparent: true,     // Enable transparency
-          opacity: 0.5,          // Base opacity
-          normalMap: texture,    // Use the water normals as normal map
-          normalScale: new THREE.Vector2(0.2, 0.2),
-          clearcoat: 0.3,        // Subtle clearcoat for glass effect
-          color: prevColor
-        });
-        
-        tile.material = newMaterial;
-        tile.material.needsUpdate = true;
-      }
-    });
-  }, undefined, function() {
-    console.warn("Failed to load waternormals1.jpg for pattern overlaps, using fallback");
-  });
-  
-  // Function to create a circular tile with a specific texture
-  const createTile = (x, z, radius, texture, rotationOffset = 0, overlapType = null) => {
-    // Using CylinderGeometry for a subtle 3D effect with very low height
-    // Make overlap tiles slightly larger for better coverage
-    const actualRadius = overlapType ? radius * 1.05 : radius;
-    const tileGeometry = new THREE.CylinderGeometry(actualRadius, actualRadius, 0.08, 32);
-    
-    // Create material with transparent glass-like properties
-    const tileMaterial = new THREE.MeshPhysicalMaterial({
-      roughness: 0.2,
-      metalness: 0.1,
-      transmission: 0.85,     // High transparency
-      transparent: true,      // Enable transparency
-      opacity: 0.4,           // Base opacity
-      clearcoat: 0.1,         // Reduced clearcoat for glass effect
-      color: overlapType === 'three' ? 0x66ccff :
-             overlapType === 'two' ? 0x99ddff : 0xaaeeff
-    });
-    
-    // Set normal map based on overlap type
-    if (overlapType === 'two') {
-      // Apply water normal texture immediately if loaded
-      if (twoOverlapTexture) {
-        tileMaterial.normalMap = twoOverlapTexture;
-        tileMaterial.normalScale = new THREE.Vector2(0.2, 0.2);
-      }
-    } else if (overlapType === 'three') {
-      // Apply water normal texture immediately if loaded
-      if (threeOverlapTexture) {
-        tileMaterial.normalMap = threeOverlapTexture;
-        tileMaterial.normalScale = new THREE.Vector2(0.2, 0.2);
-      }
-    }
-    
-    // Rotate the UVs to create variation
-    // Only apply to top and bottom face UVs
-    const topUVs = [];
-    const numVertices = tileGeometry.attributes.position.count;
-    const uv = tileGeometry.attributes.uv;
-    
-    // Store original UVs
-    for (let i = 0; i < numVertices; i++) {
-      topUVs.push({ u: uv.getX(i), v: uv.getY(i) });
-    }
-    
-    // Apply rotation to top/bottom face UVs
-    for (let i = 0; i < numVertices; i++) {
-      const pos = new THREE.Vector3().fromBufferAttribute(tileGeometry.attributes.position, i);
-      // Only modify UVs for top and bottom faces
-      if (Math.abs(pos.y) > actualRadius * 0.9) {
-        const u = topUVs[i].u;
-        const v = topUVs[i].v;
-        const angle = rotationOffset;
-        const u2 = 0.5 + (u - 0.5) * Math.cos(angle) - (v - 0.5) * Math.sin(angle);
-        const v2 = 0.5 + (u - 0.5) * Math.sin(angle) + (v - 0.5) * Math.cos(angle);
-        uv.setXY(i, u2, v2);
-      }
-    }
-    
-    const tile = new THREE.Mesh(tileGeometry, tileMaterial);
-    
-    // Store overlap type for later texture updates
-    if (overlapType) {
-      tile.userData = { overlapType: overlapType, isProtectedTexture: true };
-    }
-    
-    // Position the tile at the specified x,z coordinates
-    // For overlap tiles, position them higher to avoid z-fighting
-    if (overlapType) {
-      // Increase the height offset to ensure overlap tiles are well above base tiles
-      tile.position.set(x, 0.04, z); // Increased from 0.02 to 0.04
-    } else {
-      tile.position.set(x, 0, z);
-    }
-    
-    tile.receiveShadow = true;
-    tile.castShadow = false; // Transparent objects shouldn't cast shadows
-    
-    // Add a subtle glowing edge
-    const edgeGeometry = new THREE.CylinderGeometry(actualRadius, actualRadius, 0.1, 32, 1, true); // Open-ended cylinder
-    const edgeMaterial = new THREE.MeshPhysicalMaterial({
-      color: 0x66ccff,
-      roughness: 0.2,
-      metalness: 0.3,
-      transmission: 0.7,
-      transparent: true,
-      opacity: 0.6,
-      side: THREE.DoubleSide,
-      emissive: 0x003366,
-      emissiveIntensity: 0.2
-    });
-    
-    const edge = new THREE.Mesh(edgeGeometry, edgeMaterial);
-    edge.position.y = 0; // Aligned with the tile
-    tile.add(edge);
-    
-    return tile;
-  };
-  
-  // Update the intersection points with more precise positions and add additional points
-  const intersectionPoints = [
-    // Central triple intersection
-    { x: 0, z: 0, radius: 3.5, type: 'three' }, // Increased radius from 3 to 3.5
-    
-    // Double intersections between center and middle ring
-    { x: 7.5, z: 0, radius: 2.8, type: 'two' },    // Right
-    { x: -7.5, z: 0, radius: 2.8, type: 'two' },   // Left
-    { x: 3.75, z: 6.5, radius: 2.8, type: 'two' }, // Top right
-    { x: -3.75, z: 6.5, radius: 2.8, type: 'two' },// Top left
-    { x: 3.75, z: -6.5, radius: 2.8, type: 'two' },// Bottom right
-    { x: -3.75, z: -6.5, radius: 2.8, type: 'two' },// Bottom left
-    
-    // Intersections between middle rings
-    { x: 12, z: 6.5, radius: 2.8, type: 'two' },   // Far right top
-    { x: 12, z: -6.5, radius: 2.8, type: 'two' },  // Far right bottom
-    { x: -12, z: 6.5, radius: 2.8, type: 'two' },  // Far left top
-    { x: -12, z: -6.5, radius: 2.8, type: 'two' }, // Far left bottom
-    { x: 0, z: 13, radius: 2.8, type: 'two' },     // Top center
-    { x: 0, z: -13, radius: 2.8, type: 'two' },    // Bottom center
-    
-    // Additional intersections for complete coverage
-    { x: 10.4, z: 11, radius: 2.8, type: 'two' },  // Additional angle intersections
-    { x: -10.4, z: 11, radius: 2.8, type: 'two' }, 
-    { x: 10.4, z: -11, radius: 2.8, type: 'two' },
-    { x: -10.4, z: -11, radius: 2.8, type: 'two' }
-  ];
-  
-  // Create center tile and tile rings with transparent materials
-  // Create the center circle
-  const centerTile = createTile(0, 0, 9, null);
-  flowerOfLifeGroup.add(centerTile);
-  
-  // Create the first ring of 6 circles
-  const radius = 8;
-  const numTiles = 6;
-  for (let i = 0; i < numTiles; i++) {
-    const angle = (i / numTiles) * Math.PI * 2;
-    const x = Math.cos(angle) * radius * 1.5;
-    const z = Math.sin(angle) * radius * 1.5;
-    const tile = createTile(x, z, 7, null, angle);
-    flowerOfLifeGroup.add(tile);
-  }
-  
-  // Create outer decorative elements
-  const outerRadius = 19;
-  const numOuterTiles = 12;
-  for (let i = 0; i < numOuterTiles; i++) {
-    const angle = (i / numOuterTiles) * Math.PI * 2;
-    const x = Math.cos(angle) * outerRadius;
-    const z = Math.sin(angle) * outerRadius;
-    const tile = createTile(x, z, 4, null, angle);
-    flowerOfLifeGroup.add(tile);
-  }
-  
-  // Now add the intersection tiles on top
-  for (const point of intersectionPoints) {
-    const tile = createTile(point.x, point.z, point.radius, null, 0, point.type);
-    flowerOfLifeGroup.add(tile);
-  }
-  
-  // Add underwater spotlight to illuminate the transparent platform
-  const spotLight = new THREE.SpotLight(0x88ccff, 1.0);
-  spotLight.position.set(0, -2, 0); // Position below the platform
-  spotLight.target.position.set(0, 0, 0);
-  spotLight.angle = Math.PI / 2.5;
-  spotLight.penumbra = 0.3;
-  spotLight.decay = 1.5;
-  spotLight.distance = 30;
-  spotLight.castShadow = false; // No shadows from underwater light
-  scene.add(spotLight);
-  scene.add(spotLight.target);
-  
-  // Add a glowing effect from below
-  const patternLight = new THREE.PointLight(0x66aaff, 0.8);
-  patternLight.position.set(0, -1, 0);
-  patternLight.distance = 30;
-  patternLight.decay = 2;
-  scene.add(patternLight);
-  
-  // Add a slight pulsating animation to the lights for dynamic effect
-  const clock = new THREE.Clock();
-  const animateLights = () => {
-    const time = clock.getElapsedTime();
-    const pulseFactor = Math.sin(time * 0.5) * 0.2 + 0.8; // 0.6-1.0 range
-    
-    spotLight.intensity = 1.0 * pulseFactor;
-    patternLight.intensity = 0.8 * pulseFactor;
-    
-    requestAnimationFrame(animateLights);
-  };
-  animateLights();
-  
-  // Mark all flower pattern elements as platform elements for reflection
-  flowerOfLifeGroup.children.forEach(child => {
-    child.userData.isPlatformElement = true;
-  });
-  
-  // Don't call initializeCustomReflections here, we'll call it after doors is initialized
-  
+
   return platform;
 }
 
@@ -977,8 +688,6 @@ const { sky, sun } = createSky();
 const platform = createPlatform();
 const doors = createWoodenDoors();
 
-// Now that doors are created, initialize reflections
-initializeCustomReflections();
 
 // Add ambient light
 const ambientLight = new THREE.AmbientLight(0x404040, 1);
@@ -1060,57 +769,6 @@ function checkDoorProximity() {
 const clock = new THREE.Clock();
 
 // Add camera position history tracker for delayed reflections 
-const cameraPositionHistory = [];
-const maxHistoryLength = 15; // Number of frames to keep in history
-const reflectionDelay = 10;  // How many frames to delay reflections by
-
-// Add function to update reflections with drag effect
-function updateReflections() {
-  // Store current camera position and rotation in history
-  cameraPositionHistory.push({
-    position: camera.position.clone(),
-    rotation: camera.rotation.clone()
-  });
-  
-  // Limit history length
-  if (cameraPositionHistory.length > maxHistoryLength) {
-    cameraPositionHistory.shift(); // Remove oldest entry
-  }
-  
-  // If we have enough history, use delayed position for reflections
-  if (cameraPositionHistory.length >= reflectionDelay) {
-    const delayedState = cameraPositionHistory[cameraPositionHistory.length - reflectionDelay];
-    
-    // Find all reflective materials and update their environment
-    scene.traverse((object) => {
-      if (object.userData && object.userData.isPlatformElement && 
-          object.material && object.material.envMap) {
-        
-        if (!object.userData.originalEnvMapIntensity && object.material.envMapIntensity) {
-          // Store original intensity if not already stored
-          object.userData.originalEnvMapIntensity = object.material.envMapIntensity;
-        }
-        
-        // Apply lag effect based on camera movement speed
-        const currentPos = camera.position;
-        const delayedPos = delayedState.position;
-        const moveSpeed = currentPos.distanceTo(delayedPos);
-        
-        // Adjust envMapIntensity based on movement speed to create trailing effect
-        if (object.userData.originalEnvMapIntensity) {
-          const lagIntensity = 1.0 + (moveSpeed * 2.0); // Increase intensity during movement
-          // --- Removed Reflection Lag ---
-          // object.material.envMapIntensity = object.userData.originalEnvMapIntensity * lagIntensity;
-          // Reset to original intensity if it was modified
-          if (object.material.envMapIntensity !== object.userData.originalEnvMapIntensity) {
-             object.material.envMapIntensity = object.userData.originalEnvMapIntensity;
-          }
-          // --- End Removal ---
-        }
-      }
-    });
-  }
-}
 
 function animate() {
   requestAnimationFrame(animate);
@@ -1123,8 +781,7 @@ function animate() {
     water.material.uniforms['time'].value += delta * 0.5;
   }
   
-  // Update reflections with delay effect
-//   updateReflections();
+  // Reflection updates removed for performance
   
   // Door animation removed
   
@@ -1183,54 +840,3 @@ function animate() {
 }
 
 animate();
-
-// Initialize a custom environment map for reflections
-function initializeCustomReflections() {
-  // Create a reflection cube camera to generate dynamic environment maps
-  const cubeRenderTarget = new THREE.WebGLCubeRenderTarget(256, {
-    format: THREE.RGBFormat,
-    generateMipmaps: true,
-    minFilter: THREE.LinearMipmapLinearFilter
-  });
-  
-  const reflectionCamera = new THREE.CubeCamera(0.1, 1000, cubeRenderTarget);
-  // Start at the player's position
-  reflectionCamera.position.set(camera.position.x, waterLevel + 0.5, camera.position.z);
-  scene.add(reflectionCamera);
-
-  // Track a delayed position for a trailing effect
-  const delayedPos = new THREE.Vector3().copy(reflectionCamera.position);
-  const lagFactor = 0.02; // lower value = more lag
-  
-  // Make environment map available to platform materials
-  const updateReflectionMap = () => {
-    // Temporarily hide platform to avoid recursive reflections
-    let platform = scene.getObjectByName('transparentPlatform');
-    if (platform) platform.visible = false;
-    
-    // Slowly move the reflection camera toward the player's current position
-    delayedPos.lerp(camera.position, lagFactor);
-    reflectionCamera.position.set(delayedPos.x, waterLevel + 0.5, delayedPos.z);
-
-    // Update the cube camera from the lagged position
-    reflectionCamera.update(renderer, scene);
-    
-    // Show platform again
-    if (platform) platform.visible = true;
-    
-    // Apply the reflection map to platform materials
-    scene.traverse((object) => {
-      if (object.userData && object.userData.isPlatformElement && object.material) {
-        object.material.envMap = cubeRenderTarget.texture;
-        if (!object.userData.originalEnvMapIntensity) {
-          object.userData.originalEnvMapIntensity = 1.0;
-        }
-        object.material.needsUpdate = true;
-      }
-    });
-    
-    requestAnimationFrame(updateReflectionMap);
-  };
-  
-  updateReflectionMap();
-} 
