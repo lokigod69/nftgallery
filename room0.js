@@ -51,6 +51,10 @@ function checkOrientation() {
 window.addEventListener("load", checkOrientation);
 window.addEventListener("resize", checkOrientation);
 window.addEventListener("orientationchange", checkOrientation);
+if (screen.orientation && screen.orientation.addEventListener) {
+  screen.orientation.addEventListener("change", checkOrientation);
+}
+setTimeout(checkOrientation, 100);
 
 
 // Global error handler to ensure loading overlay is hidden if there's an error
