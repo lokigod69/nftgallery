@@ -21,7 +21,9 @@ const htmlFiles = [
   'room4.html',
   'room5.html',
   'room6.html',
-  'room7.html'
+  'room7.html',
+  'room8.html',
+  'room9.html'
 ];
 
 htmlFiles.forEach(file => {
