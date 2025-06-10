@@ -23,6 +23,16 @@ document.addEventListener('DOMContentLoaded', function() {
     menu.appendChild(li);
   }
 
+  // Ensure Room 8 link exists in the menu
+  if (!menu.querySelector('a[href="room8.html"]')) {
+    const li = document.createElement('li');
+    const link = document.createElement('a');
+    link.href = 'room8.html';
+    link.textContent = 'Room 8';
+    li.appendChild(link);
+    menu.appendChild(li);
+  }
+
   function hideMenu() {
     menu.style.display = 'none';
   }
