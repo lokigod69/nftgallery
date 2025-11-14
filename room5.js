@@ -1107,6 +1107,62 @@ const portalToRoom8 = createPortalToRoom8();
 const portalToRoom9 = createPortalToRoom9();
 
 // ----------------------------------------------------------------------
+// Create Portal Labels
+// ----------------------------------------------------------------------
+function createPortalLabel(text, x, y, z) {
+  // Create canvas for text
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d');
+  canvas.width = 512;
+  canvas.height = 128;
+
+  // Draw semi-transparent background
+  context.fillStyle = 'rgba(0, 0, 0, 0.6)';
+  context.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Draw glowing text
+  context.fillStyle = '#ffffff';
+  context.font = 'Bold 32px Arial';
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+
+  // Add glow effect
+  context.shadowColor = '#00ffff';
+  context.shadowBlur = 10;
+  context.fillText(text, canvas.width / 2, canvas.height / 2);
+
+  // Create texture and material
+  const labelTexture = new THREE.CanvasTexture(canvas);
+  const labelMaterial = new THREE.MeshBasicMaterial({
+    map: labelTexture,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.9
+  });
+
+  // Create label mesh
+  const labelGeometry = new THREE.PlaneGeometry(3, 0.75);
+  const label = new THREE.Mesh(labelGeometry, labelMaterial);
+  label.position.set(x, y, z);
+
+  // Make label always face camera (billboard effect)
+  label.userData.isBillboard = true;
+
+  scene.add(label);
+  return label;
+}
+
+// Create labels for all portals
+const labelRoom4 = createPortalLabel('⬅ Room 4 (Floating Island)', 0, eyeHeight + 2, roomRadius - 5);
+const labelRoom6 = createPortalLabel('⬆ Room 6 (Video Corridor)', 0, eyeHeight + 2, -(roomRadius - 5));
+const labelRoom7 = createPortalLabel('➡ Room 7 (Starry Gallery)', roomRadius - 5, eyeHeight + 2, 0);
+const labelRoom8 = createPortalLabel('⬅ Room 8 (Abstract Art)', -(roomRadius - 5), eyeHeight + 2, 0);
+const labelRoom9 = createPortalLabel('↗ Room 9 (Tunnel)', 17.7, eyeHeight + 2, 17.7);
+
+// Store labels for billboard effect
+const portalLabels = [labelRoom4, labelRoom6, labelRoom7, labelRoom8, labelRoom9];
+
+// ----------------------------------------------------------------------
 // Animation Loop
 // ----------------------------------------------------------------------
 const clock = new THREE.Clock();
@@ -1202,6 +1258,11 @@ function animate() {
     portalToRoom9.portal.rotation.z += 0.01;
     portalToRoom9.glow.rotation.z -= 0.01;
   }
+
+  // Update billboard labels to always face camera
+  portalLabels.forEach(label => {
+    label.lookAt(camera.position);
+  });
 
   renderer.render(scene, camera);
 }

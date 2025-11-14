@@ -743,6 +743,33 @@ function createPortalToRoom0() {
 const portal = createPortal();
 const portalToRoom0 = createPortalToRoom0();
 
+// Add label for Room 2 portal (matching Room 0 portal label style)
+const room2LabelCanvas = document.createElement('canvas');
+const room2Context = room2LabelCanvas.getContext('2d');
+room2LabelCanvas.width = 512;
+room2LabelCanvas.height = 128;
+room2Context.fillStyle = 'rgba(0, 0, 0, 0.7)';
+room2Context.fillRect(0, 0, room2LabelCanvas.width, room2LabelCanvas.height);
+room2Context.fillStyle = '#ffffff';
+room2Context.font = 'Bold 28px Arial';
+room2Context.textAlign = 'center';
+room2Context.textBaseline = 'middle';
+room2Context.fillText('Room 2 →', room2LabelCanvas.width / 2, room2LabelCanvas.height / 2);
+
+const room2LabelTexture = new THREE.CanvasTexture(room2LabelCanvas);
+const room2LabelMaterial = new THREE.MeshBasicMaterial({
+  map: room2LabelTexture,
+  side: THREE.DoubleSide,
+  transparent: true,
+  opacity: 0.9
+});
+
+const room2LabelGeometry = new THREE.PlaneGeometry(2.5, 0.6);
+const room2Label = new THREE.Mesh(room2LabelGeometry, room2LabelMaterial);
+room2Label.position.set(portal.portal.position.x, portal.portal.position.y + 1.8, portal.portal.position.z);
+room2Label.rotation.y = portal.portal.rotation.y;
+scene.add(room2Label);
+
 // ----------------------------------------------------------------------
 // Portal Interaction
 // ----------------------------------------------------------------------
