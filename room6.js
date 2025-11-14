@@ -97,7 +97,7 @@ const videoPlanes = [];
 const spacing = corridorLength / (videoFiles.length + 1);
 videoFiles.forEach((file, index) => {
   const video = document.createElement('video');
-  video.src = `/videos/${file}`;
+  video.src = `/assets/${file}`; // FIXED: Changed from /videos/ to /assets/
   video.loop = true;
   video.muted = true;
   video.autoplay = true;
@@ -176,6 +176,72 @@ function onKeyUp(event) {
 document.addEventListener('keydown', onKeyDown);
 document.addEventListener('keyup', onKeyUp);
 
+// ============================================
+// Portal to Room 0
+// ============================================
+let portalToRoom0 = null;
+let portalGlow = null;
+
+function createPortal() {
+  // Portal at the end of the corridor
+  const portalGeometry = new THREE.CircleGeometry(1.5, 32);
+  const portalMaterial = new THREE.MeshBasicMaterial({
+    color: 0x00ffff, // Teal for return to hub
+    transparent: true,
+    opacity: 0.8,
+    side: THREE.DoubleSide
+  });
+
+  portalToRoom0 = new THREE.Mesh(portalGeometry, portalMaterial);
+  portalToRoom0.position.set(0, eyeHeight, -corridorLength + 2);
+  portalToRoom0.rotation.y = 0;
+
+  // Outer glow
+  const glowGeometry = new THREE.CircleGeometry(1.8, 32);
+  const glowMaterial = new THREE.MeshBasicMaterial({
+    color: 0x00ffff,
+    transparent: true,
+    opacity: 0.3,
+    side: THREE.DoubleSide
+  });
+
+  portalGlow = new THREE.Mesh(glowGeometry, glowMaterial);
+  portalGlow.position.copy(portalToRoom0.position);
+  portalGlow.rotation.copy(portalToRoom0.rotation);
+
+  scene.add(portalToRoom0, portalGlow);
+}
+
+createPortal();
+
+function checkPortalProximity() {
+  if (!portalToRoom0) return;
+
+  const distance = camera.position.distanceTo(portalToRoom0.position);
+  const controlsDesc = document.getElementById('controls-description');
+
+  if (distance < 3.0) {
+    if (controlsDesc) {
+      controlsDesc.textContent = 'Approach portal to return to Ocean Hub (Room 0)';
+      controlsDesc.style.display = 'block';
+    }
+
+    if (distance < 1.8) {
+      // Navigate to Room 0
+      const loadingOverlay = document.getElementById('loading-overlay');
+      if (loadingOverlay) {
+        loadingOverlay.style.display = 'flex';
+      }
+
+      setTimeout(() => {
+        window.location.href = 'room0.html';
+      }, 500);
+    }
+  } else if (controlsDesc) {
+    controlsDesc.textContent = 'Controls: WASD - Move, Mouse - Look, SPACE - Jump';
+  }
+}
+
 const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
 const clock = new THREE.Clock();
@@ -215,6 +281,15 @@ function animate() {
     const maxZ = -buffer;
     camera.position.x = Math.max(-halfWidth, Math.min(halfWidth, camera.position.x));
     camera.position.z = Math.max(minZ, Math.min(maxZ, camera.position.z));
+
+    // Check portal proximity
+    checkPortalProximity();
+  }
+
+  // Animate portals
+  if (portalToRoom0) {
+    portalToRoom0.rotation.z += 0.01;
+    portalGlow.rotation.z -= 0.01;
   }
 
   renderer.render(scene, camera);

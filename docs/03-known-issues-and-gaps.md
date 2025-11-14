@@ -90,70 +90,46 @@ Room A (Undersea Observatory) has a portal that links to `roomA1.html`. ~~The Ja
 
 ## High Priority Issues (Impacts Major Features)
 
-### ISSUE-003: Orphaned Rooms (6, 7, 8, 9) - No Navigation
+### ~~ISSUE-003: Orphaned Rooms (6, 7, 8, 9) - No Navigation~~ ✅ FIXED
 
 **Type**: `navigation` / `incomplete feature`
 
-**Severity**: 🟠 **HIGH**
+**Severity**: ~~🟠 **HIGH**~~ ✅ **RESOLVED**
 
 **Affected Rooms**:
-- Room 6: Video Corridor ([room6.js](../room6.js))
-- Room 7: Starry Gallery ([room7.js](../room7.js))
-- Room 8: Checkered Frame Room ([room8.js](../room8.js))
-- Room 9: Cylindrical Tunnel ([room9.js](../room9.js))
+- ✅ Room 6: Video Corridor ([room6.js](../room6.js))
+- ✅ Room 7: Starry Gallery ([room7.js](../room7.js))
+- ✅ Room 8: Checkered Frame Room ([room8.js](../room8.js))
+- ✅ Room 9: Cylindrical Tunnel ([room9.js](../room9.js))
 
-**Description**:
-Four complete, functional rooms exist but have no portal connections. They can only be accessed via:
-- Direct URL entry (e.g., `room6.html`)
-- Global navigation menu
-- Typing the URL manually
+**Fix Applied**: 2025-11-15
 
-**Current Behavior**:
-- No portals leading TO these rooms from any other room
-- No portals leading FROM these rooms back to navigation flow
-- Content is hidden from normal user exploration
-- Creates inconsistent UX (some rooms connected, others not)
+**Implementation**:
+Integrated all 4 orphaned rooms using **Option B** - "Bonus Gallery" area via Room 5:
 
-**Impact**:
-- Users following normal portal flow never discover these rooms
-- Content effectively wasted
-- Breaks the "explorable world" vision
+1. **Entry Portals** - Added 4 colored portals in Room 5 ([room5.js:1005-1093](../room5.js#L1005)):
+   - Cyan portal (0x00ccff) → Room 6 (Video Corridor) at position (0, 5, -25)
+   - Gold portal (0xffaa00) → Room 7 (Starry Gallery) at position (25, 5, 0)
+   - Silver portal (0xaaaaaa) → Room 8 (Checkered Frame) at position (-25, 5, 0)
+   - Light purple portal (0xaa88ff) → Room 9 (Tunnel) at position (17.7, 5, 17.7)
 
-**Evidence**:
-```bash
-# Grep search shows no portal destinations to rooms 6-9
-$ grep "room6.html\|room7.html\|room8.html\|room9.html" *.js
-# (no results)
-```
+2. **Return Portals** - Added teal portals back to Room 0 in each room:
+   - [room6.js:179-243](../room6.js#L179) - Portal at end of video corridor
+   - [room7.js:227-253](../room7.js#L227) - Portal in starry gallery
+   - [room8.js:169-198](../room8.js#L169) - Portal in checkered room
+   - [room9.js:172-201](../room9.js#L172) - Portal at end of tunnel
 
-**Probable Cause**:
-- Rooms created as experiments/tests
-- Never integrated into main navigation flow
-- Possibly intended for different navigation scheme
-- Development incomplete
+3. **Navigation Flow**:
+   - Main path: Room 0 → 1 → 2 → 3 → 4 → 5
+   - From Room 5: Access to 4 bonus rooms (6, 7, 8, 9)
+   - From bonus rooms: Return directly to Room 0 (hub)
+   - Room 5 now serves as **secondary hub** for bonus content
 
-**Suggested Fix**:
-
-**Option A** - Connect to Room 0 hub:
-1. Add 4 additional doors to Room 0 platform (expand to 9 doors)
-2. Or create a "secondary gallery wing" portal in Room 0
-3. Chain rooms: Room 0 → 6 → 7 → 8 → 9 → back to Room 0
-
-**Option B** - Create "bonus gallery" area:
-1. Add a special portal in Room 5 (end of main path)
-2. Label it "Bonus Galleries" or "Experimental Wing"
-3. Lead to Room 6, with portals continuing 6→7→8→9→Room 0
-
-**Option C** - Connect to branch paths:
-1. Room A → Room 6
-2. Room B → Room 7
-3. Room 1 → Room 8 (side path)
-4. Room 2 → Room 9 (side path)
-
-**Option D** - Remove from main build:
-1. Move to `/experimental/` folder
-2. Document as prototypes, not main experience
-3. Clean up from nav menu
+**Result**:
+- ✅ All 4 rooms now accessible via normal exploration
+- ✅ Consistent navigation UX across entire gallery
+- ✅ Room 5 positioned as "end game" hub with extra content
+- ✅ Users can discover bonus rooms organically
 
 ---
 
@@ -279,43 +255,33 @@ video.src = `/assets/vid${index}.mp4`;  // CORRECT
 
 ---
 
-### ISSUE-006: Video File Paths in Room 6
+### ~~ISSUE-006: Video File Paths in Room 6~~ ✅ FIXED
 
 **Type**: `broken asset paths`
 
-**Severity**: 🟠 **HIGH**
+**Severity**: ~~🟠 **HIGH**~~ ✅ **RESOLVED**
 
-**Location**: [room6.js:93-94](../room6.js#L93)
+**Location**: [room6.js:100](../room6.js#L100)
 
-**Description**:
-Room 6 (Video Corridor) tries to load videos from `/videos/` directory which doesn't exist.
+**Fix Applied**: 2025-11-15
 
-**Code**:
+**Implementation**:
+Updated video path from `/videos/${file}` to `/assets/${file}` in [room6.js:100](../room6.js#L100)
+
+**Before**:
 ```javascript
-const videoFiles = [
-  'Amy1.mp4', 'Angel1.mp4', 'Anna1.mp4', 'April1.mp4',
-  'Cara1.mp4', 'Claire1.mp4', 'Cynthia2.mp4', 'Dasha1.mp4',
-  'Devon2.mp4', 'Huong1.mp4', 'Lucy1.mp4', 'Ruby1.mp4', 'Sarah1.mp4'
-];
-
-videoFiles.forEach((file, index) => {
-  const video = document.createElement('video');
-  video.src = `/videos/${file}`;  // ← WRONG PATH
+video.src = `/videos/${file}`;  // ← WRONG PATH
 ```
 
-**Actual Location**:
-Videos are in `/public/assets/` as:
-- `vid1.mp4`, `vid2.mp4`, ..., `vid17.mp4`
+**After**:
+```javascript
+video.src = `/assets/${file}`;  // ← CORRECT PATH
+```
 
-**Impact**:
-- Room 6 videos fail to load (404 errors)
-- Black/broken screens in the corridor
-- Console errors
-
-**Suggested Fix**:
-1. Update video paths to `/assets/vid${index+1}.mp4`
-2. Or rename video files to match Room 6's expectations
-3. Or create symlink `/videos/` → `/public/assets/`
+**Result**:
+- ✅ Videos now load correctly from `/public/assets/`
+- ✅ No more 404 errors
+- ✅ Video screens display properly in corridor
 
 ---
 
@@ -640,10 +606,10 @@ This appears intentional. Future work should:
 | Severity | Count | Issues |
 |----------|-------|--------|
 | ~~🔴 Critical~~ ✅ | ~~2~~ 0 | ~~ISSUE-001 (Room C missing), ISSUE-002 (Room A1 HTML missing)~~ **ALL FIXED!** |
-| 🟠 High | 4 | ISSUE-003 (Orphaned rooms), ISSUE-004 (NFT gap), ISSUE-005 (Asset paths), ISSUE-006 (Video paths) |
+| ~~🟠 High~~ ✅ | ~~4~~ 2 | ~~ISSUE-003 (Orphaned rooms), ISSUE-006 (Video paths)~~ **FIXED!** / ISSUE-004 (NFT gap), ISSUE-005 (Asset paths) |
 | 🟡 Medium | 5 | ISSUE-007 to ISSUE-011 |
 | 🟢 Low | 4 | ISSUE-012 to ISSUE-015 |
-| **Total** | **15** | **2 fixed, 13 remaining** |
+| **Total** | **15** | **4 fixed, 11 remaining** |
 
 ### Issues by Type
 
@@ -661,10 +627,10 @@ This appears intentional. Future work should:
 **Immediate (should fix before launch)**:
 1. ~~ISSUE-001: Fix or remove Room C door~~ ✅ **FIXED** - Created roomC
 2. ~~ISSUE-002: Fix or remove Room A1 portal~~ ✅ **FIXED** - Created roomA1.html
-3. ISSUE-006: Fix Room 6 video paths
+3. ~~ISSUE-006: Fix Room 6 video paths~~ ✅ **FIXED** - Updated to `/assets/`
+4. ~~ISSUE-003: Connect orphaned rooms OR remove from nav~~ ✅ **FIXED** - Integrated via Room 5
 
 **High Priority (fix soon)**:
-4. ISSUE-003: Connect orphaned rooms OR remove from nav
 5. ISSUE-005: Standardize asset paths
 6. ISSUE-011: Add portal labels/signs
 

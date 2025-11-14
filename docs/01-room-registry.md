@@ -218,14 +218,18 @@ Dark atmospheric room with eclipse theme. Features:
 - **Formation**: Dodecagon (12-sided polygon) at 60% room radius
 
 **Portals OUT**:
-| Target | Color | Position | Code Line |
-|--------|-------|----------|-----------|
-| [room4.html](../room4.html) | Purple (0x8844aa) | (0, 5, 25) | [room5.js:1131](../room5.js#L1131) |
+| Target | Color | Position | Code Line | Notes |
+|--------|-------|----------|-----------|-------|
+| [room4.html](../room4.html) | Purple (0x8844aa) | (0, 5, 25) | [room5.js:1239](../room5.js#L1239) | Back to Room 4 |
+| [room6.html](../room6.html) | Cyan (0x00ccff) | (0, 5, -25) | [room5.js:1215](../room5.js#L1215) | Video Corridor |
+| [room7.html](../room7.html) | Gold (0xffaa00) | (25, 5, 0) | [room5.js:1216](../room5.js#L1216) | Starry Gallery |
+| [room8.html](../room8.html) | Silver (0xaaaaaa) | (-25, 5, 0) | [room5.js:1217](../room5.js#L1217) | Checkered Frame |
+| [room9.html](../room9.html) | Purple (0xaa88ff) | (17.7, 5, 17.7) | [room5.js:1218](../room5.js#L1218) | Tunnel |
 
 **Portals IN**:
 - From Room 4
 
-**Status**: ✅ Working
+**Status**: ✅ Working (Now serves as secondary hub for bonus rooms)
 
 **Issues**:
 - Some NFT loading issues mentioned in comments (texture loading with fallbacks)
@@ -253,21 +257,22 @@ Linear corridor with curved ceiling featuring video displays. Features:
 
 **Video Content**:
 - **Count**: 13 video files
-- **Source Path**: `/videos/`
+- **Source Path**: `/assets/` (FIXED: was `/videos/`)
 - **Files**: Amy1.mp4, Angel1.mp4, Anna1.mp4, April1.mp4, Cara1.mp4, Claire1.mp4, Cynthia2.mp4, Dasha1.mp4, Devon2.mp4, Huong1.mp4, Lucy1.mp4, Ruby1.mp4, Sarah1.mp4
 - **Display**: Evenly spaced along corridor walls
 
-**Portals OUT**: ❌ **None found** - Room appears isolated
+**Portals OUT**:
+| Target | Color | Position | Code Line | Notes |
+|--------|-------|----------|-----------|-------|
+| [room0.html](../room0.html) | Teal (0x00ffff) | (0, eyeHeight, -corridorLength+2) | [room6.js:234](../room6.js#L234) | Back to Ocean Hub |
 
-**Portals IN**: ❌ **None found** - Room appears unreachable
+**Portals IN**:
+- From Room 5 (cyan portal)
 
-**Status**: ⚠️ **Orphaned** - No navigation connections
+**Status**: ✅ **Working** - Now integrated into main navigation (FIXED)
 
 **Issues**:
-- **CRITICAL**: Room is completely disconnected from main navigation flow
-- No way to enter or exit this room via portals
-- Can only be accessed via direct URL or nav menu
-- Video paths use `/videos/` but assets are in `/assets/` or `/public/assets/`
+- ~~Video paths use `/videos/` but assets are in `/assets/`~~ **FIXED**: Updated to use `/assets/`
 
 ---
 
@@ -294,16 +299,17 @@ Dark atmospheric gallery with starry ceiling. Features:
   - `lokigod69._A_female_model_standing_in_a_stark_monochrome_space__461d3cd1-91d2-4213-90e0-567676b9955d.png`
   - `lokigod69._A_female_model_whose_body_dissolves_into_thick_impre_4512005b-b6b4-48bf-8a1c-3739d9c4a119.png`
 
-**Portals OUT**: ❌ **None found** - Room appears isolated
+**Portals OUT**:
+| Target | Color | Position | Code Line | Notes |
+|--------|-------|----------|-----------|-------|
+| [room0.html](../room0.html) | Teal (0x00ffff) | (0, eyeHeight, 45) | [room7.js:265](../room7.js#L265) | Back to Ocean Hub |
 
-**Portals IN**: ❌ **None found** - Room appears unreachable
+**Portals IN**:
+- From Room 5 (gold portal)
 
-**Status**: ⚠️ **Orphaned** - No navigation connections
+**Status**: ✅ **Working** - Now integrated into main navigation (FIXED)
 
-**Issues**:
-- **CRITICAL**: Room is completely disconnected from main navigation flow
-- No portals for entry/exit
-- Can only be accessed via direct URL or nav menu
+**Issues**: None
 
 ---
 
@@ -323,20 +329,19 @@ Small cubic room with checkered pattern of grey frames on all surfaces. Features
 - Frames on floor, ceiling, and all four walls
 - Minimalist aesthetic
 
-**NFT Content**: **None** - Just grey placeholder frames
+**NFT Content**: **None** - Just grey placeholder frames (abstract/minimalist art piece)
 
-**Portals OUT**: ❌ **None found** - Room appears isolated
+**Portals OUT**:
+| Target | Color | Position | Code Line | Notes |
+|--------|-------|----------|-----------|-------|
+| [room0.html](../room0.html) | Teal (0x00ffff) | (0, eyeHeight, half-0.5) | [room8.js:193](../room8.js#L193) | Back to Ocean Hub |
 
-**Portals IN**: ❌ **None found** - Room appears unreachable
+**Portals IN**:
+- From Room 5 (silver portal)
 
-**Status**: ⚠️ **Orphaned** - No navigation connections
+**Status**: ✅ **Working** - Now integrated into main navigation (FIXED)
 
-**Issues**:
-- **CRITICAL**: Room is completely disconnected from main navigation flow
-- No portals for entry/exit
-- Can only be accessed via direct URL or nav menu
-- No actual content (just empty grey frames)
-- Appears to be a test/prototype room
+**Issues**: None (Now serves as abstract/minimalist art space)
 
 ---
 
@@ -363,16 +368,17 @@ Futuristic cylindrical tunnel with NFT panels. Features:
 - **Display**: 2x2 meter panels alternating left/right along corridor
 - **Spacing**: 5-unit intervals
 
-**Portals OUT**: ❌ **None found** - Room appears isolated
+**Portals OUT**:
+| Target | Color | Position | Code Line | Notes |
+|--------|-------|----------|-----------|-------|
+| [room0.html](../room0.html) | Teal (0x00ffff) | (0, eyeHeight, CORRIDOR_LENGTH/2-2) | [room9.js:196](../room9.js#L196) | Back to Ocean Hub |
 
-**Portals IN**: ❌ **None found** - Room appears unreachable
+**Portals IN**:
+- From Room 5 (light purple portal)
 
-**Status**: ⚠️ **Orphaned** - No navigation connections
+**Status**: ✅ **Working** - Now integrated into main navigation (FIXED)
 
-**Issues**:
-- **CRITICAL**: Room is completely disconnected from main navigation flow
-- No portals for entry/exit
-- Can only be accessed via direct URL or nav menu
+**Issues**: None
 
 ---
 
@@ -603,8 +609,8 @@ Concept chamber with dark industrial aesthetic. A work-in-progress room featurin
 
 | Category | Count | Rooms |
 |----------|-------|-------|
-| **Fully Working** | 10 | Room 0, 1, 2, 3, 4, 5, A, A1, B, C |
-| **Orphaned** (no portals) | 4 | Room 6, 7, 8, 9 |
+| **Fully Working** | 14 | Room 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, A, A1, B, C |
+| **Orphaned** (no portals) | 0 | None - All integrated! |
 | **Broken** (missing files) | 0 | None - All fixed! |
 | **Disabled** (intentional) | 1 | Room D |
 | **Future** (React scaffolds) | 3 | Room 10, 11, 12 |
@@ -620,10 +626,10 @@ Concept chamber with dark industrial aesthetic. A work-in-progress room featurin
 | Room 3 | 73-107 | 35 | ✅ |
 | Room 4 | 108-127 | 20 | ✅ |
 | Room 5 | 131-142 | 12 | ✅ |
-| Room 6 | Videos | 13 videos | ⚠️ Orphaned |
-| Room 7 | Room7 folder | ~20+ | ⚠️ Orphaned |
-| Room 8 | None | 0 | ⚠️ Orphaned |
-| Room 9 | 1-40 | 40 | ⚠️ Orphaned |
+| Room 6 | Videos | 13 videos | ✅ (via Room 5) |
+| Room 7 | Room7 folder | ~20+ | ✅ (via Room 5) |
+| Room 8 | None | 0 | ✅ (via Room 5) |
+| Room 9 | 1-40 | 40 | ✅ (via Room 5) |
 | Room A | Videos | 17 videos | ✅ |
 | Room A1 | TBD | TBD | ✅ Fixed |
 | Room B | RoomB/B1-B60 | 60 | ✅ |

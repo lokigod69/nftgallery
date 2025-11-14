@@ -169,6 +169,37 @@ function onKeyUp(event) {
 document.addEventListener('keydown', onKeyDown);
 document.addEventListener('keyup', onKeyUp);
 
+// Portal to Room 0
+let portalToRoom0 = new THREE.Mesh(
+  new THREE.CircleGeometry(1.5, 32),
+  new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.8, side: THREE.DoubleSide })
+);
+portalToRoom0.position.set(0, eyeHeight, CORRIDOR_LENGTH / 2 - 2);
+portalToRoom0.rotation.y = Math.PI;
+
+let portalGlow = new THREE.Mesh(
+  new THREE.CircleGeometry(1.8, 32),
+  new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.3, side: THREE.DoubleSide })
+);
+portalGlow.position.copy(portalToRoom0.position);
+portalGlow.rotation.copy(portalToRoom0.rotation);
+scene.add(portalToRoom0, portalGlow);
+
+function checkPortalProximity() {
+  const dist = camera.position.distanceTo(portalToRoom0.position);
+  const desc = document.getElementById('controls-description');
+  if (dist < 3.0) {
+    if (desc) desc.textContent = 'Approach portal to return to Ocean Hub (Room 0)';
+    if (dist < 1.8) {
+      const overlay = document.getElementById('loading-overlay');
+      if (overlay) overlay.style.display = 'flex';
+      setTimeout(() => window.location.href = 'room0.html', 500);
+    }
+  } else if (desc) {
+    desc.textContent = 'Controls: WASD - Move, Mouse - Look, SPACE - Jump';
+  }
+}
+
 const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
 const clock = new THREE.Clock();
@@ -206,6 +237,13 @@ function animate() {
     camera.position.z = THREE.MathUtils.clamp(camera.position.z, minZ, maxZ);
     const limitX = WALKWAY_WIDTH / 2 - 0.5;
     camera.position.x = THREE.MathUtils.clamp(camera.position.x, -limitX, limitX);
+  }
+
+  // Check portal proximity and animate
+  checkPortalProximity();
+  if (portalToRoom0) {
+    portalToRoom0.rotation.z += 0.01;
+    portalGlow.rotation.z -= 0.01;
   }
 
   renderer.render(scene, camera);
