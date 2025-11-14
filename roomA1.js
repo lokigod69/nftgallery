@@ -702,12 +702,12 @@ function checkPortalProximity() {
   
   // When player is within 7 units of the portal (increased for larger room), show prompt
   if (distance < 7) {
-    document.getElementById('controls-description').textContent = 'Approach portal to return to Ocean Room';
+    document.getElementById('controls-description').textContent = 'Approach portal to return to Observatory (Room A)';
     document.getElementById('controls-description').style.display = 'block';
     
     // When player is within 3.5 units of the portal, teleport automatically
     if (distance < 3.5) {
-      console.log('Teleporting to Room 0');
+      console.log('Teleporting to Room A');
       
       // Show loading screen
       const loadingOverlay = document.getElementById('loading-overlay');
@@ -717,7 +717,7 @@ function checkPortalProximity() {
       
       // Add a small delay before teleporting for smoother transition
       setTimeout(() => {
-        window.location.href = 'room0.html';
+        window.location.href = 'roomA.html';
       }, 200);
     }
   } else {

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NFT Gallery - Room A1 (Observatory Annex)</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Navigation menu -->
+  <div class="nav-menu">
+    <button class="nav-toggle">☰</button>
+    <nav class="nav-dropdown" style="display: none;">
+      <a href="room0.html">Room 0 (Home)</a>
+      <a href="room1.html">Room 1 (Main Gallery)</a>
+      <a href="room2.html">Room 2</a>
+      <a href="room3.html">Room 3</a>
+      <a href="room4.html">Room 4 (Floating Island)</a>
+      <a href="room5.html">Room 5 (Eternal Eclipse)</a>
+      <a href="room6.html">Room 6 (Video Corridor)</a>
+      <a href="room7.html">Room 7 (Starry Gallery)</a>
+      <a href="room8.html">Room 8</a>
+      <a href="room9.html">Room 9 (Tunnel)</a>
+      <a href="roomA.html">Room A (Undersea Observatory)</a>
+      <a href="roomA1.html">Room A1 (Observatory Annex)</a>
+      <a href="roomB.html">Room B (Gallery)</a>
+    </nav>
+  </div>
+
+  <!-- Loading overlay -->
+  <div class="loading-overlay" id="loading-overlay">
+    <div class="loading-content">
+      <div class="loading-text">Loading Observatory Annex...</div>
+      <div class="loading-bar-container">
+        <div class="loading-bar"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Controls overlay -->
+  <div class="controls-description" id="controls-description">
+    <p>Click to start</p>
+    <p>Controls: WASD - Move, Mouse - Look, SPACE - Jump, ESC - Toggle camera</p>
+  </div>
+
+  <!-- Load navigation script -->
+  <script src="nav.js" defer></script>
+
+  <!-- Load room script as module -->
+  <script type="module" src="roomA1.js"></script>
+</body>
+</html>
