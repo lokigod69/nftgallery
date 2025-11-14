@@ -805,7 +805,7 @@ function loadGLBModel() {
   // Load the model
   gltfLoader.load(
     // Path to your GLB file
-    /assets/aviary_gallery.glb',
+    '/assets/aviary_gallery.glb',
     
     // On successful load
     function(gltf) {
