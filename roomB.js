@@ -514,13 +514,13 @@ function addCopperWavePatterns() {
   const copperTextures = [];
   
   const copperFiles = [
-    /assets/copper1.jpeg',
-    /assets/copper2.jpeg',
-    /assets/copper3.jpeg',
-    /assets/copper4.jpeg',
-    /assets/copper4a.jpeg',
-    /assets/copper4b.jpeg',
-    /assets/copper4c.jpeg'
+    '/assets/copper1.jpeg',
+    '/assets/copper2.jpeg',
+    '/assets/copper3.jpeg',
+    '/assets/copper4.jpeg',
+    '/assets/copper4a.jpeg',
+    '/assets/copper4b.jpeg',
+    '/assets/copper4c.jpeg'
   ];
   
   // Load all copper textures
@@ -913,13 +913,13 @@ function addMixedDecorationsToWalls() {
   const copperTextures = [];
   
   const copperFiles = [
-    /assets/copper1.jpeg',
-    /assets/copper2.jpeg',
-    /assets/copper3.jpeg',
-    /assets/copper4.jpeg',
-    /assets/copper4a.jpeg',
-    /assets/copper4b.jpeg',
-    /assets/copper4c.jpeg'
+    '/assets/copper1.jpeg',
+    '/assets/copper2.jpeg',
+    '/assets/copper3.jpeg',
+    '/assets/copper4.jpeg',
+    '/assets/copper4a.jpeg',
+    '/assets/copper4b.jpeg',
+    '/assets/copper4c.jpeg'
   ];
   
   // Load all copper textures
@@ -1590,7 +1590,7 @@ function loadGLBModel() {
   // Load the model
   gltfLoader.load(
     // Path to your GLB file
-    /assets/aviary_gallery.glb',
+    '/assets/aviary_gallery.glb',
     
     // On successful load
     function(gltf) {
