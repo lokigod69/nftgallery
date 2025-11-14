@@ -934,3 +934,41 @@ The NFT gallery codebase is **functional but needs significant refactoring** to 
 - Easier onboarding for new developers
 
 Despite these issues, the code is **well-structured conceptually** (independent rooms, clear patterns) and can be improved incrementally without breaking existing functionality.
+
+---
+
+## Common Build Issues & Patterns to Avoid
+
+### ⚠️ String Literal Syntax Errors (FIXED: 2025-11-15)
+
+**Issue**: Missing opening quotes on asset path strings
+
+**Pattern Found**:
+```javascript
+// WRONG - Missing opening quote
+const files = [
+  /assets/image1.png',
+  /assets/image2.png'
+];
+
+// CORRECT - Proper string literals
+const files = [
+  '/assets/image1.png',
+  '/assets/image2.png'
+];
+```
+
+**Affected Files** (all fixed):
+- `roomA1.js` - GLB model path
+- `roomB.js` - copperFiles array (2 instances), GLB model path
+- `roomC.html`, `roomA1.html` - Script tag attributes
+
+**Root Cause**: Copy-paste errors when creating new rooms
+
+**Prevention**:
+1. ✅ Always copy asset path patterns from existing working rooms
+2. ✅ Use consistent quote style (single quotes for paths: `'/assets/...'`)
+3. ✅ Run build locally before committing new room files
+4. ✅ Use linter/formatter to catch syntax errors early
+
+**Lesson**: When adding new rooms, copy the entire pattern from a working room file rather than hand-typing asset arrays. This prevents subtle syntax errors that break the build.
