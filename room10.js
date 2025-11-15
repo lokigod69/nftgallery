@@ -13,10 +13,15 @@ import { createLinkedPortal, animateLinkedPortal } from './src/core/portal-utils
 const PLAYER_HEIGHT = 2.5;           // Eye height / spawn height
 const WALK_SPEED = 7.5;              // Ground movement speed (units/sec) - responsive but controlled
 const AIR_CONTROL_FACTOR = 0.6;      // 0-1: how much control you have in midair (0.6 = noticeable)
-const JUMP_VELOCITY = 16.0;          // Initial upward velocity (buffed for ~5.3 unit jump height)
+const JUMP_VELOCITY = 18.0;          // Initial upward velocity (buffed for human playability)
 const GRAVITY = -24.0;               // Downward acceleration
-const JUMP_HEIGHT = 5.3;             // Approximate max jump height: v²/(2|g|) = 16²/48 ≈ 5.33
-const MAX_HORIZONTAL_JUMP_DISTANCE = 5.5; // Max horizontal distance player can jump
+const JUMP_HEIGHT = 6.75;            // Max jump height: v²/(2|g|) = 18²/48 = 6.75 units
+const MAX_HORIZONTAL_JUMP_DISTANCE = 8.0; // Max horizontal distance player can jump
+
+// Global safety constraints - NO jump should use >60% of max capacity
+const MAX_VERTICAL_STEP = JUMP_HEIGHT * 0.6;     // 4.05 units (60% of 6.75)
+const MAX_HORIZONTAL_DIST = 8.0;                  // Safe horizontal distance for all jumps
+const MAX_VERTICAL_STEP_EASY = JUMP_HEIGHT * 0.4; // 2.7 units (40% for first 5 platforms)
 
 // ----------------------------------------------------------------------
 // Arena Parameters
@@ -198,8 +203,31 @@ function generatePlatforms() {
       radiusOffset = 12 - i * 0.8; // Gentler horizontal spacing
     }
 
-    const x = Math.cos(angle) * radiusOffset;
-    const z = Math.sin(angle) * radiusOffset;
+    let x = Math.cos(angle) * radiusOffset;
+    let z = Math.sin(angle) * radiusOffset;
+
+    // ENFORCE GLOBAL SAFETY CONSTRAINTS
+    // No jump should require >60% of max jump capacity (40% for first 5)
+    if (i > 0) {
+      const prevPlatform = platforms[i - 1];
+      const verticalDelta = y - prevPlatform.position.y;
+      const dx = x - prevPlatform.position.x;
+      const dz = z - prevPlatform.position.z;
+      const horizontalDist = Math.sqrt(dx * dx + dz * dz);
+
+      // Apply vertical constraint (stricter for first 5 platforms)
+      const maxVertical = (i < 5) ? MAX_VERTICAL_STEP_EASY : MAX_VERTICAL_STEP;
+      if (verticalDelta > maxVertical) {
+        y = prevPlatform.position.y + maxVertical * 0.8; // 80% for safety margin
+      }
+
+      // Apply horizontal constraint
+      if (horizontalDist > MAX_HORIZONTAL_DIST) {
+        const scale = (MAX_HORIZONTAL_DIST * 0.8) / horizontalDist; // 80% for safety margin
+        x = prevPlatform.position.x + (dx * scale);
+        z = prevPlatform.position.z + (dz * scale);
+      }
+    }
 
     // Platform geometry - hexagonal for visual interest
     const platformGeometry = new THREE.CylinderGeometry(
