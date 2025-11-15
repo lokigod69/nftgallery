@@ -807,6 +807,75 @@ This appears intentional. Future work should:
 
 ---
 
+### ISSUE-020: Room X (Room 10) - Portal Destination Not Determined
+
+**Type**: `navigation` / `todo`
+
+**Severity**: 🟡 **MEDIUM** - Room functional but isolated
+
+**Location**:
+- Room file: [room10.html](../room10.html), [room10.js](../room10.js)
+- Visual portal at top of sphere (line ~257)
+- Currently not wired to any other rooms
+
+**Description**:
+Room X ("The Ascent") is a fully functional legendary challenge room featuring a spherical arena with vertical jump puzzle. The room is self-contained and working, but needs a decision on:
+1. Where should the portal at the top lead?
+2. Which room(s) should have portals leading INTO Room X?
+
+**Current Status**:
+- ✅ Room 10 fully implemented and working
+- ✅ Build successfully includes room10.html and room10.js (5.29 kB bundle)
+- ✅ Jump mechanics, platform generation, and physics all functional
+- ✅ Visual portal at top with "ESCAPE" text
+- ⚠️ Portal is visual only (not functional)
+- ⚠️ No navigation IN to Room 10 from any other room
+- ⚠️ No navigation OUT from Room 10 to any other room
+
+**Room X Features**:
+- 70-unit radius hollow sphere with starfield interior
+- 28 hexagonal platforms in spiral path (112-unit vertical climb)
+- Physics-based platforming (jump height ~3 units, horizontal distance ~4.5 units)
+- Death plane with respawn mechanic
+- Procedural gradient materials (cool blues to warm oranges)
+- Performance-optimized (5.29 kB / 2.37 kB gzip)
+
+**Design Questions to Resolve**:
+1. **Portal destination options**:
+   - Option A: Portal leads back to Room 0 (Ocean Hub) - reward for completing challenge
+   - Option B: Portal leads to Room 5 (Eternal Eclipse) - fits with bonus room structure
+   - Option C: Portal leads to a new secret room (future content unlock)
+   - Option D: Portal is one-way exit to specific progression room (e.g., Room 4 → Room X → Room 5)
+
+2. **Entry point options**:
+   - Option A: Add portal from Room 0 (direct access from hub)
+   - Option B: Add portal from Room 5 (bonus room accessible from secondary hub)
+   - Option C: Add portal from Room 4 (end of main progression before Room 5)
+   - Option D: Make discoverable via secret/hidden portal in existing room
+   - Option E: No entry portal yet (direct URL access only for testing)
+
+**Impact**:
+- Room is playable via direct URL navigation (room10.html)
+- Cannot be reached through normal gallery exploration
+- Challenge completion has no reward destination
+- No integration with rest of gallery flow
+
+**Suggested Approach**:
+**DO NOT IMPLEMENT YET** - Wait for design decision from user:
+1. Determine Room X's role in gallery (main progression vs. bonus content vs. secret)
+2. Based on role, decide entry and exit portal destinations
+3. Implement portal connections
+4. Update portal-styles.js with Room X color scheme if needed
+5. Test complete navigation flow
+
+**Notes**:
+- Room is intentionally isolated per user's instruction ("Do NOT wire any room to Room 10 yet")
+- Implementation is complete and ready for navigation integration
+- Portal system uses existing portal-utils.js (createLinkedPortal)
+- Just needs URL destination and color assignment
+
+---
+
 ## Summary Tables
 
 ### Issues by Severity
@@ -815,22 +884,22 @@ This appears intentional. Future work should:
 |----------|-------|--------|
 | ~~🔴 Critical~~ ✅ | ~~2~~ 0 | ~~ISSUE-001 (Room C missing), ISSUE-002 (Room A1 HTML missing)~~ **ALL FIXED!** |
 | ~~🟠 High~~ | ~~3~~ 2 | ~~ISSUE-003 (Bonus rooms broken return portals)~~ **FIXED!**, ISSUE-004 (NFT gap), ISSUE-005 (Asset paths) |
-| 🟡 Medium | 7 | ISSUE-007 to ISSUE-011, ISSUE-016, ISSUE-017 ~~, ISSUE-018, ISSUE-019~~ ✅ **Room 8/9 fixed!** |
+| 🟡 Medium | 8 | ISSUE-007 to ISSUE-011, ISSUE-016, ISSUE-017, ISSUE-020 (Room X portal) ~~, ISSUE-018, ISSUE-019~~ ✅ **Room 8/9 fixed!** |
 | 🟢 Low | 4 | ISSUE-012 to ISSUE-015 |
-| **Total** | **19** | **7 fixed, 12 remaining** |
+| **Total** | **20** | **7 fixed, 13 remaining** |
 
 ### Issues by Type
 
 | Type | Count | Examples |
 |------|-------|----------|
 | Missing files/rooms | 4 | Room C (fixed), Room A1 HTML (fixed), audio files, models |
-| Navigation/portals | 2 | ~~Bonus rooms broken return portals (fixed)~~, portal color consistency |
+| Navigation/portals | 3 | ~~Bonus rooms broken return portals (fixed)~~, portal color consistency, Room X portal destination |
 | Asset paths/loading | 3 | Asset directory confusion, video paths (fixed), ~~missing NFT assets (Rooms 8-9, fixed)~~ |
 | Content/data | 2 | NFT gap, missing metadata |
 | Performance | 2 | Room 6 videos, Room 7 textures/lighting ~~, Room 8-9 missing assets (fixed)~~ |
 | Code maintenance | ~~1~~ 0 | ~~Room 9 duplication with Room 8 (fixed)~~ |
 | UX/Polish | 2 | Loading progress, portal labels |
-| Future work | 2 | React rooms, Room 8 content |
+| Future work | 2 | React rooms, Room X navigation integration |
 
 ### Recommended Fix Priority
 

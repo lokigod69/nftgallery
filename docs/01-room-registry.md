@@ -457,6 +457,81 @@ Natural, cave-like passage with bio-luminescent accents and embedded art surface
 
 ---
 
+## Room 10: The Ascent (Room X - Challenge Arena)
+
+**Route/Path**: [room10.html](../room10.html)
+
+**Entry Files**:
+- HTML: [room10.html](../room10.html)
+- JavaScript: [room10.js](../room10.js)
+- Bundle: 5.29 kB (2.37 kB gzip)
+
+**Description**:
+Legendary challenge room featuring a gigantic hollow sphere with vertical jump puzzle. Features:
+- **Concept**: "The Ascent" - Epic spherical arena where players must climb floating platforms to escape
+- **Sphere dimensions**: 70-unit radius hollow sphere
+- **Atmosphere**: Deep space aesthetic with starfield (0x000510 background, atmospheric fog)
+- **28 floating platforms** arranged in spiral path from bottom to top
+  - Hexagonal platforms (2.5-unit radius, 0.4-unit height)
+  - Color gradient from cool blues (bottom) to warm oranges (top)
+  - Emissive materials with subtle floating animation
+  - Radial spiral distribution (3.5 full rotations)
+  - Vertical climb height: ~112 units
+- **Jump mechanics**: Physics-based platforming with tunable constants
+  - Jump velocity: 12.0 units/sec
+  - Gravity: -25.0 units/sec²
+  - Max jump height: ~3.0 units
+  - Max horizontal jump distance: ~4.5 units
+- **800 star particles** scattered across sphere interior
+- **Visual portal at top** with "ESCAPE" text (non-functional)
+- **Death plane**: Fall too far → respawn at start
+
+**Content**:
+- **Type**: Procedural platforming challenge
+- **Count**: 28 hexagonal platforms with gradient materials
+- **Display**: Spiral path ascending through sphere interior
+- **Materials**: HSL-generated emissive materials (procedural, no textures)
+- **Performance**: Lightweight procedural geometry, efficient animations
+
+**Portals OUT**:
+| Target | Color | Position | Code Line | Notes |
+|--------|-------|----------|-----------|-------|
+| TBD | TBD | Top of sphere | [room10.js:~257](../room10.js) | ⚠️ **VISUAL ONLY** - Portal not functional yet |
+
+**Portals IN**:
+- ⚠️ **NONE** - Room not yet wired into navigation graph
+
+**Status**: ✅ **Working** - Self-contained challenge room (not connected to navigation)
+
+**Technical Details**:
+- **Hollow sphere rendering**: Starfield interior with BackSide material
+- **Platform generation**: Algorithmic spiral path (not hardcoded positions)
+- **Collision detection**: Custom platform collision system
+  - Horizontal radius check + vertical distance check
+  - Landing feedback via emissive intensity pulse
+- **Physics system**: Custom gravity and jump velocity implementation
+- **Respawn mechanic**: Death plane at y < -80 units
+- **Lighting**: 6 lights total (ambient + 2 directional + 2 side + spawn + goal point lights)
+- **Animations**:
+  - Platforms: Subtle floating motion (sine wave)
+  - Portal: Standard portal rotation
+  - "ESCAPE" text: Pulsing opacity
+  - Star field: Slow rotation
+  - Goal light: Intensity pulsing
+
+**Visual Identity**:
+- **Tone**: Epic, vast, mysterious, challenging
+- **Colors**: Deep space blues transitioning to warm escape glow
+- **Differentiation**: Only vertical platforming challenge in gallery
+
+**Challenge Design**:
+- **Difficulty**: Legendary - requires precise jumping and spatial awareness
+- **Path finding**: Spiral pattern provides clear visual guidance
+- **Risk/reward**: Death plane enforces consequence of falling
+- **Goal**: Reach portal at top (~112 units vertical climb)
+
+---
+
 ## Room A: Undersea Observatory
 
 **Route/Path**: [roomA.html](../roomA.html)
@@ -684,12 +759,12 @@ Concept chamber with dark industrial aesthetic. A work-in-progress room featurin
 
 | Category | Count | Rooms |
 |----------|-------|-------|
-| **Fully Working** | 14 | Room 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, A, A1, B, C |
-| **Orphaned** (no portals) | 0 | None - All integrated! |
+| **Fully Working** | 15 | Room 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, A, A1, B, C |
+| **Orphaned** (no portals) | 1 | Room 10 (intentional - not wired yet) |
 | **Broken** (missing files) | 0 | None - All fixed! |
 | **Disabled** (intentional) | 1 | Room D |
-| **Future** (React scaffolds) | 3 | Room 10, 11, 12 |
-| **Total Implemented** | 15 | - |
+| **Future** (React scaffolds) | 2 | Room 11, 12 |
+| **Total Implemented** | 16 | - |
 
 ### NFT Distribution
 
@@ -705,6 +780,7 @@ Concept chamber with dark industrial aesthetic. A work-in-progress room featurin
 | Room 7 | Room7 folder | ~20+ | ✅ (via Room 5) |
 | Room 8 | Geometric art | 14 forms | ✅ Procedural - v1 redesign complete |
 | Room 9 | Material art | 16 alcoves | ✅ Procedural - v1 redesign complete |
+| Room 10 | Platforming | 28 platforms | ✅ Challenge room - not wired to navigation yet |
 | Room A | Videos | 17 videos | ✅ |
 | Room A1 | TBD | TBD | ✅ Fixed |
 | Room B | RoomB/B1-B60 | 60 | ✅ |
@@ -787,10 +863,20 @@ Branch Paths:     Room 0 → A ↔ A1
    Room 8 & 9 redesigned with distinct visual identities and procedural content
 
 
+ISOLATED ROOMS (not wired to navigation yet):
+┌───────────────────────────────┐
+│         Room 10 (Room X)      │
+│       "The Ascent"            │
+│   Challenge Arena - Sphere    │
+│   ⚠️ No portals IN or OUT     │
+│   ✅ Self-contained working   │
+│   🎯 Portal destination TBD   │
+└───────────────────────────────┘
+
 FUTURE ROOMS (React scaffolds, not integrated):
-┌───────────┐  ┌───────────┐  ┌───────────┐
-│ Room 10   │  │ Room 11   │  │ Room 12   │
-│ (Cubes)   │  │ (Gravity) │  │ (Sphere)  │
-└───────────┘  └───────────┘  └───────────┘
-  🚧 Scaffold    🚧 Scaffold    🚧 Scaffold
+┌───────────┐  ┌───────────┐
+│ Room 11   │  │ Room 12   │
+│ (Gravity) │  │ (Sphere)  │
+└───────────┘  └───────────┘
+  🚧 Scaffold    🚧 Scaffold
 ```
