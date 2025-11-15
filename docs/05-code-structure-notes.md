@@ -972,3 +972,90 @@ const files = [
 4. ✅ Use linter/formatter to catch syntax errors early
 
 **Lesson**: When adding new rooms, copy the entire pattern from a working room file rather than hand-typing asset arrays. This prevents subtle syntax errors that break the build.
+
+---
+
+## Portal Standardization System (IMPLEMENTED: 2025-11-15)
+
+### Overview
+
+**Status**: ✅ Implemented and deployed in Room 0 and Room 5
+
+The portal standardization system establishes a consistent visual language for all room-to-room connections. Portal pairs (A↔B) now share the same color, orientation, and effect type automatically.
+
+**Core Principle**: Same connection = same visual style in both directions. Players learn to recognize connections visually.
+
+### Implementation
+
+**Files Created**:
+- **[src/core/portal-styles.js](../src/core/portal-styles.js)** - Central style map defining all room connections
+- **[src/core/portal-utils.js](../src/core/portal-utils.js)** - Extended with linked portal system
+- **[docs/06-portal-style-map.md](06-portal-style-map.md)** - Complete documentation
+
+**Key Functions**:
+- `createLinkedPortal()` - Auto-applies correct color/size/effects from style map
+- `createPortalLabel()` - Canvas-based labels with color-matched glow
+- `animateLinkedPortal()` - Uses style-defined rotation speeds
+- `createMultiPortalChecker()` - Unified proximity detection
+
+### Refactored Rooms
+
+| Room | Status | Portal Count | Lines Saved | Notes |
+|------|--------|--------------|-------------|-------|
+| **Room 0** | ✅ Refactored | 4 active, 1 placeholder | ~50 | Doors use standardized colors |
+| **Room 5** | ✅ Refactored | 5 portals | ~134 | Full circular portal system |
+| Room 1 | ⏳ Not yet | ? | - | Pending migration |
+| Room 2 | ⏳ Not yet | ? | - | Pending migration |
+| Room 3 | ⏳ Not yet | ? | - | Pending migration |
+| Room 4 | ⏳ Not yet | ? | - | Pending migration |
+| Room 6 | ⏳ Not yet | ? | - | Pending migration |
+| Room 7 | ⏳ Not yet | ? | - | Pending migration |
+| Room 8 | ⏳ Not yet | ? | - | Pending migration |
+| Room 9 | ⏳ Not yet | ? | - | Pending migration |
+| Room A | ⏳ Not yet | ? | - | Pending migration |
+| Room A1 | ⏳ Not yet | ? | - | Pending migration |
+| Room B | ⏳ Not yet | ? | - | Pending migration |
+| Room C | ⏳ Not yet | ? | - | Pending migration |
+
+**Total Impact (Room 0 + Room 5)**: ~184 lines eliminated (357 deleted, 173 added)
+
+### Style Map Example
+
+```javascript
+// From portal-styles.js
+'5-6': {
+  color: PORTAL_COLORS.LIGHT_BLUE,
+  orientation: 'vertical',
+  size: 1.5,
+  fxType: 'bonus',
+  label: {
+    from5: 'Room 6 (Video Corridor) ⬆',
+    from6: '← Eternal Eclipse (Room 5)'
+  },
+  description: 'Bonus: Video corridor'
+}
+```
+
+### Benefits Achieved
+
+1. **Consistency**: Portal colors now communicate room relationships
+2. **Code Reduction**: Eliminated ~184 lines in 2 rooms, shared utilities created
+3. **Maintainability**: One central definition per connection
+4. **Error Prevention**: Impossible to create mismatched portal pairs
+5. **Discoverability**: All room connections visible in portal-styles.js
+
+### Canonical Examples
+
+- **[room0.js](../room0.js)**: Demonstrates door-based portals with standardized colors
+- **[room5.js](../room5.js)**: Demonstrates circular portals with full style system
+
+Both rooms serve as reference implementations for future migration work.
+
+### Documentation
+
+See [docs/06-portal-style-map.md](06-portal-style-map.md) for:
+- Complete color palette reference
+- All defined room connections
+- Usage instructions
+- Migration guidelines
+- Visual language explanation

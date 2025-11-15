@@ -2,7 +2,44 @@
 
 Shared utilities to reduce code duplication across room files.
 
-## Portal Utilities
+## Portal Standardization System ⭐ NEW
+
+**Files**: [portal-styles.js](portal-styles.js) + [portal-utils.js](portal-utils.js)
+
+The portal standardization system ensures consistent visual language throughout the gallery. Portal pairs (A↔B) share the same color, orientation, and effect type automatically.
+
+**Key Principle:** Same connection = same visual style in both directions. Players learn which portals connect to which rooms visually.
+
+### Quick Start (Recommended Approach)
+
+```javascript
+import { createLinkedPortal, animateLinkedPortal, createMultiPortalChecker } from './src/core/portal-utils.js';
+
+// Automatically applies correct style from portal-styles.js
+const { portal, glow, label } = createLinkedPortal({
+  scene,
+  fromRoom: '5',     // Starting room ID
+  toRoom: '6',       // Destination room ID
+  x: 0,
+  y: 5,
+  z: -25,
+  rotationY: 0,
+  createLabel: true  // Auto-creates label with color-matched glow
+});
+
+// In animate() loop:
+animateLinkedPortal(portal, glow);  // Uses style-defined rotation speed
+```
+
+**See**: [docs/06-portal-style-map.md](../../docs/06-portal-style-map.md) for complete style definitions and examples.
+
+**Canonical Examples:**
+- ✅ **[room0.js](../../room0.js)**: Doors with standardized colors
+- ✅ **[room5.js](../../room5.js)**: Circular portals with full style system
+
+---
+
+## Portal Utilities (Legacy + Standard)
 
 **File**: [portal-utils.js](portal-utils.js)
 
@@ -227,6 +264,38 @@ checkPortal();
 - `nft-utils.js` - NFT frame creation and loading
 - `lighting-utils.js` - Common lighting setups
 
+## Asset Utilities
+
+**File**: [asset-utils.js](asset-utils.js)
+
+Provides diagnostic tools for texture and asset loading.
+
+### Features
+
+- **loadTextureWithDiagnostics()**: Comprehensive error logging for failed texture loads
+- **createFallbackMaterial()**: Bright magenta fallback to make missing assets obvious
+- **logTextureLoadingSummary()**: Batch loading summary with success/failure stats
+- **batchLoadTextures()**: Load multiple textures with automatic diagnostics
+
+See [asset-utils.js](asset-utils.js) for detailed API documentation.
+
+---
+
 ## Contributing
 
-When adding new rooms or refactoring existing ones, prefer using these utilities over copy-pasting code. This helps maintain consistency and makes future updates easier.
+When adding new rooms or refactoring existing ones:
+
+### ✅ DO:
+- **Use `createLinkedPortal()` for all new portals** - Automatically applies correct colors from the central style map
+- **Define new room connections in `portal-styles.js`** before implementation
+- **Use `createMultiPortalChecker()` for proximity detection** - Standardized navigation UX
+- **Reference canonical examples**: [room0.js](../../room0.js) and [room5.js](../../room5.js)
+- **Update [docs/06-portal-style-map.md](../../docs/06-portal-style-map.md)** when adding new room connections
+
+### ❌ DON'T:
+- **Hardcode random portal colors** (use the style map instead)
+- **Copy-paste portal creation code** (use shared utilities)
+- **Create asymmetric portal pairs** (A→B must match B→A visually)
+- **Mix orientations for the same link** (both vertical or both horizontal, never mixed)
+
+**Why?** Consistent visual language helps players navigate the gallery intuitively.
