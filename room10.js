@@ -379,6 +379,65 @@ velocity.set(0, 0, 0); // Start with zero velocity
 canJump = true; // Start grounded
 
 // ----------------------------------------------------------------------
+// NFT Texture Loading for Room X Platforms
+// ----------------------------------------------------------------------
+const ROOMX_TEXTURE_COUNT = 50; // Maximum number of NFT images available
+const roomXTextures = [];
+
+function loadRoomXTextures() {
+  const loader = new THREE.TextureLoader();
+  const max = Math.min(ROOMX_TEXTURE_COUNT, platformMeshes.length);
+
+  for (let i = 1; i <= max; i++) {
+    const index = i - 1;
+    const url = `/assets/RoomX/${i}.png`;
+
+    const texture = loader.load(
+      url,
+      (loadedTexture) => {
+        // On successful load, configure texture
+        loadedTexture.colorSpace = THREE.SRGBColorSpace; // Correct color encoding
+        loadedTexture.wrapS = THREE.ClampToEdgeWrapping;
+        loadedTexture.wrapT = THREE.ClampToEdgeWrapping;
+        loadedTexture.anisotropy = 8; // Better quality at angles
+
+        // Apply texture to corresponding platform
+        if (platformMeshes[index]) {
+          applyTextureToPlatform(platformMeshes[index], loadedTexture, index);
+        }
+      },
+      undefined,
+      (err) => {
+        console.warn(`Room X: Failed to load NFT texture ${url}. Platform ${i} will use fallback material.`, err);
+        // Platform keeps its original procedural material as fallback
+      }
+    );
+
+    roomXTextures[index] = texture;
+  }
+}
+
+function applyTextureToPlatform(platformMesh, texture, index) {
+  // Replace procedural material with NFT texture material
+  // Keep some emissive glow for visibility in dark space
+  const progress = index / (platformMeshes.length - 1);
+  const hue = 210 - progress * 60; // Same gradient as before for emissive edge glow
+
+  platformMesh.material = new THREE.MeshStandardMaterial({
+    map: texture,
+    emissive: new THREE.Color().setHSL(hue / 360, 0.5, 0.1), // Subtle emissive glow
+    emissiveIntensity: 0.2,
+    metalness: 0.3,
+    roughness: 0.6,
+  });
+
+  platformMesh.material.needsUpdate = true;
+}
+
+// Load textures after platforms are created
+loadRoomXTextures();
+
+// ----------------------------------------------------------------------
 // Platform Collision Detection
 // ----------------------------------------------------------------------
 function checkPlatformCollision(position) {
