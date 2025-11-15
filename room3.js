@@ -31,6 +31,7 @@
 
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
+import { createLinkedPortal, animateLinkedPortal, createMultiPortalChecker } from './src/core/portal-utils.js';
 
 // ----------------------------------------------------------------------
 // Global Variables for Jump Physics
@@ -1103,161 +1104,104 @@ function checkCollisions() {
 }
 
 // ----------------------------------------------------------------------
-// Create Portal to Room 2
+// Create Portals
 // ----------------------------------------------------------------------
-function createPortal() {
-  const portalGeometry = new THREE.CircleGeometry(1.2, 32);
-  const portalMaterial = new THREE.MeshBasicMaterial({
-    color: 0x44ff44, // Green color to match the portal in room2
-    side: THREE.DoubleSide,
-    transparent: true,
-    opacity: 0.8
-  });
-  const portal = new THREE.Mesh(portalGeometry, portalMaterial);
-  
-  // Position in the corner of room 3
-  portal.position.set(-23, 1.2, -23);
-  portal.rotation.x = -Math.PI / 2; // Lay flat on ground
-  scene.add(portal);
+// Portal back to Room 2 (ground portal in corner)
+const portalToRoom2 = createLinkedPortal({
+  scene,
+  fromRoom: '3',
+  toRoom: '2',
+  x: -23,
+  y: 1.2,
+  z: -23,
+  rotationX: -Math.PI / 2,  // Flat on ground (horizontal orientation)
+  createLabel: true
+});
 
-  const glowGeometry = new THREE.CircleGeometry(1.4, 32);
-  const glowMaterial = new THREE.MeshBasicMaterial({
-    color: 0x00ff00, // Green glow
-    side: THREE.DoubleSide,
-    transparent: true,
-    opacity: 0.3
-  });
-  const glow = new THREE.Mesh(glowGeometry, glowMaterial);
-  glow.position.copy(portal.position);
-  glow.rotation.copy(portal.rotation);
-  scene.add(glow);
+// Portal to Room 4 (ground portal in opposite corner)
+const portalToRoom4Obj = createLinkedPortal({
+  scene,
+  fromRoom: '3',
+  toRoom: '4',
+  x: 23,
+  y: 1.2,
+  z: 23,
+  rotationX: -Math.PI / 2,  // Flat on ground (horizontal orientation)
+  createLabel: true
+});
 
-  return { portal, glow };
+// Add particle effects for Room 4 portal (preserve existing behavior)
+const particleGeometry = new THREE.BufferGeometry();
+const particleCount = 30;
+const posArray = new Float32Array(particleCount * 3);
+
+for (let i = 0; i < particleCount * 3; i += 3) {
+  posArray[i] = (Math.random() - 0.5) * 2;
+  posArray[i+1] = Math.random() * 2;
+  posArray[i+2] = (Math.random() - 0.5) * 2;
 }
 
-// ----------------------------------------------------------------------
-// Create Portal to Room 4
-// ----------------------------------------------------------------------
-function createPortalToRoom4() {
-  const portalGeometry = new THREE.CircleGeometry(1.2, 32);
-  const portalMaterial = new THREE.MeshBasicMaterial({
-    color: 0x4477ff, // Blue color for room 4 portal
-    side: THREE.DoubleSide,
-    transparent: true,
-    opacity: 0.8
-  });
-  const portal = new THREE.Mesh(portalGeometry, portalMaterial);
-  
-  // Position in the opposite corner from the room 2 portal
-  portal.position.set(23, 1.2, 23);
-  portal.rotation.x = -Math.PI / 2; // Lay flat on ground
-  scene.add(portal);
+particleGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
 
-  const glowGeometry = new THREE.CircleGeometry(1.4, 32);
-  const glowMaterial = new THREE.MeshBasicMaterial({
-    color: 0x0088ff, // Blue glow
-    side: THREE.DoubleSide,
-    transparent: true,
-    opacity: 0.3
-  });
-  const glow = new THREE.Mesh(glowGeometry, glowMaterial);
-  glow.position.copy(portal.position);
-  glow.rotation.copy(portal.rotation);
-  scene.add(glow);
+const particleMaterial = new THREE.PointsMaterial({
+  color: 0x77bbff,
+  size: 0.05,
+  transparent: true,
+  opacity: 0.6
+});
 
-  // Add some particles for effect
-  const particleGeometry = new THREE.BufferGeometry();
-  const particleCount = 30;
-  const posArray = new Float32Array(particleCount * 3);
-  
-  for (let i = 0; i < particleCount * 3; i += 3) {
-    posArray[i] = (Math.random() - 0.5) * 2;
-    posArray[i+1] = Math.random() * 2;
-    posArray[i+2] = (Math.random() - 0.5) * 2;
-  }
-  
-  particleGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-  
-  const particleMaterial = new THREE.PointsMaterial({
-    color: 0x77bbff,
-    size: 0.05,
-    transparent: true,
-    opacity: 0.6
-  });
-  
-  const particles = new THREE.Points(particleGeometry, particleMaterial);
-  particles.position.copy(portal.position);
-  scene.add(particles);
+const room4Particles = new THREE.Points(particleGeometry, particleMaterial);
+room4Particles.position.set(23, 1.2, 23);
+scene.add(room4Particles);
 
-  // Animation function
-  function animateParticles() {
-    const positions = particleGeometry.attributes.position.array;
-    
-    for (let i = 0; i < particleCount; i++) {
-      const i3 = i * 3;
-      positions[i3+1] = positions[i3+1] + 0.01;
-      
-      if (positions[i3+1] > 2) {
-        positions[i3+1] = 0;
-      }
+// Particle animation function
+function animateRoom4Particles() {
+  const positions = particleGeometry.attributes.position.array;
+
+  for (let i = 0; i < particleCount; i++) {
+    const i3 = i * 3;
+    positions[i3+1] = positions[i3+1] + 0.01;
+
+    if (positions[i3+1] > 2) {
+      positions[i3+1] = 0;
     }
-    
-    particleGeometry.attributes.position.needsUpdate = true;
   }
 
-  return { portal, glow, particles, animate: animateParticles };
+  particleGeometry.attributes.position.needsUpdate = true;
 }
 
-const portal = createPortal();
-const portalToRoom4 = createPortalToRoom4();
+// Set up multi-portal proximity checker
+const allPortals = [
+  { ...portalToRoom2, name: 'Room 2', url: 'room2.html',
+    position: new THREE.Vector3(-23, 1.2, -23) },
+  { ...portalToRoom4Obj, name: 'Room 4 (Floating Island)', url: 'room4.html',
+    position: new THREE.Vector3(23, 1.2, 23) }
+];
+
+const portalConfigs = allPortals.map(p => ({
+  position: p.position,
+  name: p.name,
+  url: p.url,
+  showDistance: 3.0,
+  triggerDistance: 2.0
+}));
+
+const checkPortalProximity = createMultiPortalChecker({
+  camera,
+  portals: portalConfigs,
+  controlsId: 'controls-description',
+  overlayId: 'loading-overlay',
+  loadingDelay: 500
+});
+
+// For backward compatibility with existing code
+const portal = portalToRoom2;
+const portalToRoom4 = portalToRoom4Obj;
 
 // ----------------------------------------------------------------------
 // Portal Interaction
 // ----------------------------------------------------------------------
-// Add portal timer variables
-let portalTimer = null;
-let portal4Timer = null;
-
-function checkPortalProximity() {
-  // Check portal to Room 2
-  const portalPosition = new THREE.Vector3(-23, 1.2, -23);
-  const distance = camera.position.distanceTo(portalPosition);
-  
-  // Check portal to Room 4
-  const portal4Position = new THREE.Vector3(23, 1.2, 23);
-  const distance4 = camera.position.distanceTo(portal4Position);
-  
-  // Update instructions based on proximity
-  if (distance < 5) {
-    // If very close to the portal, teleport automatically
-    if (distance < 2.5) {
-      console.log("Teleporting to Room 2...");
-      const loadingOverlay = document.getElementById('loading-overlay');
-      if (loadingOverlay) {
-        loadingOverlay.style.display = 'flex';
-      }
-      window.location.href = 'room2.html';
-    } else {
-      document.getElementById('controls-description').textContent = 'Move closer to enter Room 2';
-    }
-  } 
-  else if (distance4 < 5) {
-    // If very close to the portal, teleport automatically
-    if (distance4 < 2.5) {
-      console.log("Teleporting to Room 4...");
-      const loadingOverlay = document.getElementById('loading-overlay');
-      if (loadingOverlay) {
-        loadingOverlay.style.display = 'flex';
-      }
-      window.location.href = 'room4.html';
-    } else {
-      document.getElementById('controls-description').textContent = 'Move closer to enter Room 4';
-    }
-  } 
-  else {
-    document.getElementById('controls-description').textContent = 'Controls: WASD - Move, Mouse - Look, ESC - Toggle camera';
-  }
-}
+// Portal proximity checking is now handled by createMultiPortalChecker() above
 
 // ----------------------------------------------------------------------
 // Window Resize Handler
@@ -1307,15 +1251,18 @@ function animate() {
     
     // Check for collisions
     checkCollisions();
-    
+
     // Check if near portal
     checkPortalProximity();
   }
-  
-  // Animate the Room 4 portal particles
-  if (portalToRoom4 && portalToRoom4.animate) {
-    portalToRoom4.animate();
-  }
+
+  // Animate portals using standardized system
+  allPortals.forEach(portalObj => {
+    animateLinkedPortal(portalObj.portal, portalObj.glow);
+  });
+
+  // Animate the Room 4 portal particles (preserve existing behavior)
+  animateRoom4Particles();
   
   // Animate ceiling elements
   const time = Date.now() * 0.001;

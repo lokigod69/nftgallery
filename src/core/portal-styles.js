@@ -118,14 +118,26 @@ export const PORTAL_STYLES = {
     description: 'Alternative main path branch'
   },
 
-  '2-4': {
-    color: PORTAL_COLORS.PURPLE,
-    orientation: 'vertical',
-    size: 1.6,
+  '2-3': {
+    color: 0x44ff44,  // Lime green - lateral connection between parallel paths
+    orientation: 'horizontal',  // Room 2 portal is flat on ground
+    size: 1.2,
     fxType: 'default',
     label: {
-      from2: 'Room 4 (Floating Island) →',
-      from4: '← Room 2'
+      from2: 'Room 3 (Ground Portal) →',
+      from3: '← Room 2'
+    },
+    description: 'Cross-connection between Rooms 2 and 3'
+  },
+
+  '3-4': {
+    color: PORTAL_COLORS.PURPLE,
+    orientation: 'horizontal',  // Ground portal in Room 3
+    size: 1.2,
+    fxType: 'default',
+    label: {
+      from3: 'Room 4 (Floating Island) →',
+      from4: '← Room 3'
     },
     description: 'Path to floating island'
   },

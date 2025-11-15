@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
+import { createLinkedPortal, animateLinkedPortal, createMultiPortalChecker } from './src/core/portal-utils.js';
 
 // ----------------------------------------------------------------------
 // Global Variables for Jump Physics
@@ -752,156 +753,62 @@ createDivider();
 // ----------------------------------------------------------------------
 // Portal
 // ----------------------------------------------------------------------
-function createPortal() {
-  const portalGeometry = new THREE.CircleGeometry(1.2, 32);
-  const portalMaterial = new THREE.MeshBasicMaterial({
-    color: 0x4444ff,
-    side: THREE.DoubleSide,
-    transparent: true,
-    opacity: 0.8
-  });
-  const portal = new THREE.Mesh(portalGeometry, portalMaterial);
-  
-  portal.position.set(0, 2, 0);
-  scene.add(portal);
+// Portal back to Room 1 (main gallery)
+const portalToRoom1 = createLinkedPortal({
+  scene,
+  fromRoom: '2',
+  toRoom: '1',
+  x: 0,
+  y: 2,
+  z: 0,
+  rotationY: 0,
+  createLabel: true
+});
 
-  const glowGeometry = new THREE.CircleGeometry(1.4, 32);
-  const glowMaterial = new THREE.MeshBasicMaterial({
-    color: 0x0000ff,
-    side: THREE.DoubleSide,
-    transparent: true,
-    opacity: 0.3
-  });
-  const glow = new THREE.Mesh(glowGeometry, glowMaterial);
-  glow.position.copy(portal.position);
-  scene.add(glow);
+// Portal to Room 3 (ground portal in corner)
+const portalToRoom3 = createLinkedPortal({
+  scene,
+  fromRoom: '2',
+  toRoom: '3',
+  x: 18,
+  y: 1.2,
+  z: -18,
+  rotationX: -Math.PI / 2,  // Flat on ground (horizontal orientation)
+  createLabel: true
+});
 
-  return { portal, glow };
-}
+// Set up multi-portal proximity checker
+const allPortals = [
+  { ...portalToRoom1, name: 'Room 1 (Main Gallery)', url: 'index.html',
+    position: new THREE.Vector3(0, 2, 0) },
+  { ...portalToRoom3, name: 'Room 3', url: 'room3.html',
+    position: new THREE.Vector3(18, 1.2, -18) }
+];
 
-// Create portal to Room 1
-const portal = createPortal();
+const portalConfigs = allPortals.map(p => ({
+  position: p.position,
+  name: p.name,
+  url: p.url,
+  showDistance: 3.0,
+  triggerDistance: 2.0  // Slightly larger for ground portal accessibility
+}));
 
-// Create portal to Room 3
-function createRoom3Portal() {
-  const portalGeometry = new THREE.CircleGeometry(1.2, 32);
-  const portalMaterial = new THREE.MeshBasicMaterial({
-    color: 0x44ff44, // Green color to distinguish from the blue portal
-    side: THREE.DoubleSide,
-    transparent: true,
-    opacity: 0.8
-  });
-  const portal = new THREE.Mesh(portalGeometry, portalMaterial);
-  
-  // Position in the corner of room 2
-  portal.position.set(18, 1.2, -18);
-  portal.rotation.x = -Math.PI / 2; // Lay flat on ground
-  scene.add(portal);
+const checkPortalProximity = createMultiPortalChecker({
+  camera,
+  portals: portalConfigs,
+  controlsId: 'controls-description',
+  overlayId: 'loading-overlay',
+  loadingDelay: 500
+});
 
-  const glowGeometry = new THREE.CircleGeometry(1.4, 32);
-  const glowMaterial = new THREE.MeshBasicMaterial({
-    color: 0x00ff00, // Green glow
-    side: THREE.DoubleSide,
-    transparent: true,
-    opacity: 0.3
-  });
-  const glow = new THREE.Mesh(glowGeometry, glowMaterial);
-  glow.position.copy(portal.position);
-  glow.rotation.copy(portal.rotation);
-  scene.add(glow);
-
-  return { portal, glow };
-}
-
-const room3Portal = createRoom3Portal();
+// For backward compatibility with existing code
+const portal = portalToRoom1;  // Keep reference for animation loop if needed
+const room3Portal = portalToRoom3;
 
 // ----------------------------------------------------------------------
 // Portal Interaction
 // ----------------------------------------------------------------------
-function checkPortalProximity() {
-  // Check proximity to Room 1 portal
-  const distance = camera.position.distanceTo(portal.portal.position);
-  
-  if (distance < 2) {
-    // Only teleport if the player has been close to the portal for a short time
-    if (!portalTimer) {
-      portalTimer = setTimeout(() => {
-        const loadingOverlay = document.getElementById('loading-overlay');
-        loadingOverlay.style.display = 'flex';
-        loadingOverlay.style.opacity = '1';
-        
-        try {
-          // Add a safety timeout to hide the overlay if navigation fails
-          const navigationTimeout = setTimeout(() => {
-            loadingOverlay.style.opacity = '0';
-            setTimeout(() => {
-              loadingOverlay.style.display = 'none';
-            }, 500);
-          }, 5000);
-          
-          window.location.href = 'index.html';
-        } catch (error) {
-          console.error("Navigation error:", error);
-          // Hide the loading overlay if there's an error
-          loadingOverlay.style.opacity = '0';
-          setTimeout(() => {
-            loadingOverlay.style.display = 'none';
-          }, 500);
-        }
-      }, 500); // Delay teleportation by 500ms to prevent accidental teleportation
-    }
-  } else {
-    // Clear the timer if player moves away from portal
-    if (portalTimer) {
-      clearTimeout(portalTimer);
-      portalTimer = null;
-    }
-  }
-  
-  // Check proximity to Room 3 portal
-  const room3PortalPosition = new THREE.Vector3(18, 1.2, -18);
-  const distanceToRoom3Portal = camera.position.distanceTo(room3PortalPosition);
-  
-  if (distanceToRoom3Portal < 3) {
-    // Only teleport if the player has been close to the portal for a short time
-    if (!room3PortalTimer) {
-      room3PortalTimer = setTimeout(() => {
-        const loadingOverlay = document.getElementById('loading-overlay');
-        loadingOverlay.style.display = 'flex';
-        loadingOverlay.style.opacity = '1';
-        
-        try {
-          // Add a safety timeout to hide the overlay if navigation fails
-          const navigationTimeout = setTimeout(() => {
-            loadingOverlay.style.opacity = '0';
-            setTimeout(() => {
-              loadingOverlay.style.display = 'none';
-            }, 500);
-          }, 5000);
-          
-          window.location.href = 'room3.html';
-        } catch (error) {
-          console.error("Navigation error:", error);
-          // Hide the loading overlay if there's an error
-          loadingOverlay.style.opacity = '0';
-          setTimeout(() => {
-            loadingOverlay.style.display = 'none';
-          }, 500);
-        }
-      }, 500); // Delay teleportation by 500ms to prevent accidental teleportation
-    }
-  } else {
-    // Clear the timer if player moves away from portal
-    if (room3PortalTimer) {
-      clearTimeout(room3PortalTimer);
-      room3PortalTimer = null;
-    }
-  }
-}
-
-// Add portal timer variables
-let portalTimer = null;
-let room3PortalTimer = null;
+// Portal proximity checking is now handled by createMultiPortalChecker() above
 
 // ----------------------------------------------------------------------
 // Loading Overlay Management
@@ -965,9 +872,10 @@ function animate() {
 
   checkCollisions();
 
-  // Animate portal
-  portal.glow.rotation.z += delta * 0.5;
-  portal.portal.rotation.z -= delta * 0.3;
+  // Animate portals using standardized system
+  allPortals.forEach(portalObj => {
+    animateLinkedPortal(portalObj.portal, portalObj.glow);
+  });
 
   renderer.render(scene, camera);
 }
