@@ -21,6 +21,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { loadTextureWithDiagnostics, logTextureLoadingSummary } from './src/core/asset-utils.js';
 
 // ----------------------------------------------------------------------
 // Scene Setup
@@ -949,10 +950,10 @@ function addMixedDecorationsToWalls() {
   const nftImages = [];
   const nftDimensions = []; // Array to store the original dimensions of each NFT
   
-  // Generate file names B1.png to B60.png
+  // Generate file names b1.png to b60.png (lowercase to match actual files)
   const nftFiles = [];
   for (let i = 1; i <= 60; i++) {
-    nftFiles.push(`RoomB/B${i}.png`);
+    nftFiles.push(`RoomB/b${i}.png`);
   }
   
   // Preload all Room B NFT images
