@@ -11,11 +11,12 @@ import { createLinkedPortal, animateLinkedPortal } from './src/core/portal-utils
 // Tunable Jump Mechanics
 // ----------------------------------------------------------------------
 const PLAYER_HEIGHT = 2.5;           // Eye height / spawn height
-const JUMP_VELOCITY = 12.0;          // Initial upward velocity
-const GRAVITY = -25.0;               // Downward acceleration
-const JUMP_HEIGHT = 3.0;             // Approximate max jump height (for platform spacing)
+const WALK_SPEED = 6.0;              // Ground movement speed (units/sec) - controlled, not hyperspeed
+const AIR_CONTROL_FACTOR = 0.5;      // 0-1: how much control you have in midair (0.5 = half)
+const JUMP_VELOCITY = 14.0;          // Initial upward velocity (tuned for ~4 unit jump height)
+const GRAVITY = -24.0;               // Downward acceleration (slightly gentler than -25)
+const JUMP_HEIGHT = 4.0;             // Approximate max jump height (for platform spacing)
 const MAX_HORIZONTAL_JUMP_DISTANCE = 4.5; // Max horizontal distance player can jump
-const MOVE_SPEED = 80.0;             // Horizontal movement speed
 
 // ----------------------------------------------------------------------
 // Arena Parameters
@@ -167,7 +168,10 @@ function generatePlatforms() {
   const platforms = [];
   const platformMeshes = [];
 
-  const startY = -SPHERE_RADIUS + PLAYER_HEIGHT + 3; // Just above spawn
+  // Starting platform is at (-SPHERE_RADIUS + 8), top surface at +0.5 = -61.5
+  // First floating platform should be ABOVE that, not below!
+  const startingPlatformTop = -SPHERE_RADIUS + 8 + 0.5;
+  const startY = startingPlatformTop + 2.5; // First platform 2.5 units above spawn floor
   const endY = startY + VERTICAL_CLIMB_HEIGHT;
 
   for (let i = 0; i < PLATFORM_COUNT; i++) {
@@ -447,8 +451,11 @@ function animate() {
     // 1. Apply gravity
     velocity.y += GRAVITY * delta;
 
-    // 2. Apply WASD horizontal movement (using PointerLockControls methods)
-    const moveSpeed = MOVE_SPEED * delta;
+    // 2. Apply WASD horizontal movement with different speeds for ground vs air
+    // Ground: full WALK_SPEED; Air: reduced by AIR_CONTROL_FACTOR
+    const controlFactor = canJump ? 1.0 : AIR_CONTROL_FACTOR;
+    const moveSpeed = WALK_SPEED * controlFactor * delta;
+
     direction.z = Number(moveForward) - Number(moveBackward);
     direction.x = Number(moveRight) - Number(moveLeft);
     direction.normalize();
