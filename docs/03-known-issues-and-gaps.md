@@ -409,86 +409,89 @@ Room 7 (Starry Gallery) has multiple performance-intensive features that compoun
 
 ---
 
-### ISSUE-018: Room 8 & 9 - Missing NFT Assets
+### ~~ISSUE-018: Room 8 & 9 - Missing NFT Assets~~ ✅ FIXED
 
 **Type**: `missing content` / `broken asset references`
 
-**Severity**: 🟡 **MEDIUM** (non-critical, visible)
+**Severity**: ~~🟡 **MEDIUM**~~ ✅ **RESOLVED**
 
 **Location**:
-- [room8.js](../room8.js) (Bundle: 4.05 kB)
-- [room9.js](../room9.js) (Bundle: 4.40 kB)
+- [room8.js](../room8.js) (Bundle: 4.42 kB)
+- [room9.js](../room9.js) (Bundle: 4.99 kB)
+
+**Status**: ✅ **FIXED** (2025-11-15)
 
 **Description**:
-Rooms 8 and 9 reference 40 NFT asset files that do not exist, resulting in empty placeholder geometry.
+Rooms 8 and 9 previously referenced 40 non-existent NFT asset files (`/assets/nft{1-40}.png`), resulting in empty rooms with no content.
 
-**Technical Details**:
-- **Asset Paths**: `/assets/nft{1-40}.png`
-- **Display**: 2m × 2m planes alternating left/right along cylindrical corridor walls
-- **Spacing**: Every 5 units along 50-unit corridor
-- **Current Behavior**: Assets fail to load silently (default material shown)
+**Fix Applied**: 2025-11-15
 
-**Impact**:
-- Rooms appear as empty geometric tunnels (only grey cylinder visible)
-- No actual NFT content displayed
-- Confusing UX - looks like placeholder/test room
-- Wasted bundle size loading code for non-existent content
+**Implementation**:
+Both rooms completely redesigned with distinct visual identities and procedural content:
 
-**Current Issues**:
-- No error handling for missing textures
-- No fallback content
-- Silent failure (no console warnings)
-- Rooms serve no content purpose in current state
+**Room 8 - "Liminal Passage" (Geometric, Cool)**:
+- Removed all fake NFT asset references
+- Implemented 14 floating geometric forms (spheres, cubes, toruses, octahedrons, tetrahedrons)
+- Material-based content with cool color palette (blues, cyans, magentas, purples)
+- Emissive materials with slow rotation animations
+- Zero external asset dependencies
+- Bundle: 4.42 kB (1.93 kB gzip)
 
-**Visual Quality**: Minimal - geometric shapes only, no art content
+**Room 9 - "Organic Tunnel" (Bio-luminescent, Warm)**:
+- Removed all 40 fake `/assets/nft{1-40}.png` references
+- Implemented 16 embedded art alcoves with material-based "relief art"
+- Warm earth tone palette (browns, ambers, greens, golds)
+- Bio-luminescent accents with breathing animation
+- Zero external asset dependencies
+- Bundle: 4.99 kB (2.21 kB gzip)
 
-**Suggested Fixes**:
-1. **Add Content**: Create or assign 40 NFT images to these paths
-2. **Reassign Paths**: Point to existing NFT collections (e.g., Room 1-5 NFTs)
-3. **Remove References**: Strip out NFT loading code, make rooms purely geometric art spaces
-4. **Convert to Placeholder**: Add "Coming Soon" signage, keep geometry as preview
+**Result**:
+- ✅ No more missing asset errors
+- ✅ Both rooms have coherent, intentional visual content
+- ✅ All content generated procedurally via code
+- ✅ Performance within budget (both <5-6 kB)
+- ✅ Distinct visual identities (geometric/cool vs organic/warm)
 
 ---
 
-### ISSUE-019: Room 9 - Complete Code Duplication with Room 8
+### ~~ISSUE-019: Room 9 - Complete Code Duplication with Room 8~~ ✅ FIXED
 
 **Type**: `code maintenance` / `technical debt`
 
-**Severity**: 🟡 **MEDIUM** (non-critical, maintainability issue)
+**Severity**: ~~🟡 **MEDIUM**~~ ✅ **RESOLVED**
 
 **Location**:
-- [room8.js](../room8.js) (4.05 kB bundle)
-- [room9.js](../room9.js) (4.40 kB bundle)
+- [room8.js](../room8.js) (4.42 kB bundle)
+- [room9.js](../room9.js) (4.99 kB bundle)
+
+**Status**: ✅ **FIXED** (2025-11-15)
 
 **Description**:
-Room 9 is a byte-for-byte duplicate of Room 8 - identical code, geometry, and functionality.
+Room 9 was previously a byte-for-byte duplicate of Room 8 - identical code, geometry, and functionality, creating maintenance debt and confusing UX.
 
-**Technical Details**:
-- **Code**: Completely identical implementation
-- **Geometry**: Same 5-unit radius × 50-unit length cylinder
-- **Materials**: Same grey metallic shell, glass floor strips
-- **Assets**: Same missing NFT references (`/assets/nft{1-40}.png`)
-- **Bundle Impact**: 8.45 kB total (4.05 + 4.40) for duplicate code
+**Fix Applied**: 2025-11-15
 
-**Impact**:
-- **Maintenance Risk**: Bug fixes must be applied to both rooms
-- **User Confusion**: Players see identical room twice
-- **Wasted Bundle**: Loading same code twice
-- **No Differentiation**: No visual or functional difference
+**Implementation**:
+Room 9 completely rewritten with unique implementation:
 
-**Visual Quality**: Identical to Room 8 - minimal geometric tunnel
+**Before**:
+- Identical grey cylindrical tunnel (duplicate code)
+- Same missing NFT references
+- Zero visual differentiation
+- 8.45 kB combined bundle waste
 
-**Suggested Fixes**:
-1. **Differentiate Rooms**: Give Room 9 unique visual identity
-   - Different color scheme
-   - Different geometry (e.g., rectangular tunnel vs. cylinder)
-   - Different content/NFTs
-2. **Shared Module**: Extract common code to shared utility
-   - Create `createTunnelRoom(config)` utility
-   - Both rooms use same base code with different configs
-3. **Remove Duplicate**: Delete Room 9, leave only Room 8
-   - Update Room 5 portal to skip Room 9
-   - Simpler maintenance
+**After**:
+- **Room 8**: Cool geometric "Liminal Passage" with floating forms
+- **Room 9**: Warm organic "Bio-luminescent Tunnel" with embedded alcoves
+- **Code Overlap**: ZERO - completely distinct implementations
+- **Visual Differentiation**: Clear contrast in tone, color, geometry, materials
+- **Combined Bundle**: 9.41 kB (was 8.45 kB) - slight increase justified by actual content
+
+**Result**:
+- ✅ Zero code duplication between Room 8 and Room 9
+- ✅ Distinct visual identities prevent player confusion
+- ✅ Each room maintainable independently
+- ✅ Clear conceptual differentiation (geometric vs organic)
 
 ---
 
@@ -812,20 +815,20 @@ This appears intentional. Future work should:
 |----------|-------|--------|
 | ~~🔴 Critical~~ ✅ | ~~2~~ 0 | ~~ISSUE-001 (Room C missing), ISSUE-002 (Room A1 HTML missing)~~ **ALL FIXED!** |
 | ~~🟠 High~~ | ~~3~~ 2 | ~~ISSUE-003 (Bonus rooms broken return portals)~~ **FIXED!**, ISSUE-004 (NFT gap), ISSUE-005 (Asset paths) |
-| 🟡 Medium | 9 | ISSUE-007 to ISSUE-011, ISSUE-016 to ISSUE-019 (Rooms 6-9 issues) |
+| 🟡 Medium | 7 | ISSUE-007 to ISSUE-011, ISSUE-016, ISSUE-017 ~~, ISSUE-018, ISSUE-019~~ ✅ **Room 8/9 fixed!** |
 | 🟢 Low | 4 | ISSUE-012 to ISSUE-015 |
-| **Total** | **19** | **5 fixed, 14 remaining** |
+| **Total** | **19** | **7 fixed, 12 remaining** |
 
 ### Issues by Type
 
 | Type | Count | Examples |
 |------|-------|----------|
 | Missing files/rooms | 4 | Room C (fixed), Room A1 HTML (fixed), audio files, models |
-| Navigation/portals | 2 | Bonus rooms broken return portals, portal color consistency |
-| Asset paths/loading | 3 | Asset directory confusion, video paths (fixed), missing NFT assets (Rooms 8-9) |
+| Navigation/portals | 2 | ~~Bonus rooms broken return portals (fixed)~~, portal color consistency |
+| Asset paths/loading | 3 | Asset directory confusion, video paths (fixed), ~~missing NFT assets (Rooms 8-9, fixed)~~ |
 | Content/data | 2 | NFT gap, missing metadata |
-| Performance | 3 | Room 6 videos, Room 7 textures/lighting, Room 8-9 missing assets |
-| Code maintenance | 1 | Room 9 duplication with Room 8 |
+| Performance | 2 | Room 6 videos, Room 7 textures/lighting ~~, Room 8-9 missing assets (fixed)~~ |
+| Code maintenance | ~~1~~ 0 | ~~Room 9 duplication with Room 8 (fixed)~~ |
 | UX/Polish | 2 | Loading progress, portal labels |
 | Future work | 2 | React rooms, Room 8 content |
 

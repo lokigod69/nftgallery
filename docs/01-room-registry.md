@@ -244,35 +244,47 @@ Dark atmospheric room with eclipse theme. Features:
 **Entry Files**:
 - HTML: [room6.html](../room6.html)
 - JavaScript: [room6.js](../room6.js)
+- Bundle: 4.53 kB (1.94 kB gzip)
 
 **Description**:
 Linear corridor with curved ceiling featuring video displays. Features:
 - Corridor dimensions: 100 units long × 20 units wide × 10 units height
-- Curved cylindrical ceiling
-- Metallic grey walls
-- Dark floor
-- Video screens along corridor length
+- Curved cylindrical ceiling (dark metal, 0x222222, metalness 0.8)
+- Metallic grey walls (0x444444, metalness 0.7)
+- Dark metallic floor (0x333333, metalness 0.5)
+- Video screens alternating on left/right walls
+- Confined linear path with 0.5m boundary buffer
 
 **NFT Content**: **None** - Uses video files instead
 
 **Video Content**:
-- **Count**: 13 video files
+- **Count**: 13 video files (MP4 format)
 - **Source Path**: `/assets/` (FIXED: was `/videos/`)
 - **Files**: Amy1.mp4, Angel1.mp4, Anna1.mp4, April1.mp4, Cara1.mp4, Claire1.mp4, Cynthia2.mp4, Dasha1.mp4, Devon2.mp4, Huong1.mp4, Lucy1.mp4, Ruby1.mp4, Sarah1.mp4
-- **Display**: Evenly spaced along corridor walls
+- **Display**: 4m × 4m video planes, alternating left/right walls, ~7.7m apart
+- **Position**: Eye height + 0.5m, rotated 90° to face inward
+- **Performance**: Auto-playing videos (muted), uses VideoTexture (performance-intensive)
 
 **Portals OUT**:
 | Target | Color | Position | Code Line | Notes |
 |--------|-------|----------|-----------|-------|
-| [room0.html](../room0.html) | Teal (0x00ffff) | (0, eyeHeight, -corridorLength+2) | [room6.js:234](../room6.js#L234) | Back to Ocean Hub |
+| [room0.html](../room0.html) | Teal (0x00ffff) | (0, eyeHeight, -98) | [room6.js:234](../room6.js#L234) | ⚠️ **BUG: Should connect to Room 5, not Room 0** |
 
 **Portals IN**:
-- From Room 5 (cyan portal)
+- From Room 5 (cyan portal at position (0, eyeHeight, -25))
 
-**Status**: ✅ **Working** - Now integrated into main navigation (FIXED)
+**Status**: ✅ **Working** but with incorrect portal navigation
+
+**Technical Quirks**:
+- Heavy asset load: Video files are highest-bandwidth content in gallery
+- CPU/GPU intensive: Dynamic VideoTexture rendering for all 13 videos
+- Auto-play trigger on first click event (line 120-129)
+- No LOD optimization for videos
+- Fixed asset paths recently corrected from `/videos/` to `/assets/`
 
 **Issues**:
-- ~~Video paths use `/videos/` but assets are in `/assets/`~~ **FIXED**: Updated to use `/assets/`
+- ⚠️ **CRITICAL**: Portal connects to Room 0 instead of Room 5 (breaks secondary hub flow)
+- **Performance**: All videos auto-start, no lazy loading or culling
 
 ---
 
@@ -283,102 +295,165 @@ Linear corridor with curved ceiling featuring video displays. Features:
 **Entry Files**:
 - HTML: [room7.html](../room7.html)
 - JavaScript: [room7.js](../room7.js)
+- Bundle: 8.26 kB (2.84 kB gzip) - **LARGEST BUNDLE**
 
 **Description**:
-Dark atmospheric gallery with starry ceiling. Features:
-- Black background
-- Reflective black floor (100x100 units)
-- Starry ceiling (1000 star particles)
-- 20 warm spotlights scattered around scene
-- Images from Room7 asset folder
+Dark atmospheric gallery with starry ceiling and dramatic lighting. Features:
+- Large floor: 100×100 units, highly reflective black surface (metalness 1.0, roughness 0.1)
+- Dark background with black fog (density 0.02)
+- Starry particle system: 1000 white star particles scattered throughout space
+- Dramatic lighting: 20 warm spotlights (0xffaa88) randomly positioned
+- AI-generated art images on vertical display planes
+- Deep space observatory aesthetic
 
 **NFT Content**:
-- **Source**: `/assets/Room7/` folder
-- **Count**: Multiple images (filenames are long AI-generated names)
-- **Examples**:
-  - `lokigod69._A_female_model_standing_in_a_stark_monochrome_space__461d3cd1-91d2-4213-90e0-567676b9955d.png`
-  - `lokigod69._A_female_model_whose_body_dissolves_into_thick_impre_4512005b-b6b4-48bf-8a1c-3739d9c4a119.png`
+- **Count**: 38 PNG images
+- **Source Path**: `/assets/Room7/`
+- **Files**: AI-generated imagery with long descriptive filenames
+  - Example: `lokigod69._A_female_model_standing_in_a_stark_monochrome_space__461d3cd1-91d2-4213-90e0-567676b9955d.png`
+  - Example: `lokigod69._A_female_model_whose_body_dissolves_into_thick_impre_4512005b-b6b4-48bf-8a1c-3739d9c4a119.png`
+- **Display**: Vertical planes (3m × 4m), arranged around gallery space
+- **Frame Style**: Minimal/frameless - direct image planes
+- **Estimated Total Size**: ~4-7 MB per image (high-resolution AI art)
 
 **Portals OUT**:
 | Target | Color | Position | Code Line | Notes |
 |--------|-------|----------|-----------|-------|
-| [room0.html](../room0.html) | Teal (0x00ffff) | (0, eyeHeight, 45) | [room7.js:265](../room7.js#L265) | Back to Ocean Hub |
+| [room0.html](../room0.html) | Teal (0x00ffff) | (0, eyeHeight, 45) | [room7.js:265](../room7.js#L265) | ⚠️ **BUG: Should connect to Room 5, not Room 0** |
 
 **Portals IN**:
-- From Room 5 (gold portal)
+- From Room 5 (gold portal at position (25, eyeHeight, 0))
 
-**Status**: ✅ **Working** - Now integrated into main navigation (FIXED)
+**Status**: ✅ **Working** but with incorrect portal navigation
 
-**Issues**: None
+**Technical Quirks**:
+- **Heavy texture load**: 38 high-resolution PNG images (~150-300 MB total VRAM)
+- **Expensive lighting**: 20 SpotLights with shadows (performance-intensive)
+- **Particle system**: 1000 point particles (moderate CPU overhead)
+- **Reflective floor**: High metalness + low roughness = expensive real-time reflections
+- No texture loading fallbacks or error handling
+- No LOD or culling optimization for images
+
+**Issues**:
+- ⚠️ **CRITICAL**: Portal connects to Room 0 instead of Room 5 (breaks secondary hub flow)
+- **Performance**: Heavy VRAM usage from 38 high-res textures loaded simultaneously
+- **Performance**: 20 spotlights with shadows can cause frame drops on lower-end GPUs
+- **UX**: Dark aesthetic may make navigation difficult for some users
 
 ---
 
-## Room 8: Checkered Frame Room
+## Room 8: Liminal Passage (Geometric Tunnel)
 
 **Route/Path**: [room8.html](../room8.html)
 
 **Entry Files**:
 - HTML: [room8.html](../room8.html)
 - JavaScript: [room8.js](../room8.js)
+- Bundle: 4.42 kB (1.93 kB gzip)
 
 **Description**:
-Small cubic room with checkered pattern of grey frames on all surfaces. Features:
-- Compact dimensions: 10x10 meters × 5 meters height
-- Black background and black walls (backside rendering)
-- 1x1 meter grey frames in checkerboard pattern
-- Frames on floor, ceiling, and all four walls
-- Minimalist aesthetic
+Abstract geometric tunnel serving as transitional space between Room 5 and the bonus content. Features:
+- **Concept**: "Liminal Passage" - cool, meditative, minimal aesthetic
+- **Tunnel dimensions**: 60m length × 6m radius
+- **Atmosphere**: Dark blue-black background (0x0a0a12) with atmospheric fog
+- **Floor walkway**: 3m wide path for navigation guidance
+- **14 floating geometric forms**: Spheres, cubes, toruses, octahedrons, tetrahedrons
+  - Cool color palette: blues, cyans, magentas, purples
+  - Emissive materials with slow rotation animations
+  - Distributed radially along tunnel length
+- **Lighting**: 2 directional lights + 2 pulsing accent point lights
+- **Materials**: Gradient iridescent materials (metalness 0.6, roughness 0.3)
 
-**NFT Content**: **None** - Just grey placeholder frames (abstract/minimalist art piece)
+**Content**:
+- **Type**: Procedural geometric art
+- **Count**: 14 floating 3D forms (5 geometry types × varied colors)
+- **Display**: Radially positioned along tunnel with slow rotation
+- **Materials**: Material-based with emissive properties (no external textures)
+- **Performance**: Lightweight procedural geometry, no asset loading
 
 **Portals OUT**:
 | Target | Color | Position | Code Line | Notes |
 |--------|-------|----------|-----------|-------|
-| [room0.html](../room0.html) | Teal (0x00ffff) | (0, eyeHeight, half-0.5) | [room8.js:193](../room8.js#L193) | Back to Ocean Hub |
+| [room5.html](../room5.html) | Silver (0xaaaaaa) | (0, 2.5, 28) | [room8.js:208](../room8.js#L208) | ✅ Correct - returns to Eternal Eclipse |
 
 **Portals IN**:
-- From Room 5 (silver portal)
+- From Room 5 (silver portal at position (-25, 5, 0))
 
-**Status**: ✅ **Working** - Now integrated into main navigation (FIXED)
+**Status**: ✅ **Working** - v1 redesign complete
 
-**Issues**: None (Now serves as abstract/minimalist art space)
+**Technical Details**:
+- **Procedural content**: All forms generated via code, zero external assets
+- **Performance optimized**: Simple geometries with efficient materials
+- **Backside rendering**: Tunnel uses THREE.BackSide to show interior
+- **Fog effect**: Atmospheric depth with Fog (near: 20, far: 50)
+- **Animation**: Geometric forms rotate based on stored rotation speeds
+- **Lighting animation**: Accent lights pulse with subtle sine wave variation
+
+**Visual Identity**:
+- **Tone**: Cool, synthetic, transitional
+- **Colors**: Blue spectrum (0x4466ff, 0x66ffff, 0xff66ff, 0x6699ff, 0x9966ff)
+- **Differentiation**: Contrasts with Room 9's warm organic aesthetic
 
 ---
 
-## Room 9: Cylindrical Tunnel Gallery
+## Room 9: Organic Tunnel (Bio-luminescent Passage)
 
 **Route/Path**: [room9.html](../room9.html)
 
 **Entry Files**:
 - HTML: [room9.html](../room9.html)
 - JavaScript: [room9.js](../room9.js)
+- Bundle: 4.99 kB (2.21 kB gzip)
 
 **Description**:
-Futuristic cylindrical tunnel with NFT panels. Features:
-- Cylinder dimensions: 5-unit radius × 50-unit length
-- Grey metallic shell (backside rendering)
-- Central walkway (2 units wide)
-- Glass floor strips on sides
-- NFT panels alternating on walls
-- Sphere decorations along corridor
+Natural, cave-like passage with bio-luminescent accents and embedded art surfaces. Features:
+- **Concept**: "Organic Tunnel" - warm, mysterious, alive aesthetic
+- **Tunnel dimensions**: 55m length with irregular organic segments
+  - 12 segments with varying radius (5.5m ± 0.3-0.5m variation)
+  - Warm brown HSL-based materials (hue 25-35°)
+  - High roughness (0.9) for natural stone texture
+- **16 embedded art alcoves**: Material-based "relief art" along tunnel walls
+  - Recessed alcove backgrounds (1.8m × 1.8m)
+  - Art surfaces with emissive accents (1.4m × 1.4m)
+  - Warm earth tones: saddle brown, peru, olive drab, sea green, goldenrod
+- **Bio-luminescent accents**: Small glowing spheres near each alcove
+  - Alternating green and amber emissive materials
+  - Subtle pulsing animation
+- **8 bio-luminescent point lights** with breathing effect
+- **Floor path**: 2.5m stone walkway (rough, dark material)
 
-**NFT Content**:
-- **Asset Range**: Uses first 40 NFTs from main collection
-- **Asset Paths**: `/assets/nft1.png` through `/assets/nft40.png`
-- **Display**: 2x2 meter panels alternating left/right along corridor
-- **Spacing**: 5-unit intervals
+**Content**:
+- **Type**: Procedural material-based art
+- **Count**: 16 art alcoves with relief surfaces
+- **Display**: Embedded in tunnel walls, radially distributed
+- **Materials**: Emissive earth tones with warm glow (no external textures)
+- **Performance**: Lightweight procedural geometry and materials
 
 **Portals OUT**:
 | Target | Color | Position | Code Line | Notes |
 |--------|-------|----------|-----------|-------|
-| [room0.html](../room0.html) | Teal (0x00ffff) | (0, eyeHeight, CORRIDOR_LENGTH/2-2) | [room9.js:196](../room9.js#L196) | Back to Ocean Hub |
+| [room5.html](../room5.html) | Lavender (0xaa88ff) | (0, 2.5, 25.5) | [room9.js:263](../room9.js#L263) | ✅ Correct - returns to Eternal Eclipse |
 
 **Portals IN**:
-- From Room 5 (light purple portal)
+- From Room 5 (lavender portal at position (17.7, 5, 17.7))
 
-**Status**: ✅ **Working** - Now integrated into main navigation (FIXED)
+**Status**: ✅ **Working** - v1 redesign complete
 
-**Issues**: None
+**Technical Details**:
+- **Organic geometry**: 12 cylinder segments with radius variation
+- **Procedural materials**: HSL color generation for warm earth tones
+- **Bio-luminescent lighting**: 8 point lights with breathing animation
+  - Intensity pulsing via sine wave (0.8 × breathe factor)
+  - Phase-shifted for natural variation
+- **Backside rendering**: Segments use THREE.BackSide for interior view
+- **Emissive animation**: Alcove accents pulse independently
+- **Performance**: No texture loading, all procedural materials
+
+**Visual Identity**:
+- **Tone**: Warm, natural, mysterious
+- **Colors**: Earth spectrum (browns, ambers, greens, golds)
+- **Differentiation**: Contrasts with Room 8's cool geometric aesthetic
+- **Unique implementation**: Zero code overlap with Room 8
 
 ---
 
@@ -628,8 +703,8 @@ Concept chamber with dark industrial aesthetic. A work-in-progress room featurin
 | Room 5 | 131-142 | 12 | ✅ |
 | Room 6 | Videos | 13 videos | ✅ (via Room 5) |
 | Room 7 | Room7 folder | ~20+ | ✅ (via Room 5) |
-| Room 8 | None | 0 | ✅ (via Room 5) |
-| Room 9 | 1-40 | 40 | ✅ (via Room 5) |
+| Room 8 | Geometric art | 14 forms | ✅ Procedural - v1 redesign complete |
+| Room 9 | Material art | 16 alcoves | ✅ Procedural - v1 redesign complete |
 | Room A | Videos | 17 videos | ✅ |
 | Room A1 | TBD | TBD | ✅ Fixed |
 | Room B | RoomB/B1-B60 | 60 | ✅ |
@@ -640,53 +715,76 @@ Concept chamber with dark industrial aesthetic. A work-in-progress room featurin
 
 1. ~~**Room C**: Door in Room 0 points to non-existent roomC.html~~ **FIXED** - Created roomC.html and roomC.js
 2. ~~**Room A1**: Room A portal points to non-existent roomA1.html~~ **FIXED** - Created roomA1.html
-3. **Rooms 6, 7, 8, 9**: Completely orphaned, no way to reach via navigation
-4. **NFT gap**: Room 5 uses 131-142, skipping 128-130
-5. **Asset path confusion**: Multiple asset directories (/, /assets/, /public/assets/, /assets/Room7/, /assets/RoomB/, /assets/RoomC/)
+3. ~~**Rooms 6, 7, 8, 9**: Completely orphaned, no way to reach via navigation~~ **FIXED** - Connected via Room 5 hub
+4. ~~**Rooms 6, 7, 8, 9**: All have BROKEN return portals (connect to Room 0 instead of Room 5)~~ **FIXED** - All now return to Room 5
+5. ~~**Rooms 8, 9**: Missing NFT assets (`/assets/nft{1-40}.png` do not exist)~~ **FIXED** - Redesigned with procedural content
+6. ~~**Room 9**: Complete code duplication with Room 8 (maintenance debt)~~ **FIXED** - Unique implementation, zero code overlap
+7. ⚠️ **Room 7**: Heavy performance issues (38 high-res textures, 20 spotlights, 1000 particles)
+8. **NFT gap**: Room 5 uses 131-142, skipping 128-130
+9. **Asset path confusion**: Multiple asset directories (/, /assets/, /public/assets/, /assets/Room7/, /assets/RoomB/, /assets/RoomC/)
 
 ---
 
 ## Navigation Graph
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                         ROOM 0                              │
-│                      (Ocean Hub)                            │
-│                                                             │
-│  [Main Gallery] [Observatory] [Gallery B] [BROKEN] [DISABLED]│
-└──┬──────────────┬────────────┬───────────┬────────┬─────────┘
-   │              │            │           │        │
-   │              │            │           │        └─> Room D
-   │              │            │           │            (disabled)
+┌──────────────────────────────────────────────────────────────────┐
+│                         ROOM 0                                   │
+│                      (Ocean Hub)                                 │
+│                                                                  │
+│  [Main Gallery] [Observatory] [Gallery B] [Concept] [DISABLED]  │
+└──┬──────────────┬────────────┬───────────┬──────────┬───────────┘
+   │              │            │           │          │
+   │              │            │           │          └─> Room D
+   │              │            │           │              (disabled)
    │              │            │           │
    │              │            │           └─> Room C ✅
    │              │            │               (Concept Chamber)
+   │              │            │               └─> Back to Room 0 ⚠️
    │              │            │
    │              │            └─> Room B ✅
-   │              │                └─> Back to Room 0
+   │              │                └─> Back to Room 0 ✅
    │              │
    │              └─> Room A ✅
-   │                  ├─> Back to Room 0
+   │                  ├─> Back to Room 0 ✅
    │                  └─> Room A1 ✅ (Observatory Annex)
-   │                      └─> Back to Room A
+   │                      └─> Back to Room A ✅
    │
-   └─> Room 1 ✅
-       ├─> Back to Room 0
+   └─> Room 1 ✅ (Main Gallery)
+       ├─> Back to Room 0 ✅
        └─> Room 2 ✅
+           ├─> Back to Room 1 ✅
            └─> Room 3 ✅
-               ├─> Back to Room 2
-               └─> Room 4 ✅
-                   ├─> Back to Room 3
-                   └─> Room 5 ✅
-                       └─> Back to Room 4
+               ├─> Back to Room 2 ✅
+               └─> Room 4 ✅ (Floating Island)
+                   ├─> Back to Room 3 ✅
+                   └─> Room 5 ✅ (Eternal Eclipse - SECONDARY HUB)
+                       ├─> Back to Room 4 ✅
+                       │
+                       ├─> Room 6 ✅ (Video Corridor)
+                       │   └─> Back to Room 5 ✅
+                       │
+                       ├─> Room 7 ✅ (Starry Gallery)
+                       │   └─> Back to Room 5 ✅
+                       │
+                       ├─> Room 8 ✅ (Liminal Passage - Geometric)
+                       │   └─> Back to Room 5 ✅
+                       │
+                       └─> Room 9 ✅ (Organic Tunnel - Bio-luminescent)
+                           └─> Back to Room 5 ✅
 
 
-ORPHANED ROOMS (no portal access):
-┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐
-│ Room 6   │  │ Room 7   │  │ Room 8   │  │ Room 9   │
-│ (Video)  │  │ (Starry) │  │ (Frames) │  │ (Tunnel) │
-└──────────┘  └──────────┘  └──────────┘  └──────────┘
-  ⚠️ Isolated  ⚠️ Isolated  ⚠️ Isolated  ⚠️ Isolated
+NAVIGATION FLOW SUMMARY:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Main Progression: Room 0 → 1 ↔ 2 ↔ 3 → 4 → 5
+                                             └─> Bonus Rooms: 6, 7, 8, 9 (all return to Room 5)
+
+Branch Paths:     Room 0 → A ↔ A1
+                  Room 0 → B
+                  Room 0 → C
+
+✅ ALL NAVIGATION WORKING: All bonus rooms correctly return to Room 5 (secondary hub)
+   Room 8 & 9 redesigned with distinct visual identities and procedural content
 
 
 FUTURE ROOMS (React scaffolds, not integrated):
