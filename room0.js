@@ -26,6 +26,8 @@ import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockCont
 // Import Water and Sky directly - we'll handle fallbacks in the code
 import { Water } from 'three/examples/jsm/objects/Water.js';
 import { Sky } from 'three/examples/jsm/objects/Sky.js';
+import { getPortalStyle, PORTAL_COLORS } from './src/core/portal-styles.js';
+import { createMultiPortalChecker } from './src/core/portal-utils.js';
 
 // Hide loading overlay when the page loads
 window.addEventListener('load', () => {
@@ -534,7 +536,7 @@ function createWoodenDoors() {
     if (i === 1) {
       const mirrorGeometry = new THREE.PlaneGeometry(3.5, 5); // Larger shape
       const mirrorMaterial = new THREE.MeshStandardMaterial({
-          color: 0xffff00,
+          color: PORTAL_COLORS.DEEP_BLUE,  // Standardized color for 0→A
           metalness: 0.2,
           roughness: 0.4,
           side: THREE.DoubleSide
@@ -588,15 +590,15 @@ function createWoodenDoors() {
     
     // Door panel
     const doorGeometry = new THREE.PlaneGeometry(3.5, 5);
-    
-    // Choose a bright color for each door
+
+    // Use standardized colors from portal style map
     let doorColor;
     switch(i) {
-      case 0: doorColor = 0xff0000; break; // Main Gallery - red
-      case 1: doorColor = 0x00ff00; break; // Undersea - green
-      case 2: doorColor = 0x0000ff; break; // Room B - blue
-      case 3: doorColor = 0xffff00; break; // Room C - yellow
-      case 4: doorColor = 0xff00ff; break; // Room D - magenta
+      case 0: doorColor = PORTAL_COLORS.OCEAN_BLUE; break;  // Main Gallery (0→1)
+      case 1: doorColor = PORTAL_COLORS.DEEP_BLUE; break;   // Undersea Observatory (0→A)
+      case 2: doorColor = PORTAL_COLORS.EMERALD; break;     // NFT Gallery Room (0→B)
+      case 3: doorColor = PORTAL_COLORS.AMBER; break;       // Concept Chamber (0→C)
+      case 4: doorColor = 0xff00ff; break;                  // Room D - placeholder (no link defined yet)
       default: doorColor = 0xffffff;
     }
     
@@ -688,6 +690,47 @@ const { sky, sun } = createSky();
 const platform = createPlatform();
 const doors = createWoodenDoors();
 
+// Set up multi-portal proximity checker using standardized system
+const portalConfigs = [
+  {
+    position: new THREE.Vector3(doors[0].location.x, doors[0].location.y, doors[0].location.z),
+    name: doors[0].location.name,
+    url: doors[0].location.destination,
+    showDistance: 4.0,
+    triggerDistance: 2.0
+  },
+  {
+    position: new THREE.Vector3(doors[1].location.x, doors[1].location.y, doors[1].location.z),
+    name: doors[1].location.name,
+    url: doors[1].location.destination,
+    showDistance: 4.0,
+    triggerDistance: 2.0
+  },
+  {
+    position: new THREE.Vector3(doors[2].location.x, doors[2].location.y, doors[2].location.z),
+    name: doors[2].location.name,
+    url: doors[2].location.destination,
+    showDistance: 4.0,
+    triggerDistance: 2.0
+  },
+  {
+    position: new THREE.Vector3(doors[3].location.x, doors[3].location.y, doors[3].location.z),
+    name: doors[3].location.name,
+    url: doors[3].location.destination,
+    showDistance: 4.0,
+    triggerDistance: 2.0
+  }
+  // Note: Excluding door 4 (Room D) as it's not functional yet
+];
+
+const checkPortalProximity = createMultiPortalChecker({
+  camera,
+  portals: portalConfigs,
+  controlsId: 'controls-description',
+  overlayId: 'loading-overlay',
+  loadingDelay: 500
+});
+
 
 // Add ambient light
 const ambientLight = new THREE.AmbientLight(0x404040, 1);
@@ -707,61 +750,7 @@ directionalLight.shadow.camera.top = 20;
 directionalLight.shadow.camera.bottom = -20;
 scene.add(directionalLight);
 
-// ----------------------------------------------------------------------
-// Door Interaction and Teleportation
-// ----------------------------------------------------------------------
-function checkDoorProximity() {
-  for (const doorObj of doors) {
-    const door = doorObj.door;
-    const destination = door.userData.destination;
-    const name = door.userData.name;
-    
-    // Calculate distance between player and door
-    const doorPosition = new THREE.Vector3(
-      door.position.x,
-      camera.position.y,
-      door.position.z
-    );
-    
-    const distance = camera.position.distanceTo(doorPosition);
-    
-    // Increased the approach distance from 3 to 4 to account for larger platform
-    if (distance < 4) {
-      // When close to the door, show instructions
-      document.getElementById('controls-description').textContent = `Approach to enter ${name}`;
-      document.getElementById('controls-description').style.display = 'block';
-      
-      // When very close, teleport (increased from 1.5 to 2)
-      if (distance < 2) {
-        // Show loading screen
-        const loadingOverlay = document.getElementById('loading-overlay');
-        if (loadingOverlay) {
-          loadingOverlay.style.display = 'flex';
-        }
-        
-        console.log(`Teleporting to ${destination}`);
-        
-        // Allow teleportation to all rooms except Room D (since it doesn't exist yet)
-        if (destination === 'room1.html' || destination === 'roomA.html' || 
-            destination === 'roomB.html' || destination === 'roomC.html') {
-          window.location.href = destination; // Go directly to the destination
-        } else {
-          // For future rooms, show a message for now
-          alert(`${name} is under construction. Coming soon!`);
-          // Hide loading overlay
-          if (loadingOverlay) {
-            loadingOverlay.style.display = 'none';
-          }
-        }
-      }
-      
-      return; // Exit once we've found a nearby door
-    }
-  }
-  
-  // Reset instructions when not near any door
-  document.getElementById('controls-description').textContent = 'Controls: WASD - Move, Mouse - Look, ESC - Toggle camera';
-}
+// Door interaction now handled by createMultiPortalChecker() above
 
 // ----------------------------------------------------------------------
 // Animation Loop
@@ -832,8 +821,8 @@ function animate() {
       camera.position.z = 21 * Math.sin(angle);
     }
     
-    // Check if near doors
-    checkDoorProximity();
+    // Check if near doors using standardized portal system
+    checkPortalProximity();
   }
   
   renderer.render(scene, camera);

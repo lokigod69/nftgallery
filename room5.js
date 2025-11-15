@@ -12,6 +12,8 @@
 
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
+import { createLinkedPortal, createPortalLabel, animateLinkedPortal, createMultiPortalChecker } from './src/core/portal-utils.js';
+import { getPortalStyle } from './src/core/portal-styles.js';
 
 // ----------------------------------------------------------------------
 // Global Variables
@@ -913,183 +915,79 @@ function createAtmosphericHaze() {
   return particles;
 }
 
-// Create portal to Room 4
-function createPortalToRoom4() {
-  // Use CircleGeometry for the portal
-  const portalGeometry = new THREE.CircleGeometry(1.8, 32); // Increased size for easier access
-  const portalMaterial = new THREE.MeshBasicMaterial({
-    color: 0x8844aa, // Purple color matching Room 4's portal
-    side: THREE.DoubleSide,
-    transparent: true,
-    opacity: 0.8
+// Create all portals using standardized portal system
+function createAllPortals() {
+  const portals = [];
+
+  // Portal to Room 4 (Floating Island) - South
+  const portal4 = createLinkedPortal({
+    scene,
+    fromRoom: '5',
+    toRoom: '4',
+    x: 0,
+    y: groundLevel + eyeHeight,
+    z: roomRadius - 5,
+    rotationX: 0.1,
+    createLabel: true
   });
-  
-  const portal = new THREE.Mesh(portalGeometry, portalMaterial);
-  
-  // UPDATED: Make portal vertical and float at exactly eye height
-  portal.position.set(0, groundLevel + eyeHeight, roomRadius - 5); // Match eyeHeight (5.0)
-  
-  // Slightly tilt the portal toward the player for better visibility
-  portal.rotation.x = 0.1;
-  scene.add(portal);
-  
-  // Glow effect
-  const glowGeometry = new THREE.CircleGeometry(2.2, 32); // Larger glow
-  const glowMaterial = new THREE.MeshBasicMaterial({
-    color: 0x6600aa, // Deeper purple glow
-    side: THREE.DoubleSide,
-    transparent: true,
-    opacity: 0.3
+  portals.push({ ...portal4, name: 'Room 4', url: 'room4.html', position: new THREE.Vector3(0, groundLevel + eyeHeight, roomRadius - 5) });
+
+  // Portal to Room 6 (Video Corridor) - North
+  const portal6 = createLinkedPortal({
+    scene,
+    fromRoom: '5',
+    toRoom: '6',
+    x: 0,
+    y: eyeHeight,
+    z: -(roomRadius - 5),
+    rotationX: 0.1,
+    createLabel: true
   });
-  
-  const glow = new THREE.Mesh(glowGeometry, glowMaterial);
-  glow.position.copy(portal.position);
-  glow.rotation.copy(portal.rotation);
-  glow.position.z -= 0.01; // Slight offset to avoid z-fighting
-  scene.add(glow);
-  
-  // Add point light for the portal
-  const portalLight = new THREE.PointLight(0x8844aa, 1.2, 10); // Brighter light
-  portalLight.position.copy(portal.position);
-  scene.add(portalLight);
-  
-  // Add particles around the portal
-  const particleCount = 40; // More particles
-  const particleGeometry = new THREE.BufferGeometry();
-  const particlePositions = new Float32Array(particleCount * 3);
-  
-  for (let i = 0; i < particleCount; i++) {
-    const angle = Math.random() * Math.PI * 2;
-    const radius = Math.random() * 2.0 + 0.5; // Wider distribution
-    particlePositions[i * 3] = portal.position.x + Math.cos(angle) * radius;
-    particlePositions[i * 3 + 1] = portal.position.y + Math.sin(angle) * radius;
-    particlePositions[i * 3 + 2] = portal.position.z - Math.random() * 0.5;
-  }
-  
-  particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
-  
-  const particleMaterial = new THREE.PointsMaterial({
-    color: 0xaa77ff,
-    size: 0.15, // Larger particles
-    transparent: true,
-    opacity: 0.7, // More visible
-    blending: THREE.AdditiveBlending
+  portals.push({ ...portal6, name: 'Room 6', url: 'room6.html', position: new THREE.Vector3(0, eyeHeight, -(roomRadius - 5)) });
+
+  // Portal to Room 7 (Starry Gallery) - East
+  const portal7 = createLinkedPortal({
+    scene,
+    fromRoom: '5',
+    toRoom: '7',
+    x: roomRadius - 5,
+    y: eyeHeight,
+    z: 0,
+    rotationY: -Math.PI / 2,
+    rotationX: 0.1,
+    createLabel: true
   });
-  
-  const particles = new THREE.Points(particleGeometry, particleMaterial);
-  scene.add(particles);
-  
-  // Animation
-  function animatePortal() {
-    const time = Date.now() * 0.001;
-    portal.rotation.z = time * 0.5; // Rotate the portal
-    glow.rotation.z = -time * 0.3; // Rotate the glow in opposite direction
-    portalLight.intensity = 0.8 + Math.sin(time * 2) * 0.6; // More dramatic pulsing
-    
-    // Animate particles
-    const positions = particles.geometry.attributes.position.array;
-    for (let i = 0; i < particleCount; i++) {
-      const i3 = i * 3;
-      const angle = time + i * 0.1;
-      const radius = 1.2 + 0.5 * Math.sin(time * 0.5 + i * 0.2); // Larger orbit
-      
-      positions[i3] = portal.position.x + Math.cos(angle) * radius;
-      positions[i3 + 1] = portal.position.y + Math.sin(angle) * radius;
-    }
-    particles.geometry.attributes.position.needsUpdate = true;
-  }
-  
-  return { portal, glow, portalLight, particles, animate: animatePortal };
-}
+  portals.push({ ...portal7, name: 'Room 7', url: 'room7.html', position: new THREE.Vector3(roomRadius - 5, eyeHeight, 0) });
 
-// Create portal to Room 6 (Video Corridor)
-function createPortalToRoom6() {
-  const portal = new THREE.Mesh(
-    new THREE.CircleGeometry(1.5, 32),
-    new THREE.MeshBasicMaterial({ color: 0x00ccff, transparent: true, opacity: 0.8, side: THREE.DoubleSide })
-  );
-  portal.position.set(0, eyeHeight, -(roomRadius - 5));
-  portal.rotation.x = 0.1;
-  scene.add(portal);
+  // Portal to Room 8 (Abstract Art) - West
+  const portal8 = createLinkedPortal({
+    scene,
+    fromRoom: '5',
+    toRoom: '8',
+    x: -(roomRadius - 5),
+    y: eyeHeight,
+    z: 0,
+    rotationY: Math.PI / 2,
+    rotationX: 0.1,
+    createLabel: true
+  });
+  portals.push({ ...portal8, name: 'Room 8', url: 'room8.html', position: new THREE.Vector3(-(roomRadius - 5), eyeHeight, 0) });
 
-  const glow = new THREE.Mesh(
-    new THREE.CircleGeometry(1.8, 32),
-    new THREE.MeshBasicMaterial({ color: 0x00ccff, transparent: true, opacity: 0.3, side: THREE.DoubleSide })
-  );
-  glow.position.copy(portal.position);
-  glow.rotation.copy(portal.rotation);
-  glow.position.z += 0.01;
-  scene.add(glow);
+  // Portal to Room 9 (Tunnel) - Northeast
+  const portal9 = createLinkedPortal({
+    scene,
+    fromRoom: '5',
+    toRoom: '9',
+    x: 17.7,
+    y: eyeHeight,
+    z: 17.7,
+    rotationY: Math.PI + Math.PI / 4,
+    rotationX: 0.1,
+    createLabel: true
+  });
+  portals.push({ ...portal9, name: 'Room 9', url: 'room9.html', position: new THREE.Vector3(17.7, eyeHeight, 17.7) });
 
-  return { portal, glow };
-}
-
-// Create portal to Room 7 (Starry Gallery)
-function createPortalToRoom7() {
-  const portal = new THREE.Mesh(
-    new THREE.CircleGeometry(1.5, 32),
-    new THREE.MeshBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0.8, side: THREE.DoubleSide })
-  );
-  portal.position.set(roomRadius - 5, eyeHeight, 0);
-  portal.rotation.y = -Math.PI / 2;
-  portal.rotation.x = 0.1;
-  scene.add(portal);
-
-  const glow = new THREE.Mesh(
-    new THREE.CircleGeometry(1.8, 32),
-    new THREE.MeshBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0.3, side: THREE.DoubleSide })
-  );
-  glow.position.copy(portal.position);
-  glow.rotation.copy(portal.rotation);
-  glow.position.x -= 0.01;
-  scene.add(glow);
-
-  return { portal, glow };
-}
-
-// Create portal to Room 8 (Checkered Frame Room)
-function createPortalToRoom8() {
-  const portal = new THREE.Mesh(
-    new THREE.CircleGeometry(1.5, 32),
-    new THREE.MeshBasicMaterial({ color: 0xaaaaaa, transparent: true, opacity: 0.8, side: THREE.DoubleSide })
-  );
-  portal.position.set(-(roomRadius - 5), eyeHeight, 0);
-  portal.rotation.y = Math.PI / 2;
-  portal.rotation.x = 0.1;
-  scene.add(portal);
-
-  const glow = new THREE.Mesh(
-    new THREE.CircleGeometry(1.8, 32),
-    new THREE.MeshBasicMaterial({ color: 0xaaaaaa, transparent: true, opacity: 0.3, side: THREE.DoubleSide })
-  );
-  glow.position.copy(portal.position);
-  glow.rotation.copy(portal.rotation);
-  glow.position.x += 0.01;
-  scene.add(glow);
-
-  return { portal, glow };
-}
-
-// Create portal to Room 9 (Tunnel)
-function createPortalToRoom9() {
-  const portal = new THREE.Mesh(
-    new THREE.CircleGeometry(1.5, 32),
-    new THREE.MeshBasicMaterial({ color: 0xaa88ff, transparent: true, opacity: 0.8, side: THREE.DoubleSide })
-  );
-  portal.position.set(17.7, eyeHeight, 17.7); // Northeast at 45 degrees
-  portal.rotation.y = Math.PI + Math.PI / 4;
-  portal.rotation.x = 0.1;
-  scene.add(portal);
-
-  const glow = new THREE.Mesh(
-    new THREE.CircleGeometry(1.8, 32),
-    new THREE.MeshBasicMaterial({ color: 0xaa88ff, transparent: true, opacity: 0.3, side: THREE.DoubleSide })
-  );
-  glow.position.copy(portal.position);
-  glow.rotation.copy(portal.rotation);
-  scene.add(glow);
-
-  return { portal, glow };
+  return portals;
 }
 
 // ----------------------------------------------------------------------
@@ -1100,67 +998,29 @@ const walls = createWalls();
 const ceiling = createCeiling();
 const pedestals = createNFTPedestals();
 const haze = createAtmosphericHaze();
-const portalToRoom4 = createPortalToRoom4();
-const portalToRoom6 = createPortalToRoom6();
-const portalToRoom7 = createPortalToRoom7();
-const portalToRoom8 = createPortalToRoom8();
-const portalToRoom9 = createPortalToRoom9();
+const allPortals = createAllPortals();
 
-// ----------------------------------------------------------------------
-// Create Portal Labels
-// ----------------------------------------------------------------------
-function createPortalLabel(text, x, y, z) {
-  // Create canvas for text
-  const canvas = document.createElement('canvas');
-  const context = canvas.getContext('2d');
-  canvas.width = 512;
-  canvas.height = 128;
+// Set up multi-portal proximity checker using standardized system
+const portalConfigs = allPortals.map(p => ({
+  position: p.position,
+  name: p.name,
+  url: p.url,
+  showDistance: 4.0,
+  triggerDistance: 2.0
+}));
 
-  // Draw semi-transparent background
-  context.fillStyle = 'rgba(0, 0, 0, 0.6)';
-  context.fillRect(0, 0, canvas.width, canvas.height);
+const checkPortalProximity = createMultiPortalChecker({
+  camera,
+  portals: portalConfigs,
+  controlsId: 'controls-description',
+  overlayId: 'loading-overlay',
+  loadingDelay: 500
+});
 
-  // Draw glowing text
-  context.fillStyle = '#ffffff';
-  context.font = 'Bold 32px Arial';
-  context.textAlign = 'center';
-  context.textBaseline = 'middle';
-
-  // Add glow effect
-  context.shadowColor = '#00ffff';
-  context.shadowBlur = 10;
-  context.fillText(text, canvas.width / 2, canvas.height / 2);
-
-  // Create texture and material
-  const labelTexture = new THREE.CanvasTexture(canvas);
-  const labelMaterial = new THREE.MeshBasicMaterial({
-    map: labelTexture,
-    side: THREE.DoubleSide,
-    transparent: true,
-    opacity: 0.9
-  });
-
-  // Create label mesh
-  const labelGeometry = new THREE.PlaneGeometry(3, 0.75);
-  const label = new THREE.Mesh(labelGeometry, labelMaterial);
-  label.position.set(x, y, z);
-
-  // Make label always face camera (billboard effect)
-  label.userData.isBillboard = true;
-
-  scene.add(label);
-  return label;
-}
-
-// Create labels for all portals
-const labelRoom4 = createPortalLabel('⬅ Room 4 (Floating Island)', 0, eyeHeight + 2, roomRadius - 5);
-const labelRoom6 = createPortalLabel('⬆ Room 6 (Video Corridor)', 0, eyeHeight + 2, -(roomRadius - 5));
-const labelRoom7 = createPortalLabel('➡ Room 7 (Starry Gallery)', roomRadius - 5, eyeHeight + 2, 0);
-const labelRoom8 = createPortalLabel('⬅ Room 8 (Abstract Art)', -(roomRadius - 5), eyeHeight + 2, 0);
-const labelRoom9 = createPortalLabel('↗ Room 9 (Tunnel)', 17.7, eyeHeight + 2, 17.7);
-
-// Store labels for billboard effect
-const portalLabels = [labelRoom4, labelRoom6, labelRoom7, labelRoom8, labelRoom9];
+// Collect all portal labels for billboard effect
+const portalLabels = allPortals
+  .map(p => p.label)
+  .filter(label => label !== undefined);
 
 // ----------------------------------------------------------------------
 // Animation Loop
@@ -1235,73 +1095,23 @@ function animate() {
   // Animate ceiling elements
   ceiling.corona.rotation.z = time * 0.05; // Slow rotation
   ceiling.outerCorona.rotation.z = -time * 0.03; // Opposite rotation
-  
+
   // Pulsing corona light
   ceiling.coronaLight.intensity = 0.3 + 0.1 * Math.sin(time * 0.5);
-  
-  // Animate portals
-  portalToRoom4.animate();
 
-  if (portalToRoom6) {
-    portalToRoom6.portal.rotation.z += 0.01;
-    portalToRoom6.glow.rotation.z -= 0.01;
-  }
-  if (portalToRoom7) {
-    portalToRoom7.portal.rotation.z += 0.01;
-    portalToRoom7.glow.rotation.z -= 0.01;
-  }
-  if (portalToRoom8) {
-    portalToRoom8.portal.rotation.z += 0.01;
-    portalToRoom8.glow.rotation.z -= 0.01;
-  }
-  if (portalToRoom9) {
-    portalToRoom9.portal.rotation.z += 0.01;
-    portalToRoom9.glow.rotation.z -= 0.01;
-  }
+  // Animate all portals using standardized system
+  allPortals.forEach(portalObj => {
+    animateLinkedPortal(portalObj.portal, portalObj.glow);
+  });
 
   // Update billboard labels to always face camera
   portalLabels.forEach(label => {
-    label.lookAt(camera.position);
+    if (label) {
+      label.lookAt(camera.position);
+    }
   });
 
   renderer.render(scene, camera);
 }
 
 animate(); 
-
-// Check if near any portal
-function checkPortalProximity() {
-  const portals = [
-    { pos: new THREE.Vector3(0, groundLevel + eyeHeight, roomRadius - 5), name: 'Room 4', url: 'room4.html' },
-    { pos: new THREE.Vector3(0, eyeHeight, -(roomRadius - 5)), name: 'Room 6 (Video Corridor)', url: 'room6.html' },
-    { pos: new THREE.Vector3(roomRadius - 5, eyeHeight, 0), name: 'Room 7 (Starry Gallery)', url: 'room7.html' },
-    { pos: new THREE.Vector3(-(roomRadius - 5), eyeHeight, 0), name: 'Room 8 (Checkered Frame)', url: 'room8.html' },
-    { pos: new THREE.Vector3(17.7, eyeHeight, 17.7), name: 'Room 9 (Tunnel)', url: 'room9.html' }
-  ];
-
-  for (let i = 0; i < portals.length; i++) {
-    const portal = portals[i];
-    const distance = camera.position.distanceTo(portal.pos);
-
-    // Check if player is very close to the portal and show info
-    if (distance < 4 && distance >= 2) {
-      document.getElementById('controls-description').textContent = `Approach portal to enter ${portal.name}`;
-      document.getElementById('controls-description').style.display = 'block';
-      return;
-    }
-    // Trigger teleportation when very close
-    else if (distance < 2) {
-      const loadingOverlay = document.getElementById('loading-overlay');
-      if (loadingOverlay) {
-        loadingOverlay.style.display = 'flex';
-      }
-
-      console.log(`Portal triggered! Teleporting to ${portal.name}...`);
-      window.location.href = portal.url;
-      return;
-    }
-  }
-
-  // Default message if not near any portal
-  document.getElementById('controls-description').textContent = 'Controls: WASD - Move, Mouse - Look, ESC - Toggle camera';
-} 
