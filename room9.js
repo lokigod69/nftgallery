@@ -189,11 +189,11 @@ function checkPortalProximity() {
   const dist = camera.position.distanceTo(portalToRoom0.position);
   const desc = document.getElementById('controls-description');
   if (dist < 3.0) {
-    if (desc) desc.textContent = 'Approach portal to return to Ocean Hub (Room 0)';
+    if (desc) desc.textContent = 'Approach portal to return to Eternal Eclipse (Room 5)';
     if (dist < 1.8) {
       const overlay = document.getElementById('loading-overlay');
       if (overlay) overlay.style.display = 'flex';
-      setTimeout(() => window.location.href = 'room0.html', 500);
+      setTimeout(() => window.location.href = 'room5.html', 500);
     }
   } else if (desc) {
     desc.textContent = 'Controls: WASD - Move, Mouse - Look, SPACE - Jump';

@@ -222,19 +222,19 @@ function checkPortalProximity() {
 
   if (distance < 3.0) {
     if (controlsDesc) {
-      controlsDesc.textContent = 'Approach portal to return to Ocean Hub (Room 0)';
+      controlsDesc.textContent = 'Approach portal to return to Eternal Eclipse (Room 5)';
       controlsDesc.style.display = 'block';
     }
 
     if (distance < 1.8) {
-      // Navigate to Room 0
+      // Navigate to Room 5
       const loadingOverlay = document.getElementById('loading-overlay');
       if (loadingOverlay) {
         loadingOverlay.style.display = 'flex';
       }
 
       setTimeout(() => {
-        window.location.href = 'room0.html';
+        window.location.href = 'room5.html';
       }, 500);
     }
   } else if (controlsDesc) {

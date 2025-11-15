@@ -90,46 +90,65 @@ Room A (Undersea Observatory) has a portal that links to `roomA1.html`. ~~The Ja
 
 ## High Priority Issues (Impacts Major Features)
 
-### ~~ISSUE-003: Orphaned Rooms (6, 7, 8, 9) - No Navigation~~ ✅ FIXED
+### ~~ISSUE-003: Bonus Rooms (6, 7, 8, 9) - Broken Return Navigation~~ ✅ FIXED
 
-**Type**: `navigation` / `incomplete feature`
+**Type**: `navigation` / `broken portals`
 
 **Severity**: ~~🟠 **HIGH**~~ ✅ **RESOLVED**
 
 **Affected Rooms**:
-- ✅ Room 6: Video Corridor ([room6.js](../room6.js))
-- ✅ Room 7: Starry Gallery ([room7.js](../room7.js))
-- ✅ Room 8: Checkered Frame Room ([room8.js](../room8.js))
-- ✅ Room 9: Cylindrical Tunnel ([room9.js](../room9.js))
+- ✅ Room 6: Video Corridor ([room6.js:237](../room6.js#L237))
+- ✅ Room 7: Starry Gallery ([room7.js:248](../room7.js#L248))
+- ✅ Room 8: Cylindrical Corridor ([room8.js:193](../room8.js#L193))
+- ✅ Room 9: Cylindrical Tunnel ([room9.js:196](../room9.js#L196))
+
+**Status**: ✅ **FIXED** (2025-11-15)
+
+**Description**:
+Room 5 (Eternal Eclipse) was designed as a secondary hub connecting to 4 bonus rooms (6, 7, 8, 9). Entry portals from Room 5 worked correctly using standardized colors from the portal style map. However, return portals in all 4 bonus rooms incorrectly navigated back to Room 0 (Ocean Hub) instead of Room 5, breaking the secondary hub navigation pattern and forcing players to backtrack through the entire main progression path.
 
 **Fix Applied**: 2025-11-15
 
 **Implementation**:
-Integrated all 4 orphaned rooms using **Option B** - "Bonus Gallery" area via Room 5:
+Updated return portal destinations in all 4 bonus rooms to navigate to Room 5:
 
-1. **Entry Portals** - Added 4 colored portals in Room 5 ([room5.js:1005-1093](../room5.js#L1005)):
-   - Cyan portal (0x00ccff) → Room 6 (Video Corridor) at position (0, 5, -25)
-   - Gold portal (0xffaa00) → Room 7 (Starry Gallery) at position (25, 5, 0)
-   - Silver portal (0xaaaaaa) → Room 8 (Checkered Frame) at position (-25, 5, 0)
-   - Light purple portal (0xaa88ff) → Room 9 (Tunnel) at position (17.7, 5, 17.7)
+1. **[room6.js:237](../room6.js#L237)** - Video Corridor
+   - Changed: `window.location.href = 'room0.html'` → `'room5.html'`
+   - Updated label: "Ocean Hub (Room 0)" → "Eternal Eclipse (Room 5)"
 
-2. **Return Portals** - Added teal portals back to Room 0 in each room:
-   - [room6.js:179-243](../room6.js#L179) - Portal at end of video corridor
-   - [room7.js:227-253](../room7.js#L227) - Portal in starry gallery
-   - [room8.js:169-198](../room8.js#L169) - Portal in checkered room
-   - [room9.js:172-201](../room9.js#L172) - Portal at end of tunnel
+2. **[room7.js:248](../room7.js#L248)** - Starry Gallery
+   - Changed: `window.location.href = 'room0.html'` → `'room5.html'`
+   - Updated label: "Ocean Hub (Room 0)" → "Eternal Eclipse (Room 5)"
 
-3. **Navigation Flow**:
-   - Main path: Room 0 → 1 → 2 → 3 → 4 → 5
-   - From Room 5: Access to 4 bonus rooms (6, 7, 8, 9)
-   - From bonus rooms: Return directly to Room 0 (hub)
-   - Room 5 now serves as **secondary hub** for bonus content
+3. **[room8.js:193](../room8.js#L193)** - Cylindrical Corridor
+   - Changed: `window.location.href = 'room0.html'` → `'room5.html'`
+   - Updated label: "Ocean Hub (Room 0)" → "Eternal Eclipse (Room 5)"
+
+4. **[room9.js:196](../room9.js#L196)** - Cylindrical Tunnel
+   - Changed: `window.location.href = 'room0.html'` → `'room5.html'`
+   - Updated label: "Ocean Hub (Room 0)" → "Eternal Eclipse (Room 5)"
+
+**Current Behavior**:
+1. Player navigates: Room 0 → 1 → 2 → 3 → 4 → 5 (Eternal Eclipse)
+2. From Room 5, player enters any of 4 bonus rooms via colored portals
+3. Player explores bonus room
+4. Return portal correctly navigates back to Room 5 (not Room 0)
+5. Room 5 now functions as true secondary hub
+
+**Navigation Flow** (Fixed):
+```
+Room 5 (Secondary Hub)
+  ├─> Room 6 → Return to Room 5 ✅
+  ├─> Room 7 → Return to Room 5 ✅
+  ├─> Room 8 → Return to Room 5 ✅
+  └─> Room 9 → Return to Room 5 ✅
+```
 
 **Result**:
-- ✅ All 4 rooms now accessible via normal exploration
 - ✅ Consistent navigation UX across entire gallery
-- ✅ Room 5 positioned as "end game" hub with extra content
-- ✅ Users can discover bonus rooms organically
+- ✅ Room 5 functions as intended secondary hub design
+- ✅ No more forced backtracking through main progression
+- ✅ Matches hub pattern used for Room 0 ↔ A, B, C connections
 
 ---
 
@@ -286,6 +305,192 @@ video.src = `/assets/${file}`;  // ← CORRECT PATH
 ---
 
 ## Medium Priority Issues
+
+### ISSUE-016: Room 6 - Heavy Video Performance Impact
+
+**Type**: `performance` / `content optimization`
+
+**Severity**: 🟡 **MEDIUM** (non-critical, visible)
+
+**Location**: [room6.js](../room6.js)
+
+**Description**:
+Room 6 (Video Corridor) loads and auto-plays 13 MP4 video files simultaneously, causing significant CPU/GPU load.
+
+**Technical Details**:
+- **Video Count**: 13 MP4 files (Amy1, Angel1, Anna1, April1, Cara1, Claire1, Cynthia2, Dasha1, Devon2, Huong1, Lucy1, Ruby1, Sarah1)
+- **Display**: 4m × 4m video planes alternating on corridor walls
+- **Auto-play**: All videos start playing automatically (muted)
+- **Rendering**: Uses `VideoTexture` for dynamic texture updates
+- **Bundle Size**: 4.53 kB (1.94 kB gzip)
+
+**Impact**:
+- High CPU usage for video decoding (13 concurrent video streams)
+- High GPU usage for VideoTexture rendering
+- Increased memory footprint (video buffers in RAM)
+- Potential frame rate drops on lower-end hardware
+- High bandwidth for initial video loading
+
+**Current Issues**:
+- No lazy loading or progressive rendering
+- No distance-based culling (all videos play even if not visible)
+- No LOD optimization
+- Auto-play triggers on first click event (line 120-129)
+- No fallback for devices that can't handle 13 concurrent videos
+
+**Visual Quality**: Good - videos display correctly when hardware can handle them
+
+**Suggested Fixes**:
+1. **Lazy Loading**: Only load/play videos when player is nearby (distance-based)
+2. **Reduce Quality**: Use lower-resolution videos or compressed formats
+3. **Sequential Loading**: Load videos progressively instead of all at once
+4. **Pause Culling**: Pause videos that are behind the player
+5. **Reduce Count**: Consider using fewer videos (e.g., every other position)
+
+---
+
+### ISSUE-017: Room 7 - Heavy Performance Issues (Textures + Lighting)
+
+**Type**: `performance` / `visual optimization`
+
+**Severity**: 🟡 **MEDIUM** (non-critical, visible)
+
+**Location**: [room7.js](../room7.js)
+
+**Description**:
+Room 7 (Starry Gallery) has multiple performance-intensive features that compound:
+- 38 high-resolution PNG textures
+- 20 SpotLights with shadows
+- 1000 star particles
+- Highly reflective floor (metalness 1.0, roughness 0.1)
+
+**Technical Details**:
+- **Bundle Size**: 8.26 kB (2.84 kB gzip) - **LARGEST BUNDLE**
+- **Textures**: 38 PNG images from `/assets/Room7/`
+  - Estimated size: 4-7 MB each = ~150-300 MB total VRAM
+  - Long AI-generated filenames
+  - No compression or LOD
+- **Lighting**: 20 warm SpotLights (0xffaa88) randomly positioned
+  - Each spotlight calculates shadows
+  - Expensive real-time shadow mapping
+- **Particles**: 1000 white star particles (PointsGeometry)
+  - Moderate CPU overhead
+- **Reflective Floor**: 100×100 unit black floor
+  - High metalness requires expensive reflection calculations
+
+**Impact**:
+- **VRAM Usage**: Extremely high (150-300 MB for textures alone)
+- **Frame Rate**: Significant drops on mid/low-end GPUs
+- **Load Time**: Long initial loading phase (38 large textures)
+- **Shadow Performance**: 20 spotlights with shadows = very expensive
+- **Reflection Cost**: Metallic floor adds additional GPU overhead
+
+**Current Issues**:
+- No texture compression or progressive loading
+- No error handling for failed texture loads
+- All 38 textures loaded simultaneously
+- No LOD system for distant images
+- Spotlights always active (no distance-based culling)
+- No performance warning for users
+
+**Visual Quality**: High - dark atmospheric aesthetic with dramatic lighting
+
+**Suggested Fixes**:
+1. **Texture Optimization**:
+   - Compress PNGs or convert to WebP/AVIF
+   - Use progressive loading or lazy loading
+   - Reduce resolution for distant images (LOD)
+2. **Lighting Optimization**:
+   - Reduce spotlight count to 8-10
+   - Disable shadows or use shadow maps more efficiently
+   - Use distance-based light culling
+3. **Particle Reduction**: Reduce star count to 500
+4. **Floor Material**: Reduce metalness to 0.5-0.7 (less reflective = better performance)
+
+---
+
+### ISSUE-018: Room 8 & 9 - Missing NFT Assets
+
+**Type**: `missing content` / `broken asset references`
+
+**Severity**: 🟡 **MEDIUM** (non-critical, visible)
+
+**Location**:
+- [room8.js](../room8.js) (Bundle: 4.05 kB)
+- [room9.js](../room9.js) (Bundle: 4.40 kB)
+
+**Description**:
+Rooms 8 and 9 reference 40 NFT asset files that do not exist, resulting in empty placeholder geometry.
+
+**Technical Details**:
+- **Asset Paths**: `/assets/nft{1-40}.png`
+- **Display**: 2m × 2m planes alternating left/right along cylindrical corridor walls
+- **Spacing**: Every 5 units along 50-unit corridor
+- **Current Behavior**: Assets fail to load silently (default material shown)
+
+**Impact**:
+- Rooms appear as empty geometric tunnels (only grey cylinder visible)
+- No actual NFT content displayed
+- Confusing UX - looks like placeholder/test room
+- Wasted bundle size loading code for non-existent content
+
+**Current Issues**:
+- No error handling for missing textures
+- No fallback content
+- Silent failure (no console warnings)
+- Rooms serve no content purpose in current state
+
+**Visual Quality**: Minimal - geometric shapes only, no art content
+
+**Suggested Fixes**:
+1. **Add Content**: Create or assign 40 NFT images to these paths
+2. **Reassign Paths**: Point to existing NFT collections (e.g., Room 1-5 NFTs)
+3. **Remove References**: Strip out NFT loading code, make rooms purely geometric art spaces
+4. **Convert to Placeholder**: Add "Coming Soon" signage, keep geometry as preview
+
+---
+
+### ISSUE-019: Room 9 - Complete Code Duplication with Room 8
+
+**Type**: `code maintenance` / `technical debt`
+
+**Severity**: 🟡 **MEDIUM** (non-critical, maintainability issue)
+
+**Location**:
+- [room8.js](../room8.js) (4.05 kB bundle)
+- [room9.js](../room9.js) (4.40 kB bundle)
+
+**Description**:
+Room 9 is a byte-for-byte duplicate of Room 8 - identical code, geometry, and functionality.
+
+**Technical Details**:
+- **Code**: Completely identical implementation
+- **Geometry**: Same 5-unit radius × 50-unit length cylinder
+- **Materials**: Same grey metallic shell, glass floor strips
+- **Assets**: Same missing NFT references (`/assets/nft{1-40}.png`)
+- **Bundle Impact**: 8.45 kB total (4.05 + 4.40) for duplicate code
+
+**Impact**:
+- **Maintenance Risk**: Bug fixes must be applied to both rooms
+- **User Confusion**: Players see identical room twice
+- **Wasted Bundle**: Loading same code twice
+- **No Differentiation**: No visual or functional difference
+
+**Visual Quality**: Identical to Room 8 - minimal geometric tunnel
+
+**Suggested Fixes**:
+1. **Differentiate Rooms**: Give Room 9 unique visual identity
+   - Different color scheme
+   - Different geometry (e.g., rectangular tunnel vs. cylinder)
+   - Different content/NFTs
+2. **Shared Module**: Extract common code to shared utility
+   - Create `createTunnelRoom(config)` utility
+   - Both rooms use same base code with different configs
+3. **Remove Duplicate**: Delete Room 9, leave only Room 8
+   - Update Room 5 portal to skip Room 9
+   - Simpler maintenance
+
+---
 
 ### ISSUE-007: Room B Audio File May Not Exist
 
@@ -606,19 +811,21 @@ This appears intentional. Future work should:
 | Severity | Count | Issues |
 |----------|-------|--------|
 | ~~🔴 Critical~~ ✅ | ~~2~~ 0 | ~~ISSUE-001 (Room C missing), ISSUE-002 (Room A1 HTML missing)~~ **ALL FIXED!** |
-| ~~🟠 High~~ ✅ | ~~4~~ 2 | ~~ISSUE-003 (Orphaned rooms), ISSUE-006 (Video paths)~~ **FIXED!** / ISSUE-004 (NFT gap), ISSUE-005 (Asset paths) |
-| 🟡 Medium | 5 | ISSUE-007 to ISSUE-011 |
+| ~~🟠 High~~ | ~~3~~ 2 | ~~ISSUE-003 (Bonus rooms broken return portals)~~ **FIXED!**, ISSUE-004 (NFT gap), ISSUE-005 (Asset paths) |
+| 🟡 Medium | 9 | ISSUE-007 to ISSUE-011, ISSUE-016 to ISSUE-019 (Rooms 6-9 issues) |
 | 🟢 Low | 4 | ISSUE-012 to ISSUE-015 |
-| **Total** | **15** | **4 fixed, 11 remaining** |
+| **Total** | **19** | **5 fixed, 14 remaining** |
 
 ### Issues by Type
 
 | Type | Count | Examples |
 |------|-------|----------|
-| Missing files/rooms | 4 | Room C, Room A1 HTML, audio files, models |
-| Navigation/portals | 2 | Orphaned rooms, portal color consistency |
-| Asset paths/loading | 3 | Asset directory confusion, video paths, audio paths |
+| Missing files/rooms | 4 | Room C (fixed), Room A1 HTML (fixed), audio files, models |
+| Navigation/portals | 2 | Bonus rooms broken return portals, portal color consistency |
+| Asset paths/loading | 3 | Asset directory confusion, video paths (fixed), missing NFT assets (Rooms 8-9) |
 | Content/data | 2 | NFT gap, missing metadata |
+| Performance | 3 | Room 6 videos, Room 7 textures/lighting, Room 8-9 missing assets |
+| Code maintenance | 1 | Room 9 duplication with Room 8 |
 | UX/Polish | 2 | Loading progress, portal labels |
 | Future work | 2 | React rooms, Room 8 content |
 
@@ -628,22 +835,25 @@ This appears intentional. Future work should:
 1. ~~ISSUE-001: Fix or remove Room C door~~ ✅ **FIXED** - Created roomC
 2. ~~ISSUE-002: Fix or remove Room A1 portal~~ ✅ **FIXED** - Created roomA1.html
 3. ~~ISSUE-006: Fix Room 6 video paths~~ ✅ **FIXED** - Updated to `/assets/`
-4. ~~ISSUE-003: Connect orphaned rooms OR remove from nav~~ ✅ **FIXED** - Integrated via Room 5
+4. ~~ISSUE-003: Fix bonus room return portals~~ ✅ **FIXED** - All rooms now return to Room 5
 
 **High Priority (fix soon)**:
 5. ISSUE-005: Standardize asset paths
 6. ISSUE-011: Add portal labels/signs
+7. ISSUE-018: Fix missing NFT assets in Rooms 8-9 (add content or remove references)
+8. ISSUE-019: Resolve Room 9 duplication (differentiate or merge with Room 8)
 
 **Medium Priority (nice to have)**:
-7. ISSUE-007, 008: Verify and fix missing assets
-8. ISSUE-004: Resolve NFT gap
-9. ISSUE-009: Decide on Room 8 purpose
-10. ISSUE-010: Clean up Room 7 naming
+9. ISSUE-016: Optimize Room 6 video performance (lazy loading, culling)
+10. ISSUE-017: Optimize Room 7 performance (texture compression, reduce spotlights)
+11. ISSUE-007, 008: Verify and fix missing assets (Room B audio/model)
+12. ISSUE-004: Resolve NFT gap (128-130)
+13. ISSUE-010: Clean up Room 7 naming
 
 **Low Priority (future enhancements)**:
-11. ISSUE-013: Add NFT metadata system
-12. ISSUE-014: Real loading progress
-13. ISSUE-015: Integrate React rooms (if desired)
+14. ISSUE-013: Add NFT metadata system
+15. ISSUE-014: Real loading progress
+16. ISSUE-015: Integrate React rooms (if desired)
 
 ---
 
