@@ -945,47 +945,8 @@ function createAllPortals() {
   });
   portals.push({ ...portal6, name: 'Room 6', url: 'room6.html', position: new THREE.Vector3(0, eyeHeight, -(roomRadius - 5)) });
 
-  // Portal to Room 7 (Starry Gallery) - East
-  const portal7 = createLinkedPortal({
-    scene,
-    fromRoom: '5',
-    toRoom: '7',
-    x: roomRadius - 5,
-    y: eyeHeight,
-    z: 0,
-    rotationY: -Math.PI / 2,
-    rotationX: 0.1,
-    createLabel: true
-  });
-  portals.push({ ...portal7, name: 'Room 7', url: 'room7.html', position: new THREE.Vector3(roomRadius - 5, eyeHeight, 0) });
-
-  // Portal to Room 8 (Abstract Art) - West
-  const portal8 = createLinkedPortal({
-    scene,
-    fromRoom: '5',
-    toRoom: '8',
-    x: -(roomRadius - 5),
-    y: eyeHeight,
-    z: 0,
-    rotationY: Math.PI / 2,
-    rotationX: 0.1,
-    createLabel: true
-  });
-  portals.push({ ...portal8, name: 'Room 8', url: 'room8.html', position: new THREE.Vector3(-(roomRadius - 5), eyeHeight, 0) });
-
-  // Portal to Room 9 (Tunnel) - Northeast
-  const portal9 = createLinkedPortal({
-    scene,
-    fromRoom: '5',
-    toRoom: '9',
-    x: 17.7,
-    y: eyeHeight,
-    z: 17.7,
-    rotationY: Math.PI + Math.PI / 4,
-    rotationX: 0.1,
-    createLabel: true
-  });
-  portals.push({ ...portal9, name: 'Room 9', url: 'room9.html', position: new THREE.Vector3(17.7, eyeHeight, 17.7) });
+  // REMOVED: Portals to Room 7, 8, 9
+  // Room 5 is NO LONGER a bonus hub - just simple progression: 4 ↔ 5 ↔ 6
 
   return portals;
 }

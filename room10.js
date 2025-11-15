@@ -27,15 +27,14 @@ const SPIRAL_ROTATIONS = 3.5;        // Number of full rotations around sphere
 const VERTICAL_CLIMB_HEIGHT = SPHERE_RADIUS * 1.6; // Total vertical distance to climb
 
 // ----------------------------------------------------------------------
-// Movement State
+// Movement State - SIMPLIFIED
 // ----------------------------------------------------------------------
 let moveForward = false;
 let moveBackward = false;
 let moveLeft = false;
 let moveRight = false;
-let isJumping = false;
-let jumpVelocity = 0;
-let isOnPlatform = false;
+let canJump = false; // Simple grounding flag
+const velocity = new THREE.Vector3(); // Persistent velocity vector
 
 // ----------------------------------------------------------------------
 // Scene Setup
@@ -331,8 +330,8 @@ const topPortal = createTopPortal();
 
 // Set spawn position on starting platform
 controls.getObject().position.set(0, startingPlatform.y + PLAYER_HEIGHT, 0);
-isOnPlatform = true; // Start grounded
-jumpVelocity = 0;
+velocity.set(0, 0, 0); // Start with zero velocity
+canJump = true; // Start grounded
 
 // ----------------------------------------------------------------------
 // Platform Collision Detection
@@ -396,10 +395,10 @@ function onKeyDown(event) {
       moveRight = true;
       break;
     case 'Space':
-      if (isOnPlatform && !isJumping) {
-        jumpVelocity = JUMP_VELOCITY;
-        isJumping = true;
-        isOnPlatform = false;
+      // Simple jump: only if grounded
+      if (canJump) {
+        velocity.y = JUMP_VELOCITY;
+        canJump = false;
       }
       break;
   }
@@ -430,11 +429,12 @@ document.addEventListener('keydown', onKeyDown);
 document.addEventListener('keyup', onKeyUp);
 
 // ----------------------------------------------------------------------
-// Animation Loop
+// Animation Loop - SIMPLIFIED PHYSICS
 // ----------------------------------------------------------------------
-const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
 const clock = new THREE.Clock();
+const GROUND_TOLERANCE = 0.4; // Vertical snap distance for landing
+const DEATH_PLANE_Y = -120; // Far below valid play area
 
 function animate() {
   requestAnimationFrame(animate);
@@ -444,68 +444,73 @@ function animate() {
   if (controls.isLocked) {
     const playerPos = controls.getObject().position;
 
-    // Apply gravity
-    if (isJumping || !isOnPlatform) {
-      playerPos.y += jumpVelocity * delta;
-      jumpVelocity += GRAVITY * delta;
-    }
+    // 1. Apply gravity
+    velocity.y += GRAVITY * delta;
 
-    // Check platform collision
-    const currentPlatform = checkPlatformCollision(playerPos);
-
-    if (currentPlatform && jumpVelocity <= 0) {
-      // Land on platform
-      playerPos.y = currentPlatform.position.y + 0.2 + PLAYER_HEIGHT;
-      isJumping = false;
-      jumpVelocity = 0;
-      isOnPlatform = true;
-
-      // Subtle visual feedback - pulse the platform (skip for starting platform)
-      if (currentPlatform.index !== -1 && currentPlatform.mesh.material.emissiveIntensity !== undefined) {
-        currentPlatform.mesh.material.emissiveIntensity = 0.6;
-      }
-    } else if (!currentPlatform && isOnPlatform) {
-      // Walked off platform
-      isOnPlatform = false;
-      isJumping = true;
-    }
-
-    // Horizontal movement
-    velocity.x -= velocity.x * 10.0 * delta;
-    velocity.z -= velocity.z * 10.0 * delta;
-
+    // 2. Apply WASD horizontal movement (using PointerLockControls methods)
+    const moveSpeed = MOVE_SPEED * delta;
     direction.z = Number(moveForward) - Number(moveBackward);
     direction.x = Number(moveRight) - Number(moveLeft);
     direction.normalize();
 
-    if (moveForward || moveBackward) velocity.z -= direction.z * MOVE_SPEED * delta;
-    if (moveLeft || moveRight) velocity.x -= direction.x * MOVE_SPEED * delta;
-
-    controls.moveRight(-velocity.x * delta);
-    controls.moveForward(-velocity.z * delta);
-
-    // Keep player inside sphere bounds (constrain X/Z radius only, not Y)
-    const horizontalDist = Math.sqrt(playerPos.x ** 2 + playerPos.z ** 2);
-    const maxHorizontalRadius = SPHERE_RADIUS - 5;
-
-    if (horizontalDist > maxHorizontalRadius) {
-      // Scale X and Z back to max radius, preserve Y
-      const scale = maxHorizontalRadius / horizontalDist;
-      playerPos.x *= scale;
-      playerPos.z *= scale;
+    if (moveForward || moveBackward) {
+      controls.moveForward(direction.z * moveSpeed);
+    }
+    if (moveLeft || moveRight) {
+      controls.moveRight(direction.x * moveSpeed);
     }
 
-    // Vertical bounds (ceiling and floor of sphere)
-    playerPos.y = Math.max(playerPos.y, -SPHERE_RADIUS + 2);
-    playerPos.y = Math.min(playerPos.y, SPHERE_RADIUS - 2);
+    // 3. Integrate vertical velocity
+    playerPos.y += velocity.y * delta;
 
-    // Death plane - fall too far, respawn at start
-    if (playerPos.y < -SPHERE_RADIUS + 3) {
+    // 4. Check grounding against all platforms (simple snap-to-surface)
+    let grounded = false;
+
+    // Check starting platform
+    const dx = playerPos.x;
+    const dz = playerPos.z;
+    const horizDist = Math.sqrt(dx * dx + dz * dz);
+
+    if (horizDist < startingPlatform.radius) {
+      const vertDiff = playerPos.y - (startingPlatform.y + PLAYER_HEIGHT);
+      if (vertDiff >= -GROUND_TOLERANCE && vertDiff <= GROUND_TOLERANCE && velocity.y <= 0) {
+        playerPos.y = startingPlatform.y + PLAYER_HEIGHT;
+        velocity.y = 0;
+        canJump = true;
+        grounded = true;
+      }
+    }
+
+    // Check floating platforms (only if not already grounded)
+    if (!grounded) {
+      for (const platform of platforms) {
+        const pdx = playerPos.x - platform.position.x;
+        const pdz = playerPos.z - platform.position.z;
+        const pHorizDist = Math.sqrt(pdx * pdx + pdz * pdz);
+
+        if (pHorizDist < platform.radius) {
+          const pVertDiff = playerPos.y - (platform.position.y + PLAYER_HEIGHT);
+          if (pVertDiff >= -GROUND_TOLERANCE && pVertDiff <= GROUND_TOLERANCE && velocity.y <= 0) {
+            playerPos.y = platform.position.y + PLAYER_HEIGHT;
+            velocity.y = 0;
+            canJump = true;
+            grounded = true;
+
+            // Visual feedback - pulse platform
+            if (platform.mesh.material.emissiveIntensity !== undefined) {
+              platform.mesh.material.emissiveIntensity = 0.6;
+            }
+            break;
+          }
+        }
+      }
+    }
+
+    // 5. Death plane - ONE simple check, far below
+    if (playerPos.y < DEATH_PLANE_Y) {
       playerPos.set(0, startingPlatform.y + PLAYER_HEIGHT, 0);
       velocity.set(0, 0, 0);
-      jumpVelocity = 0;
-      isJumping = false;
-      isOnPlatform = true;
+      canJump = true;
     }
   }
 
