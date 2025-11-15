@@ -45,7 +45,6 @@ scene.background = new THREE.Color(0x000510); // Deep space blue-black
 scene.fog = new THREE.Fog(0x000510, 30, SPHERE_RADIUS * 0.9);
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(0, -SPHERE_RADIUS + PLAYER_HEIGHT + 5, 0);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -53,6 +52,9 @@ document.body.appendChild(renderer.domElement);
 
 const controls = new PointerLockControls(camera, document.body);
 scene.add(controls.getObject());
+
+// Set initial spawn position
+controls.getObject().position.set(0, -SPHERE_RADIUS + PLAYER_HEIGHT + 5, 0);
 
 document.addEventListener('click', () => {
   if (!controls.isLocked) controls.lock();
@@ -375,18 +377,20 @@ function animate() {
   const time = clock.getElapsedTime();
 
   if (controls.isLocked) {
+    const playerPos = controls.getObject().position;
+
     // Apply gravity
     if (isJumping || !isOnPlatform) {
-      camera.position.y += jumpVelocity * delta;
+      playerPos.y += jumpVelocity * delta;
       jumpVelocity += GRAVITY * delta;
     }
 
     // Check platform collision
-    const currentPlatform = checkPlatformCollision(camera.position);
+    const currentPlatform = checkPlatformCollision(playerPos);
 
     if (currentPlatform && jumpVelocity <= 0) {
       // Land on platform
-      camera.position.y = currentPlatform.position.y + 0.2 + PLAYER_HEIGHT;
+      playerPos.y = currentPlatform.position.y + 0.2 + PLAYER_HEIGHT;
       isJumping = false;
       jumpVelocity = 0;
       isOnPlatform = true;
@@ -415,24 +419,24 @@ function animate() {
 
     // Keep player inside sphere bounds
     const distFromCenter = Math.sqrt(
-      camera.position.x ** 2 +
-      camera.position.y ** 2 +
-      camera.position.z ** 2
+      playerPos.x ** 2 +
+      playerPos.y ** 2 +
+      playerPos.z ** 2
     );
 
     if (distFromCenter > SPHERE_RADIUS - 2) {
-      const direction = new THREE.Vector3(
-        camera.position.x,
-        camera.position.y,
-        camera.position.z
+      const boundaryDir = new THREE.Vector3(
+        playerPos.x,
+        playerPos.y,
+        playerPos.z
       ).normalize();
 
-      camera.position.copy(direction.multiplyScalar(SPHERE_RADIUS - 2));
+      playerPos.copy(boundaryDir.multiplyScalar(SPHERE_RADIUS - 2));
     }
 
     // Death plane - fall too far, respawn at start
-    if (camera.position.y < -SPHERE_RADIUS - 10) {
-      camera.position.set(0, -SPHERE_RADIUS + PLAYER_HEIGHT + 5, 0);
+    if (playerPos.y < -SPHERE_RADIUS - 10) {
+      playerPos.set(0, -SPHERE_RADIUS + PLAYER_HEIGHT + 5, 0);
       jumpVelocity = 0;
       isJumping = false;
       isOnPlatform = false;

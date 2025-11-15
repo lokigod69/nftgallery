@@ -43,6 +43,16 @@ document.addEventListener('DOMContentLoaded', function() {
     menu.appendChild(li);
   }
 
+  // Ensure Room X link exists in the menu
+  if (!menu.querySelector('a[href="room10.html"]')) {
+    const li = document.createElement('li');
+    const link = document.createElement('a');
+    link.href = 'room10.html';
+    link.textContent = 'Room X';
+    li.appendChild(link);
+    menu.appendChild(li);
+  }
+
   function hideMenu() {
     menu.style.display = 'none';
   }

@@ -19,7 +19,7 @@
  */
 export const PORTAL_COLORS = {
   // Main progression path
-  OCEAN_BLUE: 0x0088ff,      // 0↔1 - Ocean hub to main gallery
+  CRIMSON: 0xff2244,         // 0↔1 - Ocean hub to main gallery (WARM, distinct from ocean blues)
   CYAN: 0x00ccff,            // 1↔2 - Main gallery progression
   EMERALD: 0x00ff88,         // 1↔3 - Main gallery to advanced
   PURPLE: 0x8844aa,          // 2↔4, 4↔5 - Deep progression
@@ -32,7 +32,7 @@ export const PORTAL_COLORS = {
 
   // Special areas
   TEAL: 0x00ffff,            // Hub return (legacy, being phased out)
-  DEEP_BLUE: 0x0055aa,       // A↔A1 - Observatory annex
+  DEEP_BLUE: 0x0055aa,       // 0↔A, A↔A1 - Observatory (ocean theme)
   AMBER: 0xff8800,           // 0↔C - Concept chamber
 
   // Future use
@@ -83,7 +83,7 @@ export const FX_TYPES = {
 export const PORTAL_STYLES = {
   // Main progression path: 0 → 1 → 2/3 → 4 → 5
   '0-1': {
-    color: PORTAL_COLORS.OCEAN_BLUE,
+    color: PORTAL_COLORS.CRIMSON,
     orientation: 'vertical',
     size: 1.8,
     fxType: 'hub',
@@ -91,7 +91,7 @@ export const PORTAL_STYLES = {
       from0: 'Main Gallery',
       from1: '← Ocean Hub'
     },
-    description: 'Ocean hub to main gallery - primary entry point'
+    description: 'Ocean hub to main gallery - primary entry point (WARM red to contrast ocean blues)'
   },
 
   '1-2': {
@@ -246,10 +246,10 @@ export const PORTAL_STYLES = {
     size: 1.8,
     fxType: 'hub',
     label: {
-      from0: 'NFT Gallery Room',
+      from0: 'Musical Journey',
       fromB: '← Ocean Hub'
     },
-    description: 'Hub to gallery B'
+    description: 'Hub to Musical Journey - audiovisual world'
   }
 };
 

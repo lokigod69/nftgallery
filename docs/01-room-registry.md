@@ -606,7 +606,7 @@ Large gallery room serving as an annex to the Undersea Observatory (Room A). Fea
 
 ---
 
-## Room B: NFT Gallery Room
+## Room B: Musical Journey
 
 **Route/Path**: [roomB.html](../roomB.html)
 
@@ -615,7 +615,7 @@ Large gallery room serving as an annex to the Undersea Observatory (Room A). Fea
 - JavaScript: [roomB.js](../roomB.js)
 
 **Description**:
-Large metallic gallery with mixed decorations. Features:
+Audiovisual world with music and dense visual content. Features:
 - Dimensions: 120x120 units × 60 units height
 - Light blue sky background
 - Wood floor with mosaic pattern (wood_floor2 + wood_floor1 inlays)
