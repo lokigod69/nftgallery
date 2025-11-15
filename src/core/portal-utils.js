@@ -223,3 +223,174 @@ export function createMultiPortalChecker(options) {
     }
   };
 }
+
+// ============================================================================
+// LINKED PORTAL SYSTEM - Integrates with portal-styles.js
+// ============================================================================
+
+import { getPortalStyle, FX_TYPES } from './portal-styles.js';
+
+/**
+ * Creates a portal using the centralized style map
+ *
+ * Automatically applies consistent visual style based on room-to-room connection
+ *
+ * @param {Object} options - Portal configuration
+ * @param {THREE.Scene} options.scene - Three.js scene
+ * @param {string} options.fromRoom - Starting room ID (e.g. '0', '5', 'A')
+ * @param {string} options.toRoom - Destination room ID
+ * @param {number} options.x - X position
+ * @param {number} options.y - Y position
+ * @param {number} options.z - Z position
+ * @param {number} [options.rotationY=0] - Y axis rotation in radians
+ * @param {number} [options.rotationX=0] - X axis rotation in radians
+ * @param {boolean} [options.createLabel=false] - Whether to create a text label
+ *
+ * @returns {Object} { portal, glow, style, label? } - Portal components and applied style
+ */
+export function createLinkedPortal(options) {
+  const {
+    scene,
+    fromRoom,
+    toRoom,
+    x, y, z,
+    rotationY = 0,
+    rotationX = 0,
+    createLabel = false
+  } = options;
+
+  // Get style from centralized map
+  const style = getPortalStyle(fromRoom, toRoom);
+
+  if (!style) {
+    console.error(`❌ No portal style defined for ${fromRoom} → ${toRoom}`);
+    console.error(`   Using fallback style. Please add this connection to portal-styles.js`);
+
+    // Fallback to basic portal
+    return createPortal({
+      scene,
+      x, y, z,
+      color: 0xff00ff, // Magenta to make missing styles obvious
+      rotationY,
+      rotationX
+    });
+  }
+
+  // Apply style from map
+  const fxConfig = FX_TYPES[style.fxType] || FX_TYPES.default;
+
+  const { portal, glow } = createPortal({
+    scene,
+    x, y, z,
+    color: style.color,
+    size: style.size,
+    glowOpacity: fxConfig.glowIntensity,
+    rotationY,
+    rotationX
+  });
+
+  // Store metadata on portal for debugging and animation
+  portal.userData = {
+    fromRoom,
+    toRoom,
+    style: style.fxType,
+    label: style.currentLabel,
+    rotationSpeed: fxConfig.rotationSpeed
+  };
+
+  glow.userData = {
+    fromRoom,
+    toRoom,
+    rotationSpeed: -fxConfig.rotationSpeed  // Counter-rotate
+  };
+
+  const result = { portal, glow, style };
+
+  // Optional label creation
+  if (createLabel) {
+    const label = createPortalLabel(scene, {
+      text: style.currentLabel,
+      x, y: y + 2, z,
+      color: style.color
+    });
+    result.label = label;
+  }
+
+  return result;
+}
+
+/**
+ * Creates a text label for a portal (canvas-based)
+ *
+ * @param {THREE.Scene} scene - Three.js scene
+ * @param {Object} options - Label options
+ * @param {string} options.text - Label text
+ * @param {number} options.x - X position
+ * @param {number} options.y - Y position
+ * @param {number} options.z - Z position
+ * @param {number} [options.color=0x00ffff] - Glow color
+ * @returns {THREE.Mesh} Label mesh
+ */
+export function createPortalLabel(scene, options) {
+  const {
+    text,
+    x, y, z,
+    color = 0x00ffff
+  } = options;
+
+  // Create canvas for text
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d');
+  canvas.width = 512;
+  canvas.height = 128;
+
+  // Draw semi-transparent background
+  context.fillStyle = 'rgba(0, 0, 0, 0.6)';
+  context.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Draw glowing text
+  context.fillStyle = '#ffffff';
+  context.font = 'Bold 32px Arial';
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+
+  // Add glow effect using color
+  const colorStr = `#${color.toString(16).padStart(6, '0')}`;
+  context.shadowColor = colorStr;
+  context.shadowBlur = 10;
+  context.fillText(text, canvas.width / 2, canvas.height / 2);
+
+  // Create texture and material
+  const labelTexture = new THREE.CanvasTexture(canvas);
+  const labelMaterial = new THREE.MeshBasicMaterial({
+    map: labelTexture,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.9
+  });
+
+  // Create label mesh
+  const labelGeometry = new THREE.PlaneGeometry(3, 0.75);
+  const label = new THREE.Mesh(labelGeometry, labelMaterial);
+  label.position.set(x, y, z);
+  label.userData.isBillboard = true;
+
+  scene.add(label);
+  return label;
+}
+
+/**
+ * Animates portals created with createLinkedPortal
+ * Uses rotation speeds from their userData
+ *
+ * @param {THREE.Mesh} portal - Portal mesh
+ * @param {THREE.Mesh} glow - Glow mesh
+ */
+export function animateLinkedPortal(portal, glow) {
+  if (portal && portal.userData.rotationSpeed) {
+    portal.rotation.z += portal.userData.rotationSpeed;
+  }
+  if (glow && glow.userData.rotationSpeed) {
+    glow.rotation.z += glow.userData.rotationSpeed;
+  }
+}
