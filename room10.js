@@ -11,12 +11,12 @@ import { createLinkedPortal, animateLinkedPortal } from './src/core/portal-utils
 // Tunable Jump Mechanics
 // ----------------------------------------------------------------------
 const PLAYER_HEIGHT = 2.5;           // Eye height / spawn height
-const WALK_SPEED = 6.0;              // Ground movement speed (units/sec) - controlled, not hyperspeed
-const AIR_CONTROL_FACTOR = 0.5;      // 0-1: how much control you have in midair (0.5 = half)
-const JUMP_VELOCITY = 14.0;          // Initial upward velocity (tuned for ~4 unit jump height)
-const GRAVITY = -24.0;               // Downward acceleration (slightly gentler than -25)
-const JUMP_HEIGHT = 4.0;             // Approximate max jump height (for platform spacing)
-const MAX_HORIZONTAL_JUMP_DISTANCE = 4.5; // Max horizontal distance player can jump
+const WALK_SPEED = 7.5;              // Ground movement speed (units/sec) - responsive but controlled
+const AIR_CONTROL_FACTOR = 0.6;      // 0-1: how much control you have in midair (0.6 = noticeable)
+const JUMP_VELOCITY = 16.0;          // Initial upward velocity (buffed for ~5.3 unit jump height)
+const GRAVITY = -24.0;               // Downward acceleration
+const JUMP_HEIGHT = 5.3;             // Approximate max jump height: v²/(2|g|) = 16²/48 ≈ 5.33
+const MAX_HORIZONTAL_JUMP_DISTANCE = 5.5; // Max horizontal distance player can jump
 
 // ----------------------------------------------------------------------
 // Arena Parameters
@@ -177,14 +177,27 @@ function generatePlatforms() {
   for (let i = 0; i < PLATFORM_COUNT; i++) {
     const progress = i / (PLATFORM_COUNT - 1);
 
-    // Vertical position - gradual climb
-    const y = startY + progress * VERTICAL_CLIMB_HEIGHT;
+    // Vertical position - gradual climb with EASIER EARLY SECTION
+    let y = startY + progress * VERTICAL_CLIMB_HEIGHT;
+
+    // Make first 5 platforms much easier (flatter curve)
+    if (i < 5) {
+      // Early platforms: reduce vertical spacing by ~40%
+      const earlyProgress = i / 4; // 0 to 1 over first 5 platforms
+      const easierVerticalGain = VERTICAL_CLIMB_HEIGHT * 0.15; // Only climb 15% of total height in first 5
+      y = startY + earlyProgress * easierVerticalGain;
+    }
 
     // Spiral angle around sphere
     const angle = progress * SPIRAL_ROTATIONS * Math.PI * 2;
 
-    // Horizontal distance from center (gradually move inward as we climb)
-    const radiusOffset = 15 - progress * 8; // Start far, end closer to center
+    // Horizontal distance from center - REDUCE for early platforms
+    let radiusOffset = 15 - progress * 8; // Start far, end closer to center
+    if (i < 5) {
+      // Early platforms: keep them closer (easier horizontal jumps)
+      radiusOffset = 12 - i * 0.8; // Gentler horizontal spacing
+    }
+
     const x = Math.cos(angle) * radiusOffset;
     const z = Math.sin(angle) * radiusOffset;
 
