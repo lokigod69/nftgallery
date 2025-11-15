@@ -26,6 +26,7 @@ import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockCont
 // Import Water and Sky directly - we'll handle fallbacks in the code
 import { Water } from 'three/examples/jsm/objects/Water.js';
 import { Sky } from 'three/examples/jsm/objects/Sky.js';
+import { getTextureUrl } from './src/core/asset-utils.js';
 import { getPortalStyle, PORTAL_COLORS } from './src/core/portal-styles.js';
 import { createMultiPortalChecker } from './src/core/portal-utils.js';
 import { createHubDoor, animateHubDoor } from './src/core/hub-door-utils.js';
@@ -293,8 +294,8 @@ function createOcean() {
     
     // Try to load the real textures in sequence, with fallbacks
     // First try waternormals.jpg (original)
-    textureLoader.load('/assets/waternormals.jpg', function(texture) {
-      console.log("Successfully loaded waternormals.jpg");
+    textureLoader.load(getTextureUrl('waternormals'), function(texture) {
+      console.log("Successfully loaded waternormals.webp");
       texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
       texture.repeat.set(4, 4);
       
@@ -323,11 +324,11 @@ function createOcean() {
         console.error("Error setting water normal texture:", e);
       }
     }, undefined, function(err) {
-      console.warn("Failed to load waternormals.jpg, trying waternormals1.jpg", err);
+      console.warn("Failed to load waternormals.webp, trying waternormals1.webp", err);
       
       // Try waternormals1.jpg (alternative 1)
-      textureLoader.load('/assets/waternormals1.jpg', function(texture) {
-        console.log("Successfully loaded waternormals1.jpg");
+      textureLoader.load(getTextureUrl('waternormals1'), function(texture) {
+        console.log("Successfully loaded waternormals1.webp");
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
         texture.repeat.set(4, 4);
         
@@ -349,11 +350,11 @@ function createOcean() {
           console.error("Error setting water normal texture:", e);
         }
       }, undefined, function(err) {
-        console.warn("Failed to load waternormals1.jpg, trying waternormals2.jpg", err);
+        console.warn("Failed to load waternormals1.webp, trying waternormals2.webp", err);
         
         // Try waternormals2.jpg (alternative 2)
-        textureLoader.load('/assets/waternormals2.jpg', function(texture) {
-          console.log("Successfully loaded waternormals2.jpg");
+        textureLoader.load(getTextureUrl('waternormals2'), function(texture) {
+          console.log("Successfully loaded waternormals2.webp");
           texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
           texture.repeat.set(4, 4);
           

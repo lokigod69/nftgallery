@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
+import { getNftUrl } from './src/core/asset-utils.js';
 
 // ============================================
 // Configuration
@@ -260,7 +261,7 @@ function createNFTFrames() {
 
     // Load NFT image
     const nftIndex = NFT_START_INDEX + index;
-    const imageUrl = `/assets/nft${nftIndex}.png`;
+    const imageUrl = getNftUrl(nftIndex);
 
     textureLoader.load(
       imageUrl,
@@ -310,7 +311,7 @@ function createNFTFrames() {
     frameGroup.add(frameBox);
 
     const nftIndex = NFT_START_INDEX + 3 + index;
-    const imageUrl = `/assets/nft${nftIndex}.png`;
+    const imageUrl = getNftUrl(nftIndex);
 
     textureLoader.load(
       imageUrl,

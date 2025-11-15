@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { createLinkedPortal, animateLinkedPortal, createMultiPortalChecker } from './src/core/portal-utils.js';
+import { getNftUrl } from './src/core/asset-utils.js';
 
 // ----------------------------------------------------------------------
 // Global Variables for Jump Physics
@@ -467,7 +468,7 @@ function createNFT(index, position, rotation) {
   frameGroup.add(frameBox);
 
   const nftIndex = index + 29; // Adjusted to start from nft29
-  const imageUrl = `/assets/nft${nftIndex}.png`;
+  const imageUrl = getNftUrl(nftIndex);
   
   const loader = new THREE.TextureLoader();
   loader.load(
@@ -569,7 +570,7 @@ function createDividerNFT(nftNumber, localX, localZ, rotationY, parentGroup) {
   frameGroup.add(frameBox);
 
   // Load NFT texture
-  const textureUrl = `/assets/nft${nftNumber}.png`;
+  const textureUrl = getNftUrl(nftNumber);
   const loader = new THREE.TextureLoader();
   loader.load(
     textureUrl,

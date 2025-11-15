@@ -32,6 +32,7 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { createLinkedPortal, animateLinkedPortal, createMultiPortalChecker } from './src/core/portal-utils.js';
+import { getNftUrl } from './src/core/asset-utils.js';
 
 // ----------------------------------------------------------------------
 // Global Variables for Jump Physics
@@ -852,7 +853,7 @@ function createNFT(index, position, rotation) {
   const planeGeometry = new THREE.PlaneGeometry(planeWidth, planeHeight);
   
   // Create a material with the NFT texture
-  const nftPath = `/assets/nft${index}.png`;
+  const nftPath = getNftUrl(index);
   const planeMaterial = new THREE.MeshBasicMaterial({
     color: 0xffffff,
     side: THREE.DoubleSide
@@ -881,7 +882,7 @@ function createNFT(index, position, rotation) {
         if (index === 107 && attempts === 0) {
           console.log("Trying alternate path for NFT 107");
           // Try an alternate path or use a default texture
-          const alternatePath = `/assets/nft107.jpg`; // Try jpg instead of png
+          const alternatePath = getNftUrl(107); // Try WebP (unified format)
           textureLoader.load(
             alternatePath,
             function(texture) {

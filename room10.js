@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { createLinkedPortal, animateLinkedPortal } from './src/core/portal-utils.js';
+import { getRoomXNftUrl } from './src/core/asset-utils.js';
 
 // Room X: "The Ascent" (Challenge Arena)
 // Concept: Legendary challenge room - climb to escape
@@ -390,7 +391,7 @@ function loadRoomXTextures() {
 
   for (let i = 1; i <= max; i++) {
     const index = i - 1;
-    const url = `/assets/RoomX/${i}.png`;
+    const url = getRoomXNftUrl(i);
 
     const texture = loader.load(
       url,

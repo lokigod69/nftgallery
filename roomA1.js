@@ -17,6 +17,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { getTextureUrl, getNftUrl } from './src/core/asset-utils.js';
 
 // ----------------------------------------------------------------------
 // Scene Setup
@@ -189,7 +190,7 @@ function createMixedFloor() {
   const textureLoader = new THREE.TextureLoader();
   
   // Load wood_floor2 texture (main floor)
-  const woodTexture2 = textureLoader.load('/assets/wood_floor2.jpeg', function(texture) {
+  const woodTexture2 = textureLoader.load(getTextureUrl('wood_floor2'), function(texture) {
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
     // Instead of repeating the whole texture 10x10 times, we'll use a smaller repeat
@@ -202,7 +203,7 @@ function createMixedFloor() {
   });
   
   // Load wood_floor1 texture (inlay sections)
-  const woodTexture1 = textureLoader.load('/assets/wood_floor1.jpeg', function(texture) {
+  const woodTexture1 = textureLoader.load(getTextureUrl('wood_floor1'), function(texture) {
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
     texture.repeat.set(12, 12);
@@ -391,17 +392,17 @@ function addArtworkToWalls() {
   
   // Select a curated set of NFT images
   const nftFiles = [
-    'nft73.png', 'nft74.png', 'nft75.png', 'nft76.png', 'nft77.png', 'nft78.png',
-    'nft79.png', 'nft80.png', 'nft81.png', 'nft82.png', 'nft83.png', 'nft84.png',
-    'nft85.png', 'nft86.png', 'nft87.png', 'nft88.png', 'nft89.png', 'nft90.png',
-    'nft91.png', 'nft92.png', 'nft93.png', 'nft94.png', 'nft95.png', 'nft96.png',
-    'nft97.png', 'nft98.png', 'nft99.png', 'nft100.png', 'nft101.png', 'nft102.png',
-    'nft103.png', 'nft104.png', 'nft105.png', 'nft106.png', 'nft107.png'
+    'nft73', 'nft74', 'nft75', 'nft76', 'nft77', 'nft78',
+    'nft79', 'nft80', 'nft81', 'nft82', 'nft83', 'nft84',
+    'nft85', 'nft86', 'nft87', 'nft88', 'nft89', 'nft90',
+    'nft91', 'nft92', 'nft93', 'nft94', 'nft95', 'nft96',
+    'nft97', 'nft98', 'nft99', 'nft100', 'nft101', 'nft102',
+    'nft103', 'nft104', 'nft105', 'nft106', 'nft107'
   ];
   
   // Preload all NFT images
   for (const filename of nftFiles) {
-    const texture = textureLoader.load('/assets/' + filename, function(tex) {
+    const texture = textureLoader.load(getTextureUrl(filename), function(tex) {
       tex.encoding = THREE.sRGBEncoding;
       console.log(`Loaded NFT texture: ${filename}`);
     }, undefined, function(error) {

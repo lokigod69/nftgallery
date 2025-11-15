@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { createLinkedPortal, animateLinkedPortal, createMultiPortalChecker } from './src/core/portal-utils.js';
+import { getNftUrl } from './src/core/asset-utils.js';
 
 // ----------------------------------------------------------------------
 // Global Variables for Jump Physics
@@ -453,7 +454,7 @@ function createNFT(index, position, rotation) {
 
   const loader = new THREE.TextureLoader();
   loader.load(
-    `/assets/nft${index + 1}.png`,
+    getNftUrl(index + 1),
     (tex) => {
       tex.encoding = THREE.LinearEncoding;
       const picturePlane = new THREE.Mesh(
@@ -463,14 +464,14 @@ function createNFT(index, position, rotation) {
           side: THREE.DoubleSide
         })
       );
-      picturePlane.userData.imageUrl = `/assets/nft${index + 1}.png`;
+      picturePlane.userData.imageUrl = getNftUrl(index + 1);
       picturePlane.position.z = 0.11;
       frameGroup.add(picturePlane);
       picturePlanes.push(picturePlane);
     },
     undefined,
     (err) => {
-      console.error(`Error loading texture: nft${index + 1}.png`, err);
+      console.error(`Error loading texture: nft${index + 1}.webp`, err);
     }
   );
 
@@ -561,7 +562,7 @@ function createDivider() {
 
     const loader = new THREE.TextureLoader();
     loader.load(
-      `/assets/nft${nftNumber}.png`,
+      getNftUrl(nftNumber),
       (tex) => {
         tex.encoding = THREE.LinearEncoding;
         const picturePlane = new THREE.Mesh(
@@ -571,13 +572,13 @@ function createDivider() {
             side: THREE.DoubleSide
           })
         );
-        picturePlane.userData.imageUrl = `/assets/nft${nftNumber}.png`;
+        picturePlane.userData.imageUrl = getNftUrl(nftNumber);
         picturePlane.position.z = 0.11;
         frameGroup.add(picturePlane);
         picturePlanes.push(picturePlane);
       },
       undefined,
-      (err) => { console.error(`Error loading texture: nft${nftNumber}.png`, err); }
+      (err) => { console.error(`Error loading texture: nft${nftNumber}.webp`, err); }
     );
     frameGroup.position.set(localX, 0.5, localZ);
     frameGroup.rotation.y = rotationY;

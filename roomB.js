@@ -21,7 +21,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { loadTextureWithDiagnostics, logTextureLoadingSummary } from './src/core/asset-utils.js';
+import { loadTextureWithDiagnostics, logTextureLoadingSummary, getTextureUrl, getRoomBNftUrl } from './src/core/asset-utils.js';
 
 // ----------------------------------------------------------------------
 // Scene Setup
@@ -264,7 +264,7 @@ function createMixedFloor() {
   const textureLoader = new THREE.TextureLoader();
   
   // Load wood_floor2 texture (main floor)
-  const woodTexture2 = textureLoader.load('/assets/wood_floor2.jpeg', function(texture) {
+  const woodTexture2 = textureLoader.load(getTextureUrl('wood_floor2'), function(texture) {
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
     // Instead of repeating the whole texture 10x10 times, we'll use a smaller repeat
@@ -277,7 +277,7 @@ function createMixedFloor() {
   });
   
   // Load wood_floor1 texture (inlay sections)
-  const woodTexture1 = textureLoader.load('/assets/wood_floor1.jpeg', function(texture) {
+  const woodTexture1 = textureLoader.load(getTextureUrl('wood_floor1'), function(texture) {
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
     texture.repeat.set(12, 12);
@@ -406,7 +406,7 @@ function createTexturedWalls() {
 function createBaseWalls(thickness) {
   // Load metal2 texture for walls
   const textureLoader = new THREE.TextureLoader();
-  const metalTexture = textureLoader.load('/assets/metal2.jpeg', function(texture) {
+  const metalTexture = textureLoader.load(getTextureUrl('metal2'), function(texture) {
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
     texture.repeat.set(8, 4); // Repeat to cover the large walls
@@ -515,13 +515,13 @@ function addCopperWavePatterns() {
   const copperTextures = [];
   
   const copperFiles = [
-    '/assets/copper1.jpeg',
-    '/assets/copper2.jpeg',
-    '/assets/copper3.jpeg',
-    '/assets/copper4.jpeg',
-    '/assets/copper4a.jpeg',
-    '/assets/copper4b.jpeg',
-    '/assets/copper4c.jpeg'
+    getTextureUrl('copper1'),
+    getTextureUrl('copper2'),
+    getTextureUrl('copper3'),
+    getTextureUrl('copper4'),
+    getTextureUrl('copper4a'),
+    getTextureUrl('copper4b'),
+    getTextureUrl('copper4c')
   ];
   
   // Load all copper textures
@@ -914,13 +914,13 @@ function addMixedDecorationsToWalls() {
   const copperTextures = [];
   
   const copperFiles = [
-    '/assets/copper1.jpeg',
-    '/assets/copper2.jpeg',
-    '/assets/copper3.jpeg',
-    '/assets/copper4.jpeg',
-    '/assets/copper4a.jpeg',
-    '/assets/copper4b.jpeg',
-    '/assets/copper4c.jpeg'
+    getTextureUrl('copper1'),
+    getTextureUrl('copper2'),
+    getTextureUrl('copper3'),
+    getTextureUrl('copper4'),
+    getTextureUrl('copper4a'),
+    getTextureUrl('copper4b'),
+    getTextureUrl('copper4c')
   ];
   
   // Load all copper textures
@@ -953,12 +953,12 @@ function addMixedDecorationsToWalls() {
   // Generate file names b1.png to b60.png (lowercase to match actual files)
   const nftFiles = [];
   for (let i = 1; i <= 60; i++) {
-    nftFiles.push(`RoomB/b${i}.png`);
+    nftFiles.push(`RoomB/b${i}`);
   }
   
   // Preload all Room B NFT images
   for (const filename of nftFiles) {
-    const texture = textureLoader.load('/assets/' + filename, function(tex) {
+    const texture = textureLoader.load(getTextureUrl(filename), function(tex) {
       tex.encoding = THREE.sRGBEncoding;
       
       // Store the actual dimensions of the loaded texture

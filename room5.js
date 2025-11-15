@@ -12,6 +12,7 @@
 
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
+import { getNftUrl } from './src/core/asset-utils.js';
 import { createLinkedPortal, createPortalLabel, animateLinkedPortal, createMultiPortalChecker } from './src/core/portal-utils.js';
 import { getPortalStyle } from './src/core/portal-styles.js';
 
@@ -813,8 +814,8 @@ function createDoubleSidedNFT(index, position, angle) {
   const pathFormats = [
     `/assets/nft${index}.png?t=${timestamp}`,
     `/assets/nft${index}.png?t=${timestamp}`,
-    `/assets/nft${index}.png`,
-    `/assets/nft${index}.png`,
+    getNftUrl(index),
+    getNftUrl(index),
     `../assets/nft${index}.png?t=${timestamp}`,
     `./assets/nft${index}.png?t=${timestamp}`
   ];

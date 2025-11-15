@@ -167,3 +167,92 @@ export const ASSET_CONFIG = {
   useFallbacks: true,          // Whether to use fallback materials on error
   fallbackColor: 0xff00ff,     // Bright magenta for visibility
 };
+
+// ============================================================================
+// TEXTURE URL BUILDERS
+// ============================================================================
+
+/**
+ * Get the URL for a texture/image asset
+ *
+ * All gallery image assets are stored as WebP format for optimal performance.
+ * This centralizes image format selection - change .webp to another format here
+ * instead of hunting through every room file.
+ *
+ * @param {string} relativePathWithoutExt - Path relative to /assets/ WITHOUT extension
+ * @returns {string} Full URL with .webp extension
+ *
+ * @example
+ * getTextureUrl('RoomB/b1') → '/assets/RoomB/b1.webp'
+ * getTextureUrl('RoomX/5') → '/assets/RoomX/5.webp'
+ * getTextureUrl('nft42') → '/assets/nft42.webp'
+ * getTextureUrl('Room7/lokigod69._A_female_model_...') → '/assets/Room7/lokigod69._A_female_model_....webp'
+ */
+export function getTextureUrl(relativePathWithoutExt) {
+  return `/assets/${relativePathWithoutExt}.webp`;
+}
+
+/**
+ * Get texture URL for numbered NFT assets
+ *
+ * @param {number} nftNumber - NFT number (1-142)
+ * @returns {string} Full URL to NFT image
+ *
+ * @example
+ * getNftUrl(42) → '/assets/nft42.webp'
+ */
+export function getNftUrl(nftNumber) {
+  return getTextureUrl(`nft${nftNumber}`);
+}
+
+/**
+ * Get texture URL for RoomB NFT assets
+ *
+ * @param {number} index - RoomB NFT index (1-60)
+ * @returns {string} Full URL to RoomB NFT image
+ *
+ * @example
+ * getRoomBNftUrl(12) → '/assets/RoomB/b12.webp'
+ */
+export function getRoomBNftUrl(index) {
+  return getTextureUrl(`RoomB/b${index}`);
+}
+
+/**
+ * Get texture URL for Room7 art assets
+ *
+ * @param {string} filename - Filename without extension
+ * @returns {string} Full URL to Room7 image
+ *
+ * @example
+ * getRoom7ArtUrl('lokigod69._A_female_model_...') → '/assets/Room7/lokigod69._A_female_model_....webp'
+ */
+export function getRoom7ArtUrl(filename) {
+  return getTextureUrl(`Room7/${filename}`);
+}
+
+/**
+ * Get texture URL for RoomX platform assets
+ *
+ * @param {number} platformNumber - Platform number (1-50)
+ * @returns {string} Full URL to RoomX NFT tile
+ *
+ * @example
+ * getRoomXNftUrl(5) → '/assets/RoomX/5.webp'
+ */
+export function getRoomXNftUrl(platformNumber) {
+  return getTextureUrl(`RoomX/${platformNumber}`);
+}
+
+/**
+ * Get texture URL for RoomC NFT assets
+ *
+ * @param {number} nftNumber - NFT number (50-55)
+ * @returns {string} Full URL to RoomC NFT
+ *
+ * @example
+ * getRoomCNftUrl(50) → '/assets/nft50.webp'
+ */
+export function getRoomCNftUrl(nftNumber) {
+  return getNftUrl(nftNumber);
+}
