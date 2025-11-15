@@ -220,18 +220,18 @@ Dark atmospheric room with eclipse theme. Features:
 **Portals OUT**:
 | Target | Color | Position | Code Line | Notes |
 |--------|-------|----------|-----------|-------|
-| [room4.html](../room4.html) | Purple (0x8844aa) | (0, 5, 25) | [room5.js:1239](../room5.js#L1239) | Back to Room 4 |
-| [room6.html](../room6.html) | Cyan (0x00ccff) | (0, 5, -25) | [room5.js:1215](../room5.js#L1215) | Video Corridor |
-| [room7.html](../room7.html) | Gold (0xffaa00) | (25, 5, 0) | [room5.js:1216](../room5.js#L1216) | Starry Gallery |
-| [room8.html](../room8.html) | Silver (0xaaaaaa) | (-25, 5, 0) | [room5.js:1217](../room5.js#L1217) | Checkered Frame |
-| [room9.html](../room9.html) | Purple (0xaa88ff) | (17.7, 5, 17.7) | [room5.js:1218](../room5.js#L1218) | Tunnel |
+| [room4.html](../room4.html) | Purple (0x8844aa) | (0, 5, 25) | [room5.js:~923](../room5.js) | Back to Room 4 |
+| [room6.html](../room6.html) | Cyan (0x00ccff) | (0, 5, -25) | [room5.js:~946](../room5.js) | Video Corridor (optional branch) |
 
 **Portals IN**:
 - From Room 4
+- From Room 6
 
-**Status**: ✅ Working (Now serves as secondary hub for bonus rooms)
+**Status**: ✅ Working (Simple progression room: 4 ↔ 5 ↔ 6)
 
-**Issues**:
+**Notes**:
+- **NO LONGER A HUB**: Rooms 7, 8, 9 portals removed (2025-11-15)
+- Simple progression: Room 4 → Room 5 → Room 6 (optional)
 - Some NFT loading issues mentioned in comments (texture loading with fallbacks)
 - Anti-flicker measures implemented
 
@@ -268,12 +268,12 @@ Linear corridor with curved ceiling featuring video displays. Features:
 **Portals OUT**:
 | Target | Color | Position | Code Line | Notes |
 |--------|-------|----------|-----------|-------|
-| [room0.html](../room0.html) | Teal (0x00ffff) | (0, eyeHeight, -98) | [room6.js:234](../room6.js#L234) | ⚠️ **BUG: Should connect to Room 5, not Room 0** |
+| [room5.html](../room5.html) | Cyan (0x00ccff) | (0, eyeHeight, -98) | [room6.js:~234](../room6.js) | ✅ Returns to Eternal Eclipse (Room 5) |
 
 **Portals IN**:
 - From Room 5 (cyan portal at position (0, eyeHeight, -25))
 
-**Status**: ✅ **Working** but with incorrect portal navigation
+**Status**: ✅ **Working** - Connected to Room 5 progression path
 
 **Technical Quirks**:
 - Heavy asset load: Video files are highest-bandwidth content in gallery
@@ -283,7 +283,6 @@ Linear corridor with curved ceiling featuring video displays. Features:
 - Fixed asset paths recently corrected from `/videos/` to `/assets/`
 
 **Issues**:
-- ⚠️ **CRITICAL**: Portal connects to Room 0 instead of Room 5 (breaks secondary hub flow)
 - **Performance**: All videos auto-start, no lazy loading or culling
 
 ---
@@ -319,12 +318,12 @@ Dark atmospheric gallery with starry ceiling and dramatic lighting. Features:
 **Portals OUT**:
 | Target | Color | Position | Code Line | Notes |
 |--------|-------|----------|-----------|-------|
-| [room0.html](../room0.html) | Teal (0x00ffff) | (0, eyeHeight, 45) | [room7.js:265](../room7.js#L265) | ⚠️ **BUG: Should connect to Room 5, not Room 0** |
+| [room0.html](../room0.html) | Teal (0x00ffff) | (0, eyeHeight, 45) | [room7.js:265](../room7.js#L265) | Returns to Ocean Hub |
 
 **Portals IN**:
-- From Room 5 (gold portal at position (25, eyeHeight, 0))
+- ⚠️ **NONE** - Room 5 no longer has portal to Room 7 (removed 2025-11-15)
 
-**Status**: ✅ **Working** but with incorrect portal navigation
+**Status**: ⚠️ **ORPHANED** - Room functional but no portal IN
 
 **Technical Quirks**:
 - **Heavy texture load**: 38 high-resolution PNG images (~150-300 MB total VRAM)
@@ -335,7 +334,7 @@ Dark atmospheric gallery with starry ceiling and dramatic lighting. Features:
 - No LOD or culling optimization for images
 
 **Issues**:
-- ⚠️ **CRITICAL**: Portal connects to Room 0 instead of Room 5 (breaks secondary hub flow)
+- ⚠️ **ORPHANED**: No way to reach from navigation (Room 5 portal removed 2025-11-15)
 - **Performance**: Heavy VRAM usage from 38 high-res textures loaded simultaneously
 - **Performance**: 20 spotlights with shadows can cause frame drops on lower-end GPUs
 - **UX**: Dark aesthetic may make navigation difficult for some users
@@ -374,12 +373,12 @@ Abstract geometric tunnel serving as transitional space between Room 5 and the b
 **Portals OUT**:
 | Target | Color | Position | Code Line | Notes |
 |--------|-------|----------|-----------|-------|
-| [room5.html](../room5.html) | Silver (0xaaaaaa) | (0, 2.5, 28) | [room8.js:208](../room8.js#L208) | ✅ Correct - returns to Eternal Eclipse |
+| [room5.html](../room5.html) | Silver (0xaaaaaa) | (0, 2.5, 28) | [room8.js:208](../room8.js#L208) | ⚠️ **ORPHANED** - Room 5 portal to Room 8 removed |
 
 **Portals IN**:
-- From Room 5 (silver portal at position (-25, 5, 0))
+- ⚠️ **NONE** - Room 5 no longer has portal to Room 8 (removed 2025-11-15)
 
-**Status**: ✅ **Working** - v1 redesign complete
+**Status**: ⚠️ **ORPHANED** - v1 redesign complete, but no portal IN
 
 **Technical Details**:
 - **Procedural content**: All forms generated via code, zero external assets
@@ -432,12 +431,12 @@ Natural, cave-like passage with bio-luminescent accents and embedded art surface
 **Portals OUT**:
 | Target | Color | Position | Code Line | Notes |
 |--------|-------|----------|-----------|-------|
-| [room5.html](../room5.html) | Lavender (0xaa88ff) | (0, 2.5, 25.5) | [room9.js:263](../room9.js#L263) | ✅ Correct - returns to Eternal Eclipse |
+| [room5.html](../room5.html) | Lavender (0xaa88ff) | (0, 2.5, 25.5) | [room9.js:263](../room9.js#L263) | ⚠️ **ORPHANED** - Room 5 portal to Room 9 removed |
 
 **Portals IN**:
-- From Room 5 (lavender portal at position (17.7, 5, 17.7))
+- ⚠️ **NONE** - Room 5 no longer has portal to Room 9 (removed 2025-11-15)
 
-**Status**: ✅ **Working** - v1 redesign complete
+**Status**: ⚠️ **ORPHANED** - v1 redesign complete, but no portal IN
 
 **Technical Details**:
 - **Organic geometry**: 12 cylinder segments with radius variation
@@ -759,8 +758,8 @@ Concept chamber with dark industrial aesthetic. A work-in-progress room featurin
 
 | Category | Count | Rooms |
 |----------|-------|-------|
-| **Fully Working** | 15 | Room 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, A, A1, B, C |
-| **Orphaned** (no portals) | 1 | Room 10 (intentional - not wired yet) |
+| **Fully Working** | 12 | Room 0, 1, 2, 3, 4, 5, 6, A, A1, B, C, 10 (direct URL) |
+| **Orphaned** (no portals IN) | 4 | Room 7, 8, 9 (Room 5 hub removed), Room 10 (intentional) |
 | **Broken** (missing files) | 0 | None - All fixed! |
 | **Disabled** (intentional) | 1 | Room D |
 | **Future** (React scaffolds) | 2 | Room 11, 12 |
@@ -777,10 +776,10 @@ Concept chamber with dark industrial aesthetic. A work-in-progress room featurin
 | Room 4 | 108-127 | 20 | ✅ |
 | Room 5 | 131-142 | 12 | ✅ |
 | Room 6 | Videos | 13 videos | ✅ (via Room 5) |
-| Room 7 | Room7 folder | ~20+ | ✅ (via Room 5) |
-| Room 8 | Geometric art | 14 forms | ✅ Procedural - v1 redesign complete |
-| Room 9 | Material art | 16 alcoves | ✅ Procedural - v1 redesign complete |
-| Room 10 | Platforming | 28 platforms | ✅ Challenge room - not wired to navigation yet |
+| Room 7 | Room7 folder | ~20+ | ⚠️ ORPHANED (Room 5 hub removed) |
+| Room 8 | Geometric art | 14 forms | ⚠️ ORPHANED (Room 5 hub removed) |
+| Room 9 | Material art | 16 alcoves | ⚠️ ORPHANED (Room 5 hub removed) |
+| Room 10 | Platforming | 28 platforms | ⚠️ ORPHANED (not wired yet) |
 | Room A | Videos | 17 videos | ✅ |
 | Room A1 | TBD | TBD | ✅ Fixed |
 | Room B | RoomB/B1-B60 | 60 | ✅ |
@@ -791,13 +790,14 @@ Concept chamber with dark industrial aesthetic. A work-in-progress room featurin
 
 1. ~~**Room C**: Door in Room 0 points to non-existent roomC.html~~ **FIXED** - Created roomC.html and roomC.js
 2. ~~**Room A1**: Room A portal points to non-existent roomA1.html~~ **FIXED** - Created roomA1.html
-3. ~~**Rooms 6, 7, 8, 9**: Completely orphaned, no way to reach via navigation~~ **FIXED** - Connected via Room 5 hub
+3. ~~**Rooms 6, 7, 8, 9**: Completely orphaned, no way to reach via navigation~~ **CHANGED** - Room 5 hub removed, only Room 6 accessible
 4. ~~**Rooms 6, 7, 8, 9**: All have BROKEN return portals (connect to Room 0 instead of Room 5)~~ **FIXED** - All now return to Room 5
 5. ~~**Rooms 8, 9**: Missing NFT assets (`/assets/nft{1-40}.png` do not exist)~~ **FIXED** - Redesigned with procedural content
 6. ~~**Room 9**: Complete code duplication with Room 8 (maintenance debt)~~ **FIXED** - Unique implementation, zero code overlap
-7. ⚠️ **Room 7**: Heavy performance issues (38 high-res textures, 20 spotlights, 1000 particles)
-8. **NFT gap**: Room 5 uses 131-142, skipping 128-130
-9. **Asset path confusion**: Multiple asset directories (/, /assets/, /public/assets/, /assets/Room7/, /assets/RoomB/, /assets/RoomC/)
+7. ⚠️ **NEW: Rooms 7, 8, 9**: Now orphaned - Room 5 hub removed (2025-11-15), no portal IN
+8. ⚠️ **Room 7**: Heavy performance issues (38 high-res textures, 20 spotlights, 1000 particles)
+9. **NFT gap**: Room 5 uses 131-142, skipping 128-130
+10. **Asset path confusion**: Multiple asset directories (/, /assets/, /public/assets/, /assets/Room7/, /assets/RoomB/, /assets/RoomC/)
 
 ---
 
@@ -834,44 +834,39 @@ Concept chamber with dark industrial aesthetic. A work-in-progress room featurin
                ├─> Back to Room 2 ✅
                └─> Room 4 ✅ (Floating Island)
                    ├─> Back to Room 3 ✅
-                   └─> Room 5 ✅ (Eternal Eclipse - SECONDARY HUB)
+                   └─> Room 5 ✅ (Eternal Eclipse - Simple Progression)
                        ├─> Back to Room 4 ✅
                        │
-                       ├─> Room 6 ✅ (Video Corridor)
-                       │   └─> Back to Room 5 ✅
-                       │
-                       ├─> Room 7 ✅ (Starry Gallery)
-                       │   └─> Back to Room 5 ✅
-                       │
-                       ├─> Room 8 ✅ (Liminal Passage - Geometric)
-                       │   └─> Back to Room 5 ✅
-                       │
-                       └─> Room 9 ✅ (Organic Tunnel - Bio-luminescent)
+                       └─> Room 6 ✅ (Video Corridor - Optional Branch)
                            └─> Back to Room 5 ✅
 
 
 NAVIGATION FLOW SUMMARY:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Main Progression: Room 0 → 1 ↔ 2 ↔ 3 → 4 → 5
-                                             └─> Bonus Rooms: 6, 7, 8, 9 (all return to Room 5)
+Main Progression: Room 0 → 1 ↔ 2 ↔ 3 → 4 → 5 ↔ 6 (optional)
 
 Branch Paths:     Room 0 → A ↔ A1
                   Room 0 → B
                   Room 0 → C
 
-✅ ALL NAVIGATION WORKING: All bonus rooms correctly return to Room 5 (secondary hub)
-   Room 8 & 9 redesigned with distinct visual identities and procedural content
+⚠️  ROOM 5 HUB REMOVED (2025-11-15):
+   - Room 5 NO LONGER connects to Rooms 7, 8, 9
+   - Simple progression: Room 4 ↔ Room 5 ↔ Room 6 only
+   - Rooms 7, 8, 9 now ORPHANED (no portal IN)
 
 
-ISOLATED ROOMS (not wired to navigation yet):
-┌───────────────────────────────┐
-│         Room 10 (Room X)      │
-│       "The Ascent"            │
-│   Challenge Arena - Sphere    │
-│   ⚠️ No portals IN or OUT     │
-│   ✅ Self-contained working   │
-│   🎯 Portal destination TBD   │
-└───────────────────────────────┘
+ORPHANED ROOMS (no portal IN - accessible via direct URL or nav menu only):
+┌────────────────────────────────────────────────────────────────┐
+│ Room 7: Starry Gallery        │ Room 8: Liminal Passage       │
+│ ⚠️ No IN (Room 5 hub removed) │ ⚠️ No IN (Room 5 hub removed) │
+│ Portal OUT → Room 0            │ Portal OUT → Room 5           │
+│ Direct URL: room7.html         │ Direct URL: room8.html        │
+├────────────────────────────────┼───────────────────────────────┤
+│ Room 9: Organic Tunnel         │ Room X: The Ascent            │
+│ ⚠️ No IN (Room 5 hub removed) │ ⚠️ No IN (intentional)        │
+│ Portal OUT → Room 5            │ Portal OUT → TBD              │
+│ Direct URL: room9.html         │ Direct URL: room10.html       │
+└────────────────────────────────┴───────────────────────────────┘
 
 FUTURE ROOMS (React scaffolds, not integrated):
 ┌───────────┐  ┌───────────┐

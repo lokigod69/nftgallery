@@ -90,65 +90,54 @@ Room A (Undersea Observatory) has a portal that links to `roomA1.html`. ~~The Ja
 
 ## High Priority Issues (Impacts Major Features)
 
-### ~~ISSUE-003: Bonus Rooms (6, 7, 8, 9) - Broken Return Navigation~~ ✅ FIXED
+### ~~ISSUE-003: Bonus Rooms (6, 7, 8, 9) - Broken Return Navigation~~ ⚠️ CHANGED
 
-**Type**: `navigation` / `broken portals`
+**Type**: `navigation` / `design change`
 
-**Severity**: ~~🟠 **HIGH**~~ ✅ **RESOLVED**
+**Severity**: ~~🟠 **HIGH**~~ ⚠️ **DESIGN CHANGE**
 
 **Affected Rooms**:
-- ✅ Room 6: Video Corridor ([room6.js:237](../room6.js#L237))
-- ✅ Room 7: Starry Gallery ([room7.js:248](../room7.js#L248))
-- ✅ Room 8: Cylindrical Corridor ([room8.js:193](../room8.js#L193))
-- ✅ Room 9: Cylindrical Tunnel ([room9.js:196](../room9.js#L196))
+- ✅ Room 6: Video Corridor - Still connected to Room 5
+- ⚠️ Room 7: Starry Gallery - Now ORPHANED (no portal IN)
+- ⚠️ Room 8: Liminal Passage - Now ORPHANED (no portal IN)
+- ⚠️ Room 9: Organic Tunnel - Now ORPHANED (no portal IN)
 
-**Status**: ✅ **FIXED** (2025-11-15)
+**Status**: ⚠️ **DESIGN CHANGED** (2025-11-15)
 
-**Description**:
-Room 5 (Eternal Eclipse) was designed as a secondary hub connecting to 4 bonus rooms (6, 7, 8, 9). Entry portals from Room 5 worked correctly using standardized colors from the portal style map. However, return portals in all 4 bonus rooms incorrectly navigated back to Room 0 (Ocean Hub) instead of Room 5, breaking the secondary hub navigation pattern and forcing players to backtrack through the entire main progression path.
-
-**Fix Applied**: 2025-11-15
-
-**Implementation**:
-Updated return portal destinations in all 4 bonus rooms to navigate to Room 5:
-
-1. **[room6.js:237](../room6.js#L237)** - Video Corridor
-   - Changed: `window.location.href = 'room0.html'` → `'room5.html'`
-   - Updated label: "Ocean Hub (Room 0)" → "Eternal Eclipse (Room 5)"
-
-2. **[room7.js:248](../room7.js#L248)** - Starry Gallery
-   - Changed: `window.location.href = 'room0.html'` → `'room5.html'`
-   - Updated label: "Ocean Hub (Room 0)" → "Eternal Eclipse (Room 5)"
-
-3. **[room8.js:193](../room8.js#L193)** - Cylindrical Corridor
-   - Changed: `window.location.href = 'room0.html'` → `'room5.html'`
-   - Updated label: "Ocean Hub (Room 0)" → "Eternal Eclipse (Room 5)"
-
-4. **[room9.js:196](../room9.js#L196)** - Cylindrical Tunnel
-   - Changed: `window.location.href = 'room0.html'` → `'room5.html'`
-   - Updated label: "Ocean Hub (Room 0)" → "Eternal Eclipse (Room 5)"
+**History**:
+1. **Original Issue**: Return portals in rooms 6-9 incorrectly navigated to Room 0 instead of Room 5
+2. **First Fix** (2025-11-15 earlier): Updated all return portals to navigate to Room 5
+3. **Design Change** (2025-11-15 later): **Room 5 hub behavior removed**
+   - Portals from Room 5 to Rooms 7, 8, 9 removed
+   - Room 5 simplified to: Room 4 ↔ Room 5 ↔ Room 6 (simple progression)
 
 **Current Behavior**:
-1. Player navigates: Room 0 → 1 → 2 → 3 → 4 → 5 (Eternal Eclipse)
-2. From Room 5, player enters any of 4 bonus rooms via colored portals
-3. Player explores bonus room
-4. Return portal correctly navigates back to Room 5 (not Room 0)
-5. Room 5 now functions as true secondary hub
+1. **Room 6**: ✅ Still accessible from Room 5, returns to Room 5
+2. **Rooms 7, 8, 9**: ⚠️ **ORPHANED** - No portal IN from any room
+   - Can only be accessed via:
+     - Direct URL navigation (room7.html, room8.html, room9.html)
+     - Navigation menu
+   - Portal OUT still works (Room 7 → Room 0, Rooms 8-9 → Room 5)
 
-**Navigation Flow** (Fixed):
+**Navigation Flow** (Current):
 ```
-Room 5 (Secondary Hub)
-  ├─> Room 6 → Return to Room 5 ✅
-  ├─> Room 7 → Return to Room 5 ✅
-  ├─> Room 8 → Return to Room 5 ✅
-  └─> Room 9 → Return to Room 5 ✅
+Room 5 (Simple Progression - NO LONGER A HUB)
+  └─> Room 6 ↔ Room 5 ✅
+
+Orphaned Rooms (no portal IN):
+  Room 7 → Room 0 (orphaned)
+  Room 8 → Room 5 (orphaned)
+  Room 9 → Room 5 (orphaned)
 ```
 
-**Result**:
-- ✅ Consistent navigation UX across entire gallery
-- ✅ Room 5 functions as intended secondary hub design
-- ✅ No more forced backtracking through main progression
-- ✅ Matches hub pattern used for Room 0 ↔ A, B, C connections
+**Impact**:
+- Room 5 is now a simple progression room, not a hub
+- Rooms 7, 8, 9 are effectively hidden/bonus content
+- Players must use direct URL or nav menu to access orphaned rooms
+- Reduces navigation complexity ("not a mess of portals")
+
+**Rationale**:
+User requested simplification: "Room 5 should NOT be a hub to everywhere. Only portal to Room 6 and back to Room 4."
 
 ---
 
@@ -876,6 +865,83 @@ Room X ("The Ascent") is a fully functional legendary challenge room featuring a
 
 ---
 
+### ISSUE-021: Rooms 7, 8, 9 Now Orphaned (No Portal IN)
+
+**Type**: `navigation` / `content accessibility`
+
+**Severity**: 🟡 **MEDIUM** - Content exists but hidden
+
+**Location**:
+- Room 7: Starry Gallery ([room7.html](../room7.html))
+- Room 8: Liminal Passage ([room8.html](../room8.html))
+- Room 9: Organic Tunnel ([room9.html](../room9.html))
+
+**Description**:
+Following Room 5 hub removal (2025-11-15), Rooms 7, 8, and 9 no longer have any portal connections IN from other rooms. These rooms are fully functional and contain content, but players cannot discover them through normal exploration.
+
+**Current State**:
+- ✅ Rooms are fully functional (code works, content loads)
+- ✅ Portals OUT work correctly:
+  - Room 7 → Room 0 (Ocean Hub)
+  - Room 8 → Room 5 (Eternal Eclipse)
+  - Room 9 → Room 5 (Eternal Eclipse)
+- ⚠️ No portals IN (orphaned from navigation graph)
+- ⚠️ Only accessible via:
+  1. Direct URL navigation (room7.html, room8.html, room9.html)
+  2. Navigation menu (hamburger menu in UI)
+  3. External links
+
+**Room Content Summary**:
+- **Room 7** (Starry Gallery): 38 AI-generated art images, dramatic lighting, starfield
+- **Room 8** (Liminal Passage): 14 procedural geometric forms, cool aesthetic
+- **Room 9** (Organic Tunnel): 16 procedural art alcoves, warm bio-luminescent aesthetic
+
+**Impact**:
+- Hidden content that players may never discover
+- Wasted development effort if rooms remain inaccessible
+- Inconsistent with "explorable gallery" design philosophy
+- May confuse users who find rooms via nav menu but can't reach via portals
+
+**Possible Solutions**:
+
+**Option A** - Restore Hub (reverses simplification):
+1. Re-add portals from Room 5 to Rooms 7, 8, 9
+2. Room 5 becomes secondary hub again
+3. ❌ Contradicts user's explicit request for simplification
+
+**Option B** - Add Portals from Room 0:
+1. Add 3 new portals in Room 0 (Ocean Hub) leading to Rooms 7, 8, 9
+2. Pros: Discoverable, consistent with hub pattern
+3. Cons: Room 0 already has 5 doors (including disabled Room D)
+
+**Option C** - Chain Progression:
+1. Create linear path: Room 5 → Room 6 → Room 7 → Room 8 → Room 9 → Room 0
+2. Turns bonus rooms into extended main progression
+3. Pros: All content discoverable, clear flow
+4. Cons: Makes progression longer
+
+**Option D** - Secret Portals:
+1. Add hidden/subtle portals in existing rooms (e.g., Room 1, 2, 3)
+2. Reward exploration with bonus content discovery
+3. Pros: Maintains clean main path, encourages exploration
+4. Cons: May be too hidden, frustrating for completionists
+
+**Option E** - Keep as Hidden Bonus Content:
+1. Accept that rooms are accessible only via nav menu / direct URL
+2. Document as "hidden rooms" or "developer rooms"
+3. Pros: Preserves Room 5 simplification
+4. Cons: Content remains mostly undiscovered
+
+**Option F** - Integrate with Room X:
+1. Add portals from Room X (The Ascent) to Rooms 7, 8, 9
+2. Room X becomes gateway to bonus content
+3. First need to wire Room X into navigation (see ISSUE-020)
+
+**Recommendation**:
+Wait for user direction on gallery navigation philosophy before implementing fix.
+
+---
+
 ## Summary Tables
 
 ### Issues by Severity
@@ -883,10 +949,10 @@ Room X ("The Ascent") is a fully functional legendary challenge room featuring a
 | Severity | Count | Issues |
 |----------|-------|--------|
 | ~~🔴 Critical~~ ✅ | ~~2~~ 0 | ~~ISSUE-001 (Room C missing), ISSUE-002 (Room A1 HTML missing)~~ **ALL FIXED!** |
-| ~~🟠 High~~ | ~~3~~ 2 | ~~ISSUE-003 (Bonus rooms broken return portals)~~ **FIXED!**, ISSUE-004 (NFT gap), ISSUE-005 (Asset paths) |
-| 🟡 Medium | 8 | ISSUE-007 to ISSUE-011, ISSUE-016, ISSUE-017, ISSUE-020 (Room X portal) ~~, ISSUE-018, ISSUE-019~~ ✅ **Room 8/9 fixed!** |
+| 🟠 High | 2 | ISSUE-004 (NFT gap), ISSUE-005 (Asset paths) |
+| 🟡 Medium | 9 | ISSUE-007 to ISSUE-011, ISSUE-016, ISSUE-017, ISSUE-020 (Room X portal), ISSUE-021 (Rooms 7-9 orphaned) ~~, ISSUE-018, ISSUE-019~~ ✅ **Room 8/9 redesign complete!** |
 | 🟢 Low | 4 | ISSUE-012 to ISSUE-015 |
-| **Total** | **20** | **7 fixed, 13 remaining** |
+| **Total** | **21** | **6 fixed, 1 changed (ISSUE-003), 14 active** |
 
 ### Issues by Type
 
