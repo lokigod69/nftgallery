@@ -53,8 +53,8 @@ document.body.appendChild(renderer.domElement);
 const controls = new PointerLockControls(camera, document.body);
 scene.add(controls.getObject());
 
-// Set initial spawn position
-controls.getObject().position.set(0, -SPHERE_RADIUS + PLAYER_HEIGHT + 5, 0);
+// Spawn position will be set after starting platform is created
+// (see after scene element creation)
 
 document.addEventListener('click', () => {
   if (!controls.isLocked) controls.lock();
@@ -281,16 +281,81 @@ function createTopPortal() {
 }
 
 // ----------------------------------------------------------------------
+// Create Starting Platform (Floor)
+// ----------------------------------------------------------------------
+function createStartingPlatform() {
+  const platformRadius = 45; // Large stable floor
+  const platformY = -SPHERE_RADIUS + 8; // 8 units from bottom of sphere
+
+  const geometry = new THREE.CylinderGeometry(platformRadius, platformRadius, 1, 32);
+  const material = new THREE.MeshStandardMaterial({
+    color: 0x2a2a3a,
+    metalness: 0.5,
+    roughness: 0.7,
+    emissive: 0x111122,
+    emissiveIntensity: 0.3
+  });
+
+  const platform = new THREE.Mesh(geometry, material);
+  platform.position.set(0, platformY, 0);
+  scene.add(platform);
+
+  // Add a glowing rim for visibility
+  const rimGeometry = new THREE.TorusGeometry(platformRadius, 0.5, 16, 64);
+  const rimMaterial = new THREE.MeshStandardMaterial({
+    color: 0x4466ff,
+    emissive: 0x4466ff,
+    emissiveIntensity: 0.6
+  });
+
+  const rim = new THREE.Mesh(rimGeometry, rimMaterial);
+  rim.position.set(0, platformY + 0.5, 0);
+  rim.rotation.x = Math.PI / 2;
+  scene.add(rim);
+
+  return {
+    platform,
+    rim,
+    y: platformY + 0.5, // Top surface Y position
+    radius: platformRadius
+  };
+}
+
+// ----------------------------------------------------------------------
 // Create Scene Elements
 // ----------------------------------------------------------------------
 const { sphere, stars } = createHollowSphere();
+const startingPlatform = createStartingPlatform();
 const { platforms, platformMeshes } = generatePlatforms();
 const topPortal = createTopPortal();
+
+// Set spawn position on starting platform
+controls.getObject().position.set(0, startingPlatform.y + PLAYER_HEIGHT, 0);
+isOnPlatform = true; // Start grounded
+jumpVelocity = 0;
 
 // ----------------------------------------------------------------------
 // Platform Collision Detection
 // ----------------------------------------------------------------------
 function checkPlatformCollision(position) {
+  // Check starting platform first
+  const dx = position.x;
+  const dz = position.z;
+  const horizontalDist = Math.sqrt(dx * dx + dz * dz);
+
+  if (horizontalDist < startingPlatform.radius) {
+    const verticalDist = position.y - startingPlatform.y;
+    if (verticalDist > -0.3 && verticalDist < 0.5) {
+      return {
+        position: new THREE.Vector3(0, startingPlatform.y, 0),
+        radius: startingPlatform.radius,
+        mesh: startingPlatform.platform,
+        index: -1 // Special index for starting platform
+      };
+    }
+  }
+
+  // Check floating platforms
   for (const platform of platforms) {
     const dx = position.x - platform.position.x;
     const dz = position.z - platform.position.z;
@@ -395,8 +460,10 @@ function animate() {
       jumpVelocity = 0;
       isOnPlatform = true;
 
-      // Subtle visual feedback - pulse the platform
-      currentPlatform.mesh.material.emissiveIntensity = 0.6;
+      // Subtle visual feedback - pulse the platform (skip for starting platform)
+      if (currentPlatform.index !== -1 && currentPlatform.mesh.material.emissiveIntensity !== undefined) {
+        currentPlatform.mesh.material.emissiveIntensity = 0.6;
+      }
     } else if (!currentPlatform && isOnPlatform) {
       // Walked off platform
       isOnPlatform = false;
@@ -417,29 +484,28 @@ function animate() {
     controls.moveRight(-velocity.x * delta);
     controls.moveForward(-velocity.z * delta);
 
-    // Keep player inside sphere bounds
-    const distFromCenter = Math.sqrt(
-      playerPos.x ** 2 +
-      playerPos.y ** 2 +
-      playerPos.z ** 2
-    );
+    // Keep player inside sphere bounds (constrain X/Z radius only, not Y)
+    const horizontalDist = Math.sqrt(playerPos.x ** 2 + playerPos.z ** 2);
+    const maxHorizontalRadius = SPHERE_RADIUS - 5;
 
-    if (distFromCenter > SPHERE_RADIUS - 2) {
-      const boundaryDir = new THREE.Vector3(
-        playerPos.x,
-        playerPos.y,
-        playerPos.z
-      ).normalize();
-
-      playerPos.copy(boundaryDir.multiplyScalar(SPHERE_RADIUS - 2));
+    if (horizontalDist > maxHorizontalRadius) {
+      // Scale X and Z back to max radius, preserve Y
+      const scale = maxHorizontalRadius / horizontalDist;
+      playerPos.x *= scale;
+      playerPos.z *= scale;
     }
 
+    // Vertical bounds (ceiling and floor of sphere)
+    playerPos.y = Math.max(playerPos.y, -SPHERE_RADIUS + 2);
+    playerPos.y = Math.min(playerPos.y, SPHERE_RADIUS - 2);
+
     // Death plane - fall too far, respawn at start
-    if (playerPos.y < -SPHERE_RADIUS - 10) {
-      playerPos.set(0, -SPHERE_RADIUS + PLAYER_HEIGHT + 5, 0);
+    if (playerPos.y < -SPHERE_RADIUS + 3) {
+      playerPos.set(0, startingPlatform.y + PLAYER_HEIGHT, 0);
+      velocity.set(0, 0, 0);
       jumpVelocity = 0;
       isJumping = false;
-      isOnPlatform = false;
+      isOnPlatform = true;
     }
   }
 
