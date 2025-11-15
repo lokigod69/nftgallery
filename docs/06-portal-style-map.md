@@ -40,14 +40,14 @@ The portal standardization system is implemented in two core files:
 
 ## Portal Style Definitions
 
-### Main Progression Path: 0 → 1 → 2/3 → 4 → 5
+### Main Progression Path: 0 → 1 ↔ 2 ↔ 3 → 4 → 5
 
 | Link | Color | Hex | Orientation | FX Type | Description |
 |------|-------|-----|-------------|---------|-------------|
 | **0↔1** | Ocean Blue | `0x0088ff` | Vertical | Hub | Ocean hub to main gallery - primary entry |
 | **1↔2** | Cyan | `0x00ccff` | Vertical | Default | Main gallery progression |
-| **1↔3** | Emerald | `0x00ff88` | Vertical | Default | Alternative main path branch |
-| **2↔4** | Purple | `0x8844aa` | Vertical | Default | Path to floating island |
+| **2↔3** | Lime Green | `0x44ff44` | Horizontal | Default | Cross-connection between Rooms 2 and 3 |
+| **3↔4** | Purple | `0x8844aa` | Horizontal | Default | Path to floating island (ground portal in Room 3) |
 | **4↔5** | Purple | `0x8844aa` | Vertical | Special | Deep progression to bonus hub |
 
 ### Bonus Hub Connections: Room 5 ↔ Rooms 6, 7, 8, 9
@@ -88,8 +88,8 @@ Room 5 (Eternal Eclipse) serves as the end-game bonus hub with 4 portals to bonu
 Main Progression:
   🔵 Ocean Blue  (0x0088ff) - Room 0↔1
   🔵 Cyan        (0x00ccff) - Room 1↔2
-  🟢 Emerald     (0x00ff88) - Room 1↔3, 0↔B
-  🟣 Purple      (0x8844aa) - Room 2↔4, 4↔5
+  🟢 Lime Green  (0x44ff44) - Room 2↔3 (lateral connection)
+  🟣 Purple      (0x8844aa) - Room 3↔4, 4↔5
 
 Bonus Content:
   🔵 Light Blue  (0x66ccff) - Room 5↔6
@@ -98,6 +98,7 @@ Bonus Content:
   🟣 Lavender    (0xaa88ff) - Room 5↔9
 
 Special Areas:
+  🟢 Emerald     (0x00ff88) - Room 0↔B
   🔵 Deep Blue   (0x0055aa) - Room 0↔A, A↔A1
   🟠 Amber       (0xff8800) - Room 0↔C
 ```
@@ -165,15 +166,27 @@ checkPortalProximity();
 
 ## Navigation Flow
 
+**Corrected Actual Navigation Graph**:
+
 ```
 Room 0 (Ocean Hub)
-  ├─ Room 1 (Main Gallery) ───┬─ Room 2 ── Room 4 (Floating Island) ── Room 5 (Eternal Eclipse)
-  │                            │                                             ├─ Room 6 (Video Corridor)
-  │                            └─ Room 3                                     ├─ Room 7 (Starry Gallery)
-  ├─ Room A (Observatory) ── Room A1                                        ├─ Room 8 (Abstract Art)
-  ├─ Room B (NFT Gallery)                                                   └─ Room 9 (Tunnel)
+  ├─ Room 1 (Main Gallery) ↔ Room 2 ↔ Room 3 → Room 4 (Floating Island) → Room 5 (Eternal Eclipse)
+  │                                                                              ├─ Room 6 (Video Corridor)
+  │                                                                              ├─ Room 7 (Starry Gallery)
+  │                                                                              ├─ Room 8 (Abstract Art)
+  │                                                                              └─ Room 9 (Tunnel)
+  ├─ Room A (Observatory) ↔ Room A1 (Observatory Annex)
+  ├─ Room B (NFT Gallery)
   └─ Room C (Concept Chamber - WIP)
 ```
+
+**Key Navigation Pattern**:
+- Room 1 connects to Room 2 (forward) and Room 0 (back)
+- Room 2 connects to Room 1 (back) and Room 3 (lateral)
+- Room 3 connects to Room 2 (lateral) and Room 4 (forward)
+- Rooms 2 and 3 form a lateral cross-connection (not branching paths)
+- Room 4 connects to Room 3 (back) and Room 5 (forward)
+- Room 5 is the end-game bonus hub connecting to Rooms 6, 7, 8, 9
 
 ## Rules for Future Portal Additions
 
@@ -250,27 +263,33 @@ console.log(report);
 
 ## Migration Status
 
-### Refactored (Using portal-utils)
+### ✅ Main Progression (0-5): COMPLETE
 
-- ✅ **Room 0** - Ocean Hub (doors with standardized colors)
-- ✅ **Room 5** - Eternal Eclipse (bonus hub with 5 portals)
+**Fully Refactored (Using portal-utils)**:
+- ✅ **Room 0** - Ocean Hub (hub doors with standardized colors, hub-door-utils)
+- ✅ **Room 1 (main.js)** - Main Gallery (2 portals, createLinkedPortal + createMultiPortalChecker)
+- ✅ **Room 2** - Gallery Progression (2 portals, standardized system)
+- ✅ **Room 3** - Starry Chamber (2 portals, preserved particle effects)
+- ✅ **Room 4** - Floating Island (2 portals, preserved particle effects)
+- ✅ **Room 5** - Eternal Eclipse (5 portals, bonus hub, circular portal system)
 
-### Not Yet Refactored (Using ad-hoc code)
+**Impact**: ~394 net lines eliminated (717 deleted, 323 added), ~4.3 kB bundle size reduction
 
-- ⏳ Room 1 - Main Gallery
-- ⏳ Room 2
-- ⏳ Room 3
-- ⏳ Room 4 - Floating Island
-- ⏳ Room 6 - Video Corridor
-- ⏳ Room 7 - Starry Gallery
-- ⏳ Room 8 - Checkered Frame
-- ⏳ Room 9 - Tunnel
+### ⏳ Not Yet Refactored (Using ad-hoc code)
+
+**Bonus Rooms (6-9)** - Need redesign before refactoring:
+- ⏳ Room 6 - Video Corridor (placeholder room)
+- ⏳ Room 7 - Starry Gallery (placeholder room)
+- ⏳ Room 8 - Checkered Frame (placeholder room)
+- ⏳ Room 9 - Tunnel (placeholder room)
+
+**Branch Rooms (A, B, C)** - Functional but not yet migrated:
 - ⏳ Room A - Undersea Observatory
 - ⏳ Room A1 - Observatory Annex
 - ⏳ Room B - NFT Gallery Room
 - ⏳ Room C - Concept Chamber
 
-**Future work:** Migrate remaining rooms to use createLinkedPortal() for consistency.
+**Future work:** Migrate remaining rooms to createLinkedPortal() after visual redesigns are complete.
 
 ## Benefits of This System
 

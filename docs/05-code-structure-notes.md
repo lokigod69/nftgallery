@@ -1000,24 +1000,33 @@ The portal standardization system establishes a consistent visual language for a
 
 ### Refactored Rooms
 
-| Room | Status | Portal Count | Lines Saved | Notes |
-|------|--------|--------------|-------------|-------|
-| **Room 0** | ✅ Refactored | 4 active, 1 placeholder | ~50 | Doors use standardized colors |
-| **Room 5** | ✅ Refactored | 5 portals | ~134 | Full circular portal system |
-| Room 1 | ⏳ Not yet | ? | - | Pending migration |
-| Room 2 | ⏳ Not yet | ? | - | Pending migration |
-| Room 3 | ⏳ Not yet | ? | - | Pending migration |
-| Room 4 | ⏳ Not yet | ? | - | Pending migration |
-| Room 6 | ⏳ Not yet | ? | - | Pending migration |
-| Room 7 | ⏳ Not yet | ? | - | Pending migration |
-| Room 8 | ⏳ Not yet | ? | - | Pending migration |
-| Room 9 | ⏳ Not yet | ? | - | Pending migration |
-| Room A | ⏳ Not yet | ? | - | Pending migration |
-| Room A1 | ⏳ Not yet | ? | - | Pending migration |
-| Room B | ⏳ Not yet | ? | - | Pending migration |
-| Room C | ⏳ Not yet | ? | - | Pending migration |
+**Main Progression (0-5): ✅ COMPLETE**
 
-**Total Impact (Room 0 + Room 5)**: ~184 lines eliminated (357 deleted, 173 added)
+| Room | Status | Portal Count | Lines Saved | Bundle Size | Notes |
+|------|--------|--------------|-------------|-------------|-------|
+| **Room 0** | ✅ Refactored | 4 hub doors | ~160 | 25.44 kB | Premium 3D hub doors with hub-door-utils |
+| **Room 1 (main.js)** | ✅ Refactored | 2 portals | ~65 | 10.47 kB | Standardized portal creation & proximity |
+| **Room 2** | ✅ Refactored | 2 portals | ~60 | 10.71 kB | Added 2↔3 connection to style map |
+| **Room 3** | ✅ Refactored | 2 portals | ~40 | 15.26 kB | Preserved particle effects for Room 4 portal |
+| **Room 4** | ✅ Refactored | 2 portals | ~60 | 12.86 kB | Preserved particle effects for Room 5 portal |
+| **Room 5** | ✅ Refactored | 5 portals | ~134 | 13.72 kB | Full circular portal system, bonus hub |
+| Room 6 | ⏳ Not yet | 1 portal | - | 4.53 kB | Placeholder room, needs redesign |
+| Room 7 | ⏳ Not yet | 1 portal | - | 8.26 kB | Placeholder room, needs redesign |
+| Room 8 | ⏳ Not yet | 1 portal | - | 4.05 kB | Placeholder room, needs redesign |
+| Room 9 | ⏳ Not yet | 1 portal | - | 4.40 kB | Placeholder room, needs redesign |
+| Room A | ⏳ Not yet | 2 portals | - | 37.64 kB | Heavy GLTF models, functional |
+| Room A1 | ⏳ Not yet | 1 portal | - | 10.29 kB | Functional, minor issues |
+| Room B | ⏳ Not yet | 1 portal | - | 31.24 kB | Uses asset-utils diagnostics |
+| Room C | ⏳ Not yet | 1 portal | - | 5.46 kB | Work in progress room |
+
+**Total Impact (Rooms 0-5)**: ~519 lines eliminated (717 deleted, 323 added, net reduction 394 lines)
+
+**Bundle Size Improvements**:
+- Room 1: ~10.5 kB (estimated ~1 kB reduction)
+- Room 2: 10.71 kB (estimated ~1 kB reduction)
+- Room 3: 15.26 kB (reduced from 16.14 kB, -0.88 kB)
+- Room 4: 12.86 kB (reduced from 14.28 kB, -1.42 kB)
+- **Total estimated savings**: ~4.3 kB across Rooms 1-4
 
 ### Style Map Example
 
@@ -1059,3 +1068,42 @@ See [docs/06-portal-style-map.md](06-portal-style-map.md) for:
 - Usage instructions
 - Migration guidelines
 - Visual language explanation
+
+---
+
+## Asset Utilities Status (IMPLEMENTED: 2025-11-15)
+
+### Overview
+
+**Status**: ✅ Implemented in [src/core/asset-utils.js](../src/core/asset-utils.js)
+
+Diagnostic tools for texture and asset loading, providing comprehensive error logging and fallback handling.
+
+### Current Usage
+
+**Actively Used**:
+- **Room B**: Full integration with `loadTextureWithDiagnostics()` and `batchLoadTextures()`
+  - Comprehensive error logging for texture failures
+  - Bright magenta fallback materials for visibility
+  - Batch loading summary statistics
+
+**Available But Deferred**:
+- **Rooms 1-4 (Main Progression)**:
+  - Primarily use procedural NFT generation
+  - No significant texture loading issues observed
+  - Deep asset-utils integration intentionally deferred until real needs appear
+  - Focus on portal standardization completed first
+
+**Recommendation**: Apply asset-utils to other rooms as needed when:
+- Heavy NFT content is added
+- Texture loading error patterns emerge
+- Complex asset dependencies require diagnostic tracking
+
+### Key Functions
+
+- `loadTextureWithDiagnostics()` - Comprehensive error logging for failed texture loads
+- `createFallbackMaterial()` - Bright magenta fallback to make missing assets obvious
+- `logTextureLoadingSummary()` - Batch loading summary with success/failure stats
+- `batchLoadTextures()` - Load multiple textures with automatic diagnostics
+
+See [src/core/asset-utils.js](../src/core/asset-utils.js) for detailed API documentation.
