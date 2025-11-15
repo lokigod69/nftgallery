@@ -27,10 +27,16 @@ The portal standardization system is implemented in two core files:
    - animateLinkedPortal(): Uses style-defined rotation speeds
    - createMultiPortalChecker(): Unified proximity detection
 
+3. **[src/core/hub-door-utils.js](../src/core/hub-door-utils.js)** ⭐ NEW
+   - createHubDoor(): Premium 3D gateway structures for Room 0 hub
+   - animateHubDoor(): Portal pulsing, glow rotation, light effects
+   - Grounded architectural doors with pillars, base, header
+   - See [Hub Door Design Documentation](07-hub-door-design.md)
+
 ### Canonical Examples
 
-- **[room0.js](../room0.js)**: Ocean Hub - Demonstrates door-based portals with standardized colors
-- **[room5.js](../room5.js)**: Eternal Eclipse - Demonstrates circular portals with full style system
+- **[room0.js](../room0.js)**: Ocean Hub - Premium 3D hub doors with standardized colors (see [Hub Door Design](07-hub-door-design.md))
+- **[room5.js](../room5.js)**: Eternal Eclipse - Circular portals with full style system
 
 ## Portal Style Definitions
 
