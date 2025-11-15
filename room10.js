@@ -243,7 +243,9 @@ function generatePlatforms() {
     const saturation = 70 + progress * 20;
     const lightness = 40 + progress * 20;
 
-    const platformMaterial = new THREE.MeshStandardMaterial({
+    // Multi-material setup: sides with glow, top/bottom clean for NFT display
+    // CylinderGeometry groups: [0] = sides, [1] = top cap, [2] = bottom cap
+    const sideMaterial = new THREE.MeshStandardMaterial({
       color: new THREE.Color().setHSL(hue / 360, saturation / 100, lightness / 100),
       metalness: 0.6,
       roughness: 0.3,
@@ -251,7 +253,19 @@ function generatePlatforms() {
       emissiveIntensity: 0.3
     });
 
-    const platform = new THREE.Mesh(platformGeometry, platformMaterial);
+    // Initial top material (will be replaced with NFT texture)
+    // IMPORTANT: Pure white color, no emissive, no transparency for vivid NFT display
+    const topMaterial = new THREE.MeshStandardMaterial({
+      color: 0xffffff,        // Pure white - no tinting
+      metalness: 0.2,
+      roughness: 0.7,
+      emissive: 0x000000,     // No emissive glow on top
+      transparent: false
+    });
+
+    const bottomMaterial = sideMaterial; // Bottom can use same as sides
+
+    const platform = new THREE.Mesh(platformGeometry, [sideMaterial, topMaterial, bottomMaterial]);
     platform.position.set(x, y, z);
 
     // Slight random rotation for organic feel
@@ -419,20 +433,29 @@ function loadRoomXTextures() {
 }
 
 function applyTextureToPlatform(platformMesh, texture, index) {
-  // Replace procedural material with NFT texture material
-  // Keep some emissive glow for visibility in dark space
-  const progress = index / (platformMeshes.length - 1);
-  const hue = 210 - progress * 60; // Same gradient as before for emissive edge glow
-
-  platformMesh.material = new THREE.MeshStandardMaterial({
+  // Create clean NFT material for top surface only
+  // NO tint, NO emissive, NO transparency - vivid and clear
+  const nftTopMaterial = new THREE.MeshStandardMaterial({
     map: texture,
-    emissive: new THREE.Color().setHSL(hue / 360, 0.5, 0.1), // Subtle emissive glow
-    emissiveIntensity: 0.2,
-    metalness: 0.3,
+    color: 0xffffff,         // Pure white - no color tinting
+    metalness: 0.1,
     roughness: 0.6,
+    emissive: 0x000000,      // No emissive bleed
+    emissiveIntensity: 0,
+    transparent: false,      // No semi-transparent veil
   });
 
-  platformMesh.material.needsUpdate = true;
+  // Apply to top surface only (index 1 in multi-material array)
+  // Sides (index 0) and bottom (index 2) keep their emissive glow
+  if (Array.isArray(platformMesh.material)) {
+    platformMesh.material[1] = nftTopMaterial;
+    platformMesh.material[1].needsUpdate = true;
+  } else {
+    // Fallback: replace entire material (should not happen with new setup)
+    console.warn('Platform material is not an array, replacing entire material');
+    platformMesh.material = nftTopMaterial;
+    platformMesh.material.needsUpdate = true;
+  }
 }
 
 // Load textures after platforms are created

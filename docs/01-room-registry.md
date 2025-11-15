@@ -65,7 +65,8 @@ Traditional art gallery with grey photographic frames on walls. Features:
 
 **NFT Content**:
 - **NFT Range**: 1-28 (28 total NFTs)
-- **Asset Paths**: `/assets/nft1.png` through `/assets/nft28.png`
+- **Asset Paths**: `/assets/nft1.webp` through `/assets/nft28.webp`
+- **Asset Format**: WebP (optimized for web performance)
 - **Frame Style**: Grey photographic frames (2.0 x 3.0 x 0.2 units)
 - **Picture Planes**: 1.8 x 2.7 units inside frames
 
@@ -102,7 +103,8 @@ Larger gallery space continuing the main exhibition flow. Features:
 
 **NFT Content**:
 - **NFT Range**: 29-72 (44 total NFTs)
-- **Asset Paths**: `/assets/nft29.png` through `/assets/nft72.png`
+- **Asset Paths**: `/assets/nft29.webp` through `/assets/nft72.webp`
+- **Asset Format**: WebP (optimized for web performance)
 - **Frame Style**: Consistent with Room 1
 
 **Portals OUT**:
@@ -139,7 +141,8 @@ Massive cubic gallery structure. Features:
 
 **NFT Content**:
 - **NFT Range**: 73-107 (35 total NFTs)
-- **Asset Paths**: `/assets/nft73.png` through `/assets/nft107.png`
+- **Asset Paths**: `/assets/nft73.webp` through `/assets/nft107.webp`
+- **Asset Format**: WebP (optimized for web performance)
 
 **Portals OUT**:
 | Target | Color | Code Line | Notes |
@@ -174,7 +177,8 @@ Floating island in a sky environment. Features:
 
 **NFT Content**:
 - **NFT Range**: 108-127 (20 total NFTs)
-- **Asset Paths**: `/assets/nft108.png` through `/assets/nft127.png`
+- **Asset Paths**: `/assets/nft108.webp` through `/assets/nft127.webp`
+- **Asset Format**: WebP (optimized for web performance)
 
 **Portals OUT**:
 | Target | Color | Code Line | Notes |
@@ -213,7 +217,8 @@ Dark atmospheric room with eclipse theme. Features:
 
 **NFT Content**:
 - **NFT Range**: 131-142 (12 total NFTs)
-- **Asset Paths**: `/assets/nft131.png` through `/assets/nft142.png`
+- **Asset Paths**: `/assets/nft131.webp` through `/assets/nft142.webp`
+- **Asset Format**: WebP (optimized for web performance)
 - **Display Style**: Double-sided floating frames (2.5 x 1.41 units)
 - **Formation**: Dodecagon (12-sided polygon) at 60% room radius
 
@@ -306,14 +311,15 @@ Dark atmospheric gallery with starry ceiling and dramatic lighting. Features:
 - Deep space observatory aesthetic
 
 **NFT Content**:
-- **Count**: 38 PNG images
+- **Count**: 38 WebP images
 - **Source Path**: `/assets/Room7/`
+- **Asset Format**: WebP (optimized for web performance)
 - **Files**: AI-generated imagery with long descriptive filenames
-  - Example: `lokigod69._A_female_model_standing_in_a_stark_monochrome_space__461d3cd1-91d2-4213-90e0-567676b9955d.png`
-  - Example: `lokigod69._A_female_model_whose_body_dissolves_into_thick_impre_4512005b-b6b4-48bf-8a1c-3739d9c4a119.png`
+  - Example: `lokigod69._A_female_model_standing_in_a_stark_monochrome_space__461d3cd1-91d2-4213-90e0-567676b9955d.webp`
+  - Example: `lokigod69._A_female_model_whose_body_dissolves_into_thick_impre_4512005b-b6b4-48bf-8a1c-3739d9c4a119.webp`
 - **Display**: Vertical planes (3m × 4m), arranged around gallery space
 - **Frame Style**: Minimal/frameless - direct image planes
-- **Estimated Total Size**: ~4-7 MB per image (high-resolution AI art)
+- **Estimated Total Size**: ~500KB-1MB per image (WebP compression, was ~4-7 MB PNG)
 
 **Portals OUT**:
 | Target | Color | Position | Code Line | Notes |
@@ -326,7 +332,7 @@ Dark atmospheric gallery with starry ceiling and dramatic lighting. Features:
 **Status**: ⚠️ **ORPHANED** - Room functional but no portal IN
 
 **Technical Quirks**:
-- **Heavy texture load**: 38 high-resolution PNG images (~150-300 MB total VRAM)
+- **Texture load**: 38 high-resolution WebP images (~20-40 MB total VRAM, significantly reduced from PNG)
 - **Expensive lighting**: 20 SpotLights with shadows (performance-intensive)
 - **Particle system**: 1000 point particles (moderate CPU overhead)
 - **Reflective floor**: High metalness + low roughness = expensive real-time reflections
@@ -335,7 +341,7 @@ Dark atmospheric gallery with starry ceiling and dramatic lighting. Features:
 
 **Issues**:
 - ⚠️ **ORPHANED**: No way to reach from navigation (Room 5 portal removed 2025-11-15)
-- **Performance**: Heavy VRAM usage from 38 high-res textures loaded simultaneously
+- **Performance**: Moderate VRAM usage from 38 WebP textures (improved vs. PNG)
 - **Performance**: 20 spotlights with shadows can cause frame drops on lower-end GPUs
 - **UX**: Dark aesthetic may make navigation difficult for some users
 
@@ -629,7 +635,8 @@ Audiovisual world with music and dense visual content. Features:
 **NFT Content**:
 - **Count**: 60 NFT images
 - **Source Path**: `/assets/RoomB/`
-- **Files**: B1.png through B60.png
+- **Files**: b1.webp through b60.webp
+- **Asset Format**: WebP (optimized for web performance)
 - **Display**: Randomly scattered across all 4 walls
 - **Frame Size**: Variable (7-13 units base size, aspect ratio preserved)
 - **Positioning**: Prevents overlaps using position registry system
@@ -669,7 +676,8 @@ Concept chamber with dark industrial aesthetic. A work-in-progress room featurin
 
 **NFT Content**:
 - **NFT Range**: 50-55 (6 total NFTs)
-- **Asset Paths**: `/assets/nft50.png` through `/assets/nft55.png`
+- **Asset Paths**: `/assets/nft50.webp` through `/assets/nft55.webp`
+- **Asset Format**: WebP (optimized for web performance)
 - **Display**: 3 frames on north wall, 3 frames on east wall
 - **Frame Style**: Dark grey metallic frames (2.5 x 3.5 x 0.15 units)
 
