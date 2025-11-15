@@ -275,13 +275,23 @@ console.log(report);
 
 **Impact**: ~394 net lines eliminated (717 deleted, 323 added), ~4.3 kB bundle size reduction
 
-### ⏳ Not Yet Refactored (Using ad-hoc code)
+### ✅ Bonus Rooms (6-9): COMPLETE
 
-**Bonus Rooms (6-9)** - Need redesign before refactoring:
-- ⏳ Room 6 - Video Corridor (placeholder room)
-- ⏳ Room 7 - Starry Gallery (placeholder room)
-- ⏳ Room 8 - Checkered Frame (placeholder room)
-- ⏳ Room 9 - Tunnel (placeholder room)
+**Fully Refactored (Using portal-utils)**:
+- ✅ **Room 6** - Video Corridor (1 portal, createLinkedPortal + createMultiPortalChecker)
+- ✅ **Room 7** - Starry Gallery (1 portal, standardized system)
+- ✅ **Room 8** - Checkered Frame (1 portal, standardized system)
+- ✅ **Room 9** - Tunnel (1 portal, standardized system)
+
+**Impact**: ~105 net lines eliminated, ~1.4 kB bundle size reduction (~0.3 kB gzip)
+
+**Key Changes**:
+- Fixed portal colors from legacy teal (0x00ffff) to correct style map colors (Light Blue, Gold, Silver, Lavender)
+- Changed rotation speed from 0.01 to 0.012 (bonus FX type)
+- Added portal labels for better navigation UX
+- Unified proximity detection and animation systems
+
+### ⏳ Not Yet Refactored (Using ad-hoc code)
 
 **Branch Rooms (A, B, C)** - Functional but not yet migrated:
 - ⏳ Room A - Undersea Observatory

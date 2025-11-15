@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
+import { createLinkedPortal, animateLinkedPortal, createMultiPortalChecker } from './src/core/portal-utils.js';
 
 // Basic dimensions in metres
 const CORRIDOR_RADIUS = 5;
@@ -169,36 +170,36 @@ function onKeyUp(event) {
 document.addEventListener('keydown', onKeyDown);
 document.addEventListener('keyup', onKeyUp);
 
-// Portal to Room 0
-let portalToRoom0 = new THREE.Mesh(
-  new THREE.CircleGeometry(1.5, 32),
-  new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.8, side: THREE.DoubleSide })
-);
-portalToRoom0.position.set(0, eyeHeight, CORRIDOR_LENGTH / 2 - 2);
-portalToRoom0.rotation.y = Math.PI;
+// Portal to Room 5
+const portalObj = createLinkedPortal({
+  scene,
+  fromRoom: '9',
+  toRoom: '5',
+  x: 0,
+  y: eyeHeight,
+  z: CORRIDOR_LENGTH / 2 - 2,
+  rotationY: Math.PI,
+  createLabel: true
+});
 
-let portalGlow = new THREE.Mesh(
-  new THREE.CircleGeometry(1.8, 32),
-  new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.3, side: THREE.DoubleSide })
-);
-portalGlow.position.copy(portalToRoom0.position);
-portalGlow.rotation.copy(portalToRoom0.rotation);
-scene.add(portalToRoom0, portalGlow);
+const portalToRoom5 = portalObj.portal;
+const portalGlow = portalObj.glow;
 
-function checkPortalProximity() {
-  const dist = camera.position.distanceTo(portalToRoom0.position);
-  const desc = document.getElementById('controls-description');
-  if (dist < 3.0) {
-    if (desc) desc.textContent = 'Approach portal to return to Eternal Eclipse (Room 5)';
-    if (dist < 1.8) {
-      const overlay = document.getElementById('loading-overlay');
-      if (overlay) overlay.style.display = 'flex';
-      setTimeout(() => window.location.href = 'room5.html', 500);
+const checkPortalProximity = createMultiPortalChecker({
+  camera,
+  portals: [
+    {
+      position: new THREE.Vector3(0, eyeHeight, CORRIDOR_LENGTH / 2 - 2),
+      name: 'Eternal Eclipse (Room 5)',
+      url: 'room5.html',
+      showDistance: 3.0,
+      triggerDistance: 1.8
     }
-  } else if (desc) {
-    desc.textContent = 'Controls: WASD - Move, Mouse - Look, SPACE - Jump';
-  }
-}
+  ],
+  controlsId: 'controls-description',
+  overlayId: 'loading-overlay',
+  loadingDelay: 500
+});
 
 const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
@@ -241,10 +242,7 @@ function animate() {
 
   // Check portal proximity and animate
   checkPortalProximity();
-  if (portalToRoom0) {
-    portalToRoom0.rotation.z += 0.01;
-    portalGlow.rotation.z -= 0.01;
-  }
+  animateLinkedPortal(portalToRoom5, portalGlow);
 
   renderer.render(scene, camera);
 }

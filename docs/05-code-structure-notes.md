@@ -1010,16 +1010,18 @@ The portal standardization system establishes a consistent visual language for a
 | **Room 3** | ✅ Refactored | 2 portals | ~40 | 15.26 kB | Preserved particle effects for Room 4 portal |
 | **Room 4** | ✅ Refactored | 2 portals | ~60 | 12.86 kB | Preserved particle effects for Room 5 portal |
 | **Room 5** | ✅ Refactored | 5 portals | ~134 | 13.72 kB | Full circular portal system, bonus hub |
-| Room 6 | ⏳ Not yet | 1 portal | - | 4.53 kB | Placeholder room, needs redesign |
-| Room 7 | ⏳ Not yet | 1 portal | - | 8.26 kB | Placeholder room, needs redesign |
-| Room 8 | ⏳ Not yet | 1 portal | - | 4.05 kB | Placeholder room, needs redesign |
-| Room 9 | ⏳ Not yet | 1 portal | - | 4.40 kB | Placeholder room, needs redesign |
+| **Room 6** | ✅ Refactored | 1 portal | ~38 | 4.11 kB | Fixed portal color, standardized system |
+| **Room 7** | ✅ Refactored | 1 portal | ~34 | 7.96 kB | Fixed portal color, standardized system |
+| **Room 8** | ✅ Refactored | 1 portal | ~37 | 3.71 kB | Fixed portal color, standardized system |
+| **Room 9** | ✅ Refactored | 1 portal | ~38 | 4.07 kB | Fixed portal color, standardized system |
 | Room A | ⏳ Not yet | 2 portals | - | 37.64 kB | Heavy GLTF models, functional |
 | Room A1 | ⏳ Not yet | 1 portal | - | 10.29 kB | Functional, minor issues |
 | Room B | ⏳ Not yet | 1 portal | - | 31.24 kB | Uses asset-utils diagnostics |
 | Room C | ⏳ Not yet | 1 portal | - | 5.46 kB | Work in progress room |
 
-**Total Impact (Rooms 0-5)**: ~519 lines eliminated (717 deleted, 323 added, net reduction 394 lines)
+**Total Impact (Rooms 0-9)**: ~666 lines eliminated (~864 deleted, ~470 added, net reduction ~394 lines)
+- Rooms 0-5: ~519 lines eliminated (main progression)
+- Rooms 6-9: ~147 lines eliminated (bonus rooms)
 
 **Bundle Size Improvements**:
 - Room 1: ~10.5 kB (estimated ~1 kB reduction)

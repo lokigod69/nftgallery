@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
+import { createLinkedPortal, animateLinkedPortal, createMultiPortalChecker } from './src/core/portal-utils.js';
 
 // Basic parameters
 const corridorLength = 100;
@@ -177,70 +178,37 @@ document.addEventListener('keydown', onKeyDown);
 document.addEventListener('keyup', onKeyUp);
 
 // ============================================
-// Portal to Room 0
+// Portal to Room 5
 // ============================================
-let portalToRoom0 = null;
-let portalGlow = null;
+const portalObj = createLinkedPortal({
+  scene,
+  fromRoom: '6',
+  toRoom: '5',
+  x: 0,
+  y: eyeHeight,
+  z: -corridorLength + 2,
+  rotationY: 0,
+  createLabel: true
+});
 
-function createPortal() {
-  // Portal at the end of the corridor
-  const portalGeometry = new THREE.CircleGeometry(1.5, 32);
-  const portalMaterial = new THREE.MeshBasicMaterial({
-    color: 0x00ffff, // Teal for return to hub
-    transparent: true,
-    opacity: 0.8,
-    side: THREE.DoubleSide
-  });
+const portalToRoom5 = portalObj.portal;
+const portalGlow = portalObj.glow;
 
-  portalToRoom0 = new THREE.Mesh(portalGeometry, portalMaterial);
-  portalToRoom0.position.set(0, eyeHeight, -corridorLength + 2);
-  portalToRoom0.rotation.y = 0;
-
-  // Outer glow
-  const glowGeometry = new THREE.CircleGeometry(1.8, 32);
-  const glowMaterial = new THREE.MeshBasicMaterial({
-    color: 0x00ffff,
-    transparent: true,
-    opacity: 0.3,
-    side: THREE.DoubleSide
-  });
-
-  portalGlow = new THREE.Mesh(glowGeometry, glowMaterial);
-  portalGlow.position.copy(portalToRoom0.position);
-  portalGlow.rotation.copy(portalToRoom0.rotation);
-
-  scene.add(portalToRoom0, portalGlow);
-}
-
-createPortal();
-
-function checkPortalProximity() {
-  if (!portalToRoom0) return;
-
-  const distance = camera.position.distanceTo(portalToRoom0.position);
-  const controlsDesc = document.getElementById('controls-description');
-
-  if (distance < 3.0) {
-    if (controlsDesc) {
-      controlsDesc.textContent = 'Approach portal to return to Eternal Eclipse (Room 5)';
-      controlsDesc.style.display = 'block';
+const checkPortalProximity = createMultiPortalChecker({
+  camera,
+  portals: [
+    {
+      position: new THREE.Vector3(0, eyeHeight, -corridorLength + 2),
+      name: 'Eternal Eclipse (Room 5)',
+      url: 'room5.html',
+      showDistance: 3.0,
+      triggerDistance: 1.8
     }
-
-    if (distance < 1.8) {
-      // Navigate to Room 5
-      const loadingOverlay = document.getElementById('loading-overlay');
-      if (loadingOverlay) {
-        loadingOverlay.style.display = 'flex';
-      }
-
-      setTimeout(() => {
-        window.location.href = 'room5.html';
-      }, 500);
-    }
-  } else if (controlsDesc) {
-    controlsDesc.textContent = 'Controls: WASD - Move, Mouse - Look, SPACE - Jump';
-  }
-}
+  ],
+  controlsId: 'controls-description',
+  overlayId: 'loading-overlay',
+  loadingDelay: 500
+});
 
 const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
@@ -287,10 +255,7 @@ function animate() {
   }
 
   // Animate portals
-  if (portalToRoom0) {
-    portalToRoom0.rotation.z += 0.01;
-    portalGlow.rotation.z -= 0.01;
-  }
+  animateLinkedPortal(portalToRoom5, portalGlow);
 
   renderer.render(scene, camera);
 }
