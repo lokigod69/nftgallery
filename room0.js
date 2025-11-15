@@ -28,6 +28,7 @@ import { Water } from 'three/examples/jsm/objects/Water.js';
 import { Sky } from 'three/examples/jsm/objects/Sky.js';
 import { getPortalStyle, PORTAL_COLORS } from './src/core/portal-styles.js';
 import { createMultiPortalChecker } from './src/core/portal-utils.js';
+import { createHubDoor, animateHubDoor } from './src/core/hub-door-utils.js';
 
 // Hide loading overlay when the page loads
 window.addEventListener('load', () => {
@@ -474,211 +475,79 @@ function createPlatform() {
 }
 
 // ----------------------------------------------------------------------
-// Create Wooden Doors
+// Create Premium Hub Doors
 // ----------------------------------------------------------------------
-function createWoodenDoors() {
+function createHubDoors() {
   const doors = [];
-  
-  // Updated positions - doors at the edge of the circle (radius 22), all face inward
-  const locations = [
-    // Main Gallery door - at north edge (z = 22)
-    { x: 0, z: 22, y: 2.75, rotation: Math.PI, destination: 'room1.html', name: 'Main Gallery' },
-    
-    // Room A door - northeast edge
-    { x: 15.56, z: 15.56, y: 2.75, rotation: Math.PI + Math.PI / 4, destination: 'roomA.html', name: 'Undersea Observatory' },
-    
-    // Room B door - southeast edge
-    { x: 15.56, z: -15.56, y: 2.75, rotation: Math.PI + Math.PI / 1.25, destination: 'roomB.html', name: 'NFT Gallery Room' },
-    
-    // Room C door - southwest edge - Updated to point to roomC.html
-    { x: -15.56, z: -15.56, y: 2.75, rotation: Math.PI - Math.PI / 1.25, destination: 'roomC.html', name: 'Frame Waterfall Gallery' },
-    
-    // Room D door - northwest edge
-    { x: -15.56, z: 15.56, y: 2.75, rotation: Math.PI - Math.PI / 4, destination: 'future_roomD.html', name: 'Room D (Coming Soon)' }
+
+  // Door configurations - positioned at platform edge (radius 22), facing inward
+  const doorConfigs = [
+    // Main Gallery - north edge (0→1)
+    {
+      x: 0, z: 22,
+      rotation: Math.PI,
+      fromRoom: '0',
+      toRoom: '1',
+      destination: 'room1.html',
+      name: 'Main Gallery'
+    },
+    // Undersea Observatory - northeast (0→A)
+    {
+      x: 15.56, z: 15.56,
+      rotation: Math.PI + Math.PI / 4,
+      fromRoom: '0',
+      toRoom: 'A',
+      destination: 'roomA.html',
+      name: 'Undersea Observatory'
+    },
+    // NFT Gallery Room - southeast (0→B)
+    {
+      x: 15.56, z: -15.56,
+      rotation: Math.PI + Math.PI / 1.25,
+      fromRoom: '0',
+      toRoom: 'B',
+      destination: 'roomB.html',
+      name: 'NFT Gallery Room'
+    },
+    // Frame Waterfall Gallery - southwest (0→C)
+    {
+      x: -15.56, z: -15.56,
+      rotation: Math.PI - Math.PI / 1.25,
+      fromRoom: '0',
+      toRoom: 'C',
+      destination: 'roomC.html',
+      name: 'Frame Waterfall Gallery'
+    }
+    // Room D excluded (not functional yet)
   ];
-  
-  // We'll still use textures as normal maps for minimal detail
-  let doorTexture = null;
-  let doorFrameTexture = null;
-  
-  // Try to load real textures for subtle normal maps
-  textureLoader.load('/assets/wooden_door.jpg', function(texture) {
-    doorTexture = texture;
-    doors.forEach(door => {
-      if (door.door && door.door.material) {
-        door.door.material.normalMap = texture;
-        door.door.material.normalScale = new THREE.Vector2(0.05, 0.05); // Very subtle
-        door.door.material.needsUpdate = true;
+
+  // Create each door using the premium hub door system
+  doorConfigs.forEach(config => {
+    const hubDoor = createHubDoor({
+      scene,
+      position: { x: config.x, y: 0, z: config.z },  // Y=0 is camera level, door will ground itself
+      rotation: config.rotation,
+      fromRoom: config.fromRoom,
+      toRoom: config.toRoom,
+      name: config.name,
+      destination: config.destination,
+      groundLevel: waterLevel,  // Doors sit on platform at waterLevel
+      createLabel: true
+    });
+
+    // Store door object with location info for proximity checking
+    doors.push({
+      ...hubDoor,
+      location: {
+        x: config.x,
+        y: 2.5,  // Portal activation height (center of door)
+        z: config.z,
+        destination: config.destination,
+        name: config.name
       }
     });
-  }, undefined, function() {
-    console.warn('Failed to load wooden_door.jpg for normal map');
   });
-  
-  textureLoader.load('/assets/wooden_frame.jpg', function(texture) {
-    doorFrameTexture = texture;
-    doors.forEach(door => {
-      if (door.frame && door.frame.material) {
-        door.frame.material.normalMap = texture;
-        door.frame.material.normalScale = new THREE.Vector2(0.05, 0.05); // Very subtle
-        door.frame.material.needsUpdate = true;
-      }
-    });
-  }, undefined, function() {
-    console.warn('Failed to load wooden_frame.jpg for normal map');
-  });
-  
-  // Create each door
-  for (let i = 0; i < locations.length; i++) {
-    const loc = locations[i];
-    
-    // --- Special Case: Room A Door (Index 1) - Replace with Mirror ---
-    if (i === 1) {
-      const mirrorGeometry = new THREE.PlaneGeometry(3.5, 5); // Larger shape
-      const mirrorMaterial = new THREE.MeshStandardMaterial({
-          color: PORTAL_COLORS.DEEP_BLUE,  // Standardized color for 0→A
-          metalness: 0.2,
-          roughness: 0.4,
-          side: THREE.DoubleSide
-      });
 
-      const mirror = new THREE.Mesh(mirrorGeometry, mirrorMaterial);
-      mirror.position.set(loc.x, loc.y, loc.z); // Position like other doors
-      mirror.rotation.y = loc.rotation; // Rotate like other doors
-      mirror.castShadow = false;
-      mirror.receiveShadow = true; // Allow receiving shadows
-
-      // Mark as door and store destination/name
-      mirror.userData = {
-        isDoor: true,
-        destination: loc.destination,
-        name: loc.name,
-        index: i
-      };
-      scene.add(mirror);
-
-      // Push only the mirror object to the doors array for this index
-      doors.push({ door: mirror, frame: null, label: null, location: loc });
-
-      continue; // Skip the default frame/door/label creation for the mirror
-    }
-    // --- End Special Case for Room A Mirror ---
-
-    // --- Default Door Creation (for indices other than 1) ---
-    // Door frame - enlarged
-    const frameGeometry = new THREE.BoxGeometry(4, 5.5, 0.2);
-    const frameMaterial = new THREE.MeshPhysicalMaterial({ 
-      color: 0x66ccff,          // Light blue tint
-      roughness: 0.05,          // Very smooth surface
-      metalness: 0.1,           // Low metallic look
-      transmission: 0.95,       // Extremely high transparency
-      transparent: true,
-      opacity: 0.15,            // Very low opacity
-      reflectivity: 0.2,        // Low reflectivity
-      clearcoat: 0.3,           // Subtle clearcoat
-      clearcoatRoughness: 0.05,
-      ior: 1.5,                 // Glass-like index of refraction
-      side: THREE.DoubleSide    // Show both sides of the geometry
-    });
-    
-    const frame = new THREE.Mesh(frameGeometry, frameMaterial);
-    frame.position.set(loc.x, loc.y, loc.z);
-    frame.rotation.y = loc.rotation;
-    frame.castShadow = false;
-    frame.receiveShadow = false;
-    scene.add(frame);
-    
-    // Door panel
-    const doorGeometry = new THREE.PlaneGeometry(3.5, 5);
-
-    // Use standardized colors from portal style map
-    let doorColor;
-    switch(i) {
-      case 0: doorColor = PORTAL_COLORS.OCEAN_BLUE; break;  // Main Gallery (0→1)
-      case 1: doorColor = PORTAL_COLORS.DEEP_BLUE; break;   // Undersea Observatory (0→A)
-      case 2: doorColor = PORTAL_COLORS.EMERALD; break;     // NFT Gallery Room (0→B)
-      case 3: doorColor = PORTAL_COLORS.AMBER; break;       // Concept Chamber (0→C)
-      case 4: doorColor = 0xff00ff; break;                  // Room D - placeholder (no link defined yet)
-      default: doorColor = 0xffffff;
-    }
-    
-    const doorMaterial = new THREE.MeshStandardMaterial({
-      color: doorColor,
-      roughness: 0.4,
-      metalness: 0.2,
-      side: THREE.DoubleSide,
-      emissive: doorColor,
-      emissiveIntensity: 0.2
-    });
-    
-    const door = new THREE.Mesh(doorGeometry, doorMaterial);
-    // Position slightly in front of the frame
-    const offset = 0.12;
-    door.position.set(
-      loc.x + Math.sin(loc.rotation) * offset,
-      loc.y,
-      loc.z + Math.cos(loc.rotation) * offset
-    );
-    door.rotation.y = loc.rotation;
-    door.castShadow = false;
-    door.userData = { 
-      isDoor: true,
-      destination: loc.destination,
-      name: loc.name,
-      index: i
-    };
-    scene.add(door);
-    
-    // Add glowing text label above door
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    canvas.width = 256;
-    canvas.height = 64;
-    
-    // Make background transparent
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // Add subtle glow effect under text
-    const gradient = context.createRadialGradient(
-      canvas.width/2, canvas.height/2, 5,
-      canvas.width/2, canvas.height/2, 50
-    );
-    gradient.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
-    gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-    context.fillStyle = gradient;
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Draw text
-    context.fillStyle = '#ffffff';
-    context.font = 'Bold 24px Arial';
-    context.textAlign = 'center';
-    context.fillText(loc.name, canvas.width / 2, canvas.height / 2);
-    
-    // Create texture from canvas
-    const labelTexture = new THREE.CanvasTexture(canvas);
-    const labelMaterial = new THREE.MeshBasicMaterial({
-      map: labelTexture,
-      side: THREE.DoubleSide,
-      transparent: true,
-      blending: THREE.AdditiveBlending
-    });
-    
-    const labelGeometry = new THREE.PlaneGeometry(2, 0.5);
-    const label = new THREE.Mesh(labelGeometry, labelMaterial);
-    // Position above the door
-    label.position.set(
-      loc.x,
-      loc.y + 3.2,
-      loc.z
-    );
-    label.rotation.y = loc.rotation;
-    scene.add(label);
-    
-    // Push all parts for standard doors
-    doors.push({ door, frame, label, location: loc });
-    // --- End Default Door Creation ---
-  }
-  
   return doors;
 }
 
@@ -688,7 +557,7 @@ function createWoodenDoors() {
 const water = createOcean();
 const { sky, sun } = createSky();
 const platform = createPlatform();
-const doors = createWoodenDoors();
+const doors = createHubDoors();
 
 // Set up multi-portal proximity checker using standardized system
 const portalConfigs = [
@@ -769,10 +638,11 @@ function animate() {
   if (water) {
     water.material.uniforms['time'].value += delta * 0.5;
   }
-  
-  // Reflection updates removed for performance
-  
-  // Door animation removed
+
+  // Animate hub doors (portal pulsing, glow rotation, lights)
+  doors.forEach(door => {
+    animateHubDoor(door, time);
+  });
   
   if (controls.isLocked === true) {
     // Handle jumping and gravity
