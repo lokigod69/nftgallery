@@ -433,8 +433,25 @@ function loadRoomXTextures() {
 }
 
 function applyTextureToPlatform(platformMesh, texture, index) {
-  // Create clean NFT material for top surface only
-  // NO tint, NO emissive, NO transparency - vivid and clear
+  // Prepare texture settings for consistent quality across all faces
+  texture.encoding = THREE.sRGBEncoding;
+  texture.wrapS = THREE.ClampToEdgeWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+  texture.anisotropy = 8;
+
+  // Create NFT material for sides - artwork wraps over edges like gallery canvas
+  // NO tint, NO emissive, NO transparency - artwork extends naturally
+  const nftSideMaterial = new THREE.MeshStandardMaterial({
+    map: texture,
+    color: 0xffffff,         // Pure white - no color tinting
+    metalness: 0.1,
+    roughness: 0.6,
+    emissive: 0x000000,      // No glow on sides
+    emissiveIntensity: 0,
+    transparent: false,
+  });
+
+  // Create NFT material for top - same texture, same clean appearance
   const nftTopMaterial = new THREE.MeshStandardMaterial({
     map: texture,
     color: 0xffffff,         // Pure white - no color tinting
@@ -442,14 +459,18 @@ function applyTextureToPlatform(platformMesh, texture, index) {
     roughness: 0.6,
     emissive: 0x000000,      // No emissive bleed
     emissiveIntensity: 0,
-    transparent: false,      // No semi-transparent veil
+    transparent: false,
   });
 
-  // Apply to top surface only (index 1 in multi-material array)
-  // Sides (index 0) and bottom (index 2) keep their emissive glow
+  // Apply NFT texture to both sides AND top
+  // CylinderGeometry UVs will wrap texture around sides naturally
+  // Result: artwork extends over edges like a wrapped canvas
   if (Array.isArray(platformMesh.material)) {
-    platformMesh.material[1] = nftTopMaterial;
+    platformMesh.material[0] = nftSideMaterial;  // Sides now show artwork
+    platformMesh.material[1] = nftTopMaterial;   // Top shows artwork
+    platformMesh.material[0].needsUpdate = true;
     platformMesh.material[1].needsUpdate = true;
+    // Bottom (index 2) keeps original material - not visible to player
   } else {
     // Fallback: replace entire material (should not happen with new setup)
     console.warn('Platform material is not an array, replacing entire material');
