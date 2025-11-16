@@ -704,6 +704,86 @@ const checkPortalProximity = createMultiPortalChecker({
 // Portal proximity checking is now handled by createMultiPortalChecker() above
 
 // ----------------------------------------------------------------------
+// Room 1 Collision System
+// ----------------------------------------------------------------------
+/**
+ * Room 1 collision constants - derived from actual NFT and wall positions
+ *
+ * Geometry:
+ * - Walls at ±20 units
+ * - NFT frames at ±19.5 units (0.5 from wall)
+ * - Picture planes at ±19.39 units (frames + 0.11 offset)
+ * - Divider at z=0, frames at ±0.21, pictures at ±0.32
+ */
+const ROOM1_COLLISION = {
+  // Player radius for collision (top-down cylinder)
+  playerRadius: 0.3,
+
+  // Outer wall picture plane positions (where NFTs actually are)
+  walls: {
+    back:  -19.39,   // Back wall pictures (z position)
+    front:  19.39,   // Front wall pictures (z position)
+    left:  -19.39,   // Left wall pictures (x position)
+    right:  19.39    // Right wall pictures (x position)
+  },
+
+  // Divider wall (center divider with NFTs on both sides)
+  divider: {
+    minX: -15.0,     // Divider spans x=-15 to x=15
+    maxX:  15.0,
+    frontPictureZ:  0.32,  // Front-facing pictures (positive z side)
+    backPictureZ:  -0.32   // Back-facing pictures (negative z side)
+  }
+};
+
+/**
+ * Apply Room 1 collision - prevents walking through/behind NFTs and walls
+ * Called once per frame after movement is computed
+ *
+ * @param {THREE.Vector3} position - Player position to constrain (modified in-place)
+ */
+function applyRoom1Collisions(position) {
+  const r = ROOM1_COLLISION.playerRadius;
+  const w = ROOM1_COLLISION.walls;
+  const d = ROOM1_COLLISION.divider;
+
+  // Outer wall collisions - stop before hitting picture planes
+  // Back wall (negative z)
+  if (position.z < w.back + r) {
+    position.z = w.back + r;
+  }
+  // Front wall (positive z)
+  if (position.z > w.front - r) {
+    position.z = w.front - r;
+  }
+  // Left wall (negative x)
+  if (position.x < w.left + r) {
+    position.x = w.left + r;
+  }
+  // Right wall (positive x)
+  if (position.x > w.right - r) {
+    position.x = w.right - r;
+  }
+
+  // Divider wall collision - only applies when within divider's x range
+  const withinDividerX = (position.x > d.minX && position.x < d.maxX);
+
+  if (withinDividerX) {
+    // Check which side of divider we're approaching from
+
+    // Approaching from negative z side (moving toward front-facing pictures)
+    if (position.z < d.backPictureZ - r) {
+      position.z = d.backPictureZ - r;
+    }
+
+    // Approaching from positive z side (moving toward back-facing pictures)
+    if (position.z > d.frontPictureZ + r) {
+      position.z = d.frontPictureZ + r;
+    }
+  }
+}
+
+// ----------------------------------------------------------------------
 // Animation Loop
 // ----------------------------------------------------------------------
 function animate() {
@@ -736,29 +816,8 @@ function animate() {
     controls.moveRight(-velocity.x);
     controls.moveForward(-velocity.z);
 
-    // Collision bounds - keep player in room but allow close wall approach
-    const pos = controls.getObject().position;
-    const roomBounds = 19.5; // Room is 40x40, walls at ±20, allow getting very close
-    pos.x = Math.max(-roomBounds, Math.min(roomBounds, pos.x));
-    pos.z = Math.max(-roomBounds, Math.min(roomBounds, pos.z));
-
-    // Divider wall collision - prevent walking through center wall
-    const dividerZ = 0;           // Divider is at z=0
-    const dividerMinX = -15;      // Divider spans x=-15 to x=15 (30 units wide)
-    const dividerMaxX = 15;
-    const minDistance = 0.25;     // How close player can get to divider
-
-    // Only apply divider collision when player is within divider's x range
-    if (pos.x > dividerMinX && pos.x < dividerMaxX) {
-      // Player is within divider's width - prevent crossing through
-      if (pos.z > dividerZ - minDistance && pos.z < dividerZ) {
-        // Approaching from negative z side
-        pos.z = dividerZ - minDistance;
-      } else if (pos.z < dividerZ + minDistance && pos.z > dividerZ) {
-        // Approaching from positive z side
-        pos.z = dividerZ + minDistance;
-      }
-    }
+    // Apply Room 1 collision system
+    applyRoom1Collisions(controls.getObject().position);
 
     // Check portal proximity
     checkPortalProximity();
