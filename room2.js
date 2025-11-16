@@ -8,7 +8,7 @@ import { initSpeedControl } from './src/ui/speed-control.js';
 // ----------------------------------------------------------------------
 // Global Variables for Jump Physics
 // ----------------------------------------------------------------------
-const groundLevels = { 1: 3.2 }; // Raised eye height for NFT center alignment at close distance
+const groundLevels = { 1: 4.0 }; // Eye height set to measured NFT center Y (data-driven)
 let isJumping = false;
 let jumpVelocity = 0;
 const gravity = -30;
@@ -17,6 +17,7 @@ const gravity = -30;
 // Global Variables and Picture Viewer Setup
 // ----------------------------------------------------------------------
 let picturePlanes = [];
+let nftCenterMeasured = false;  // Flag to measure NFT center Y only once
 
 // Keep track of all NFTs in the room for the slider functionality
 const allNFTs = [];
@@ -494,6 +495,16 @@ function createNFT(index, position, rotation) {
       picturePlane.position.z = 0.11;
       frameGroup.add(picturePlane);
       picturePlanes.push(picturePlane);
+
+      // Measure NFT center Y for eye height calibration (first NFT only)
+      if (!nftCenterMeasured) {
+        nftCenterMeasured = true;
+        const box = new THREE.Box3().setFromObject(picturePlane);
+        const center = new THREE.Vector3();
+        box.getCenter(center);
+        console.log('🎯 ROOM 2 NFT center Y:', center.y);
+        console.log('   (Current eye height:', groundLevels[1], ')');
+      }
     },
     undefined,
     (err) => {

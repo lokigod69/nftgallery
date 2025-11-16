@@ -168,6 +168,55 @@ function createHollowSphere() {
 }
 
 // ----------------------------------------------------------------------
+// Canvas Wrap UV Mapping for Platform Tiles
+// ----------------------------------------------------------------------
+/**
+ * Modify CylinderGeometry UVs to create "wrapped canvas" effect
+ * - Top face: unchanged (shows full NFT artwork)
+ * - Side faces: sample from outer edge of texture (like canvas edge wrap)
+ *
+ * CylinderGeometry UV layout (radialSegments=6):
+ * - Vertices are organized as groups for top cap, sides, bottom cap
+ * - Side faces use rectangular UVs (U wraps around, V is height)
+ *
+ * @param {THREE.CylinderGeometry} geometry - Platform cylinder geometry
+ */
+function applyCanvasWrapUVs(geometry) {
+  const uvAttribute = geometry.attributes.uv;
+  const uvArray = uvAttribute.array;
+  const radialSegments = 6; // Hexagon
+
+  // CylinderGeometry vertex layout:
+  // - Top cap center: 1 vertex
+  // - Top cap perimeter: radialSegments vertices
+  // - Side vertices: (radialSegments + 1) * 2 vertices (top ring + bottom ring)
+  // - Bottom cap perimeter: radialSegments vertices
+  // - Bottom cap center: 1 vertex
+
+  const topCapVertices = 1 + radialSegments; // center + perimeter
+  const sideVertices = (radialSegments + 1) * 2; // top ring + bottom ring
+
+  // Side face UVs start after top cap vertices
+  const sideUVStart = topCapVertices * 2; // Each vertex has 2 UV components (U, V)
+  const sideUVEnd = sideUVStart + (sideVertices * 2);
+
+  // Modify side face UVs to sample from edge strip (U: 0.85 - 1.0)
+  const edgeStart = 0.85;
+  const edgeEnd = 1.0;
+  const edgeWidth = edgeEnd - edgeStart;
+
+  for (let i = sideUVStart; i < sideUVEnd; i += 2) {
+    const originalU = uvArray[i];
+    // Remap U from [0, 1] to [0.85, 1.0] for edge strip sampling
+    uvArray[i] = edgeStart + (originalU * edgeWidth);
+    // V coordinate (uvArray[i + 1]) stays unchanged
+  }
+
+  uvAttribute.needsUpdate = true;
+  // Canvas wrap UVs applied (no log to avoid spam - 28 platforms)
+}
+
+// ----------------------------------------------------------------------
 // Generate Spiral Platform Path
 // ----------------------------------------------------------------------
 function generatePlatforms() {
@@ -237,6 +286,9 @@ function generatePlatforms() {
       0.4,
       6
     );
+
+    // Apply canvas wrap UV mapping for side faces
+    applyCanvasWrapUVs(platformGeometry);
 
     // Color gradient - cooler colors at bottom, warmer at top
     const hue = 210 - progress * 60; // Blue to orange
