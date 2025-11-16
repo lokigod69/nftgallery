@@ -8,7 +8,7 @@ import { initSpeedControl } from './src/ui/speed-control.js';
 // ----------------------------------------------------------------------
 // Global Variables for Jump Physics
 // ----------------------------------------------------------------------
-const groundLevels = { 1: 3.5 };
+const groundLevels = { 1: 2.7 }; // Match Room 1 eye height for consistent NFT viewing
 let isJumping = false;
 let jumpVelocity = 0;
 const gravity = -30;
@@ -692,68 +692,91 @@ function createDivider() {
 }
 
 // ----------------------------------------------------------------------
-// Collision Detection
+// Room 2 Collision System
 // ----------------------------------------------------------------------
+/**
+ * Room 2 collision constants - derived from actual geometry
+ *
+ * Geometry:
+ * - Outer walls at ±20, NFT frames at ±19.5, pictures at ±19.39
+ * - Divider groups at x=±10, z=0
+ * - Divider frames at z=±0.4, pictures at z=±0.51 (frameOffset + picture offset)
+ */
+const ROOM2_COLLISION = {
+  // Player radius for collision (top-down cylinder)
+  playerRadius: 0.3,
+
+  // Outer wall bounds (keep existing good behavior)
+  outerBounds: {
+    minX: -19,
+    maxX: 19,
+    minZ: -19,
+    maxZ: 19
+  },
+
+  // Divider sections (two separate dividers with gap in middle)
+  dividers: {
+    // Left divider (centered at x=-10)
+    left: {
+      minX: -17.5,
+      maxX: -2.5
+    },
+    // Right divider (centered at x=10)
+    right: {
+      minX: 2.5,
+      maxX: 17.5
+    },
+    // Picture plane positions in world space
+    frontPictureZ: 0.51,   // Front-facing pictures (frameOffset 0.4 + picture 0.11)
+    backPictureZ: -0.51    // Back-facing pictures (-0.4 - 0.11)
+  }
+};
+
+/**
+ * Apply Room 2 collision - outer walls + divider sections
+ * Called once per frame after movement is computed
+ *
+ * @param {THREE.Vector3} position - Player position to constrain (modified in-place)
+ */
+function applyRoom2Collisions(position) {
+  const r = ROOM2_COLLISION.playerRadius;
+  const outer = ROOM2_COLLISION.outerBounds;
+  const div = ROOM2_COLLISION.dividers;
+
+  // Outer wall collisions - preserve existing good behavior
+  if (position.x < outer.minX + r) {
+    position.x = outer.minX + r;
+  }
+  if (position.x > outer.maxX - r) {
+    position.x = outer.maxX - r;
+  }
+  if (position.z < outer.minZ + r) {
+    position.z = outer.minZ + r;
+  }
+  if (position.z > outer.maxZ - r) {
+    position.z = outer.maxZ - r;
+  }
+
+  // Divider collision - check if player is within either divider section's X range
+  const inLeftDivider = (position.x > div.left.minX && position.x < div.left.maxX);
+  const inRightDivider = (position.x > div.right.minX && position.x < div.right.maxX);
+
+  if (inLeftDivider || inRightDivider) {
+    // Approaching from negative z side (moving toward back-facing pictures)
+    if (position.z < div.backPictureZ - r) {
+      position.z = div.backPictureZ - r;
+    }
+
+    // Approaching from positive z side (moving toward front-facing pictures)
+    if (position.z > div.frontPictureZ + r) {
+      position.z = div.frontPictureZ + r;
+    }
+  }
+}
+
+// Legacy function name for compatibility - now calls new collision system
 function checkCollisions() {
-  const playerRadius = 0.2; // Reduced to allow close wall approach like Room 1
-  const cameraPosition = camera.position.clone();
-  const minDistance = 0.25; // How close player can get to divider walls
-
-  // Check outer wall collisions - keep player in room but allow close approach
-  if (cameraPosition.x < -19 + playerRadius) camera.position.x = -19 + playerRadius;
-  if (cameraPosition.x > 19 - playerRadius) camera.position.x = 19 - playerRadius;
-  if (cameraPosition.z < -19 + playerRadius) camera.position.z = -19 + playerRadius;
-  if (cameraPosition.z > 19 - playerRadius) camera.position.z = 19 - playerRadius;
-
-  // Divider wall collision - two sections with gap in middle
-  const dividerZ = 0;           // Both dividers at z=0
-  const leftDividerMinX = -17.5;  // Left divider: 15 units wide centered at x=-10
-  const leftDividerMaxX = -2.5;
-  const rightDividerMinX = 2.5;   // Right divider: 15 units wide centered at x=10
-  const rightDividerMaxX = 17.5;
-
-  // Left divider section collision
-  if (cameraPosition.x > leftDividerMinX && cameraPosition.x < leftDividerMaxX) {
-    if (cameraPosition.z > dividerZ - minDistance && cameraPosition.z < dividerZ) {
-      // Approaching from negative z side
-      camera.position.z = dividerZ - minDistance;
-    } else if (cameraPosition.z < dividerZ + minDistance && cameraPosition.z > dividerZ) {
-      // Approaching from positive z side
-      camera.position.z = dividerZ + minDistance;
-    }
-  }
-
-  // Right divider section collision
-  if (cameraPosition.x > rightDividerMinX && cameraPosition.x < rightDividerMaxX) {
-    if (cameraPosition.z > dividerZ - minDistance && cameraPosition.z < dividerZ) {
-      // Approaching from negative z side
-      camera.position.z = dividerZ - minDistance;
-    } else if (cameraPosition.z < dividerZ + minDistance && cameraPosition.z > dividerZ) {
-      // Approaching from positive z side
-      camera.position.z = dividerZ + minDistance;
-    }
-  }
-
-  // Prevent getting stuck in corners
-  const cornerBuffer = 2;
-  // Outer corners
-  if (Math.abs(cameraPosition.x) > 19 - cornerBuffer && Math.abs(cameraPosition.z) > 19 - cornerBuffer) {
-    if (Math.abs(cameraPosition.x) > Math.abs(cameraPosition.z)) {
-      camera.position.x = Math.sign(cameraPosition.x) * (19 - cornerBuffer);
-    } else {
-      camera.position.z = Math.sign(cameraPosition.z) * (19 - cornerBuffer);
-    }
-  }
-
-  // Divider wall corners
-  if ((Math.abs(cameraPosition.x + 10) < cornerBuffer || Math.abs(cameraPosition.x - 10) < cornerBuffer) && 
-      Math.abs(cameraPosition.z) < wallOffset) {
-    if (cameraPosition.z > 0) {
-      camera.position.z = wallOffset;
-    } else {
-      camera.position.z = -wallOffset;
-    }
-  }
+  applyRoom2Collisions(camera.position);
 }
 
 createDivider();
