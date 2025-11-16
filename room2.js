@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { createLinkedPortal, animateLinkedPortal, createMultiPortalChecker } from './src/core/portal-utils.js';
 import { getNftUrl } from './src/core/asset-utils.js';
+import { MOVEMENT_CONFIG } from './src/core/movement-config.js';
 
 // ----------------------------------------------------------------------
 // Global Variables for Jump Physics
@@ -243,7 +244,7 @@ document.addEventListener('click', () => {
 let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
 const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
-const speed = 20.0;
+// Movement speed now using shared config (was 20.0)
 
 document.addEventListener('keydown', (event) => {
   switch (event.code) {
@@ -857,13 +858,14 @@ function animate() {
   }
 
   if (controls.isLocked) {
+    const speedDelta = MOVEMENT_CONFIG.getEffectiveSpeed() * delta;
     velocity.x = 0;
     velocity.z = 0;
     direction.z = Number(moveForward) - Number(moveBackward);
     direction.x = Number(moveRight) - Number(moveLeft);
     direction.normalize();
-    if (moveForward || moveBackward) velocity.z -= direction.z * speed * delta;
-    if (moveLeft || moveRight) velocity.x -= direction.x * speed * delta;
+    if (moveForward || moveBackward) velocity.z -= direction.z * speedDelta;
+    if (moveLeft || moveRight) velocity.x -= direction.x * speedDelta;
     controls.moveRight(-velocity.x);
     controls.moveForward(-velocity.z);
 

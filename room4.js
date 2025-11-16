@@ -24,6 +24,7 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { createLinkedPortal, animateLinkedPortal, createMultiPortalChecker } from './src/core/portal-utils.js';
+import { MOVEMENT_CONFIG } from './src/core/movement-config.js';
 
 // ----------------------------------------------------------------------
 // Global Variables
@@ -33,7 +34,7 @@ const eyeHeight = 2.5; // Raised from 1.7 to 2.5 to align with outer row NFTs
 let isJumping = false;
 let jumpVelocity = 0;
 const gravity = -30;
-const speed = 100.0;
+// Movement speed now using shared config (was 100.0)
 const textureLoader = new THREE.TextureLoader();
 
 // Keep track of all NFTs
@@ -1017,12 +1018,13 @@ function animate() {
     velocity.x -= velocity.x * 10.0 * delta;
     velocity.z -= velocity.z * 10.0 * delta;
     
+    const speedDelta = MOVEMENT_CONFIG.getEffectiveSpeed() * delta;
     direction.z = Number(moveForward) - Number(moveBackward);
     direction.x = Number(moveRight) - Number(moveLeft);
     direction.normalize();
-    
-    if (moveForward || moveBackward) velocity.z -= direction.z * speed * delta;
-    if (moveLeft || moveRight) velocity.x -= direction.x * speed * delta;
+
+    if (moveForward || moveBackward) velocity.z -= direction.z * speedDelta;
+    if (moveLeft || moveRight) velocity.x -= direction.x * speedDelta;
     
     controls.moveRight(-velocity.x * delta);
     controls.moveForward(-velocity.z * delta);

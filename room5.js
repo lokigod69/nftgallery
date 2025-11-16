@@ -15,6 +15,7 @@ import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockCont
 import { getNftUrl } from './src/core/asset-utils.js';
 import { createLinkedPortal, createPortalLabel, animateLinkedPortal, createMultiPortalChecker } from './src/core/portal-utils.js';
 import { getPortalStyle } from './src/core/portal-styles.js';
+import { MOVEMENT_CONFIG } from './src/core/movement-config.js';
 
 // ----------------------------------------------------------------------
 // Global Variables
@@ -24,7 +25,7 @@ const eyeHeight = 5.0; // UPDATED: Raised camera height to be level with the NFT
 let isJumping = false;
 let jumpVelocity = 0;
 const gravity = -30;
-const speed = 90.0; // Slightly slower for atmospheric effect
+// Movement speed now using shared config (was 90.0)
 const textureLoader = new THREE.TextureLoader();
 
 // Room dimensions
@@ -1022,12 +1023,13 @@ function animate() {
     velocity.x -= velocity.x * 10.0 * delta;
     velocity.z -= velocity.z * 10.0 * delta;
     
+    const speedDelta = MOVEMENT_CONFIG.getEffectiveSpeed() * delta;
     direction.z = Number(moveForward) - Number(moveBackward);
     direction.x = Number(moveRight) - Number(moveLeft);
     direction.normalize();
-    
-    if (moveForward || moveBackward) velocity.z -= direction.z * speed * delta;
-    if (moveLeft || moveRight) velocity.x -= direction.x * speed * delta;
+
+    if (moveForward || moveBackward) velocity.z -= direction.z * speedDelta;
+    if (moveLeft || moveRight) velocity.x -= direction.x * speedDelta;
     
     controls.moveRight(-velocity.x * delta);
     controls.moveForward(-velocity.z * delta);

@@ -912,7 +912,7 @@ function addMixedDecorationsToWalls() {
   // Load all copper textures
   const textureLoader = new THREE.TextureLoader();
   const copperTextures = [];
-  
+
   const copperFiles = [
     getTextureUrl('copper1'),
     getTextureUrl('copper2'),
@@ -922,61 +922,96 @@ function addMixedDecorationsToWalls() {
     getTextureUrl('copper4b'),
     getTextureUrl('copper4c')
   ];
-  
-  // Load all copper textures
-  copperFiles.forEach((file, index) => {
-    const texture = textureLoader.load(file, function(texture) {
-      texture.wrapS = THREE.RepeatWrapping;
-      texture.wrapT = THREE.RepeatWrapping;
-      texture.repeat.set(1, 1);
-      console.log(`Copper texture ${index+1} loaded successfully`);
-    }, undefined, function(error) {
-      console.error(`Error loading copper texture ${index+1}:`, error);
-    });
-    copperTextures.push(texture);
-  });
-  
-  // Create materials for each copper texture
-  const copperMaterials = copperTextures.map(texture => {
+
+  // Batched loading configuration
+  const BATCH_SIZE = 10;
+  const BATCH_DELAY = 400; // 400ms delay between batches
+
+  // Load copper textures in batches
+  function loadCopperBatch(startIndex) {
+    const endIndex = Math.min(startIndex + BATCH_SIZE, copperFiles.length);
+
+    for (let i = startIndex; i < endIndex; i++) {
+      const file = copperFiles[i];
+      const texture = textureLoader.load(file, function(texture) {
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.set(1, 1);
+        console.log(`Copper texture ${i+1}/${copperFiles.length} loaded`);
+      }, undefined, function(error) {
+        console.error(`Error loading copper texture ${i+1}:`, error);
+      });
+      copperTextures.push(texture);
+    }
+
+    // Load next batch if there are more textures
+    if (endIndex < copperFiles.length) {
+      setTimeout(() => loadCopperBatch(endIndex), BATCH_DELAY);
+    } else {
+      // Start loading NFT textures after copper textures are queued
+      setTimeout(() => loadNFTBatch(0), BATCH_DELAY);
+    }
+  }
+
+  // Create materials for each copper texture (will be populated as textures load)
+  const copperMaterials = copperFiles.map(() => {
     return new THREE.MeshStandardMaterial({
-      map: texture,
       roughness: 0.6,
       metalness: 0.8,
       color: 0xddaa88 // Slight copper tint
     });
   });
-  
-  // Load all NFT images
+
+  // Update materials as textures load
+  copperTextures.forEach((texture, index) => {
+    copperMaterials[index].map = texture;
+    copperMaterials[index].needsUpdate = true;
+  });
+
+  // NFT loading setup
   const nftImages = [];
   const nftDimensions = []; // Array to store the original dimensions of each NFT
-  
+
   // Generate file names b1.png to b60.png (lowercase to match actual files)
   const nftFiles = [];
   for (let i = 1; i <= 60; i++) {
     nftFiles.push(`RoomB/b${i}`);
   }
-  
-  // Preload all Room B NFT images
-  for (const filename of nftFiles) {
-    const texture = textureLoader.load(getTextureUrl(filename), function(tex) {
-      tex.encoding = THREE.sRGBEncoding;
-      
-      // Store the actual dimensions of the loaded texture
-      const dimensions = {
-        width: tex.image.width,
-        height: tex.image.height,
-        aspectRatio: tex.image.width / tex.image.height
-      };
-      nftDimensions.push(dimensions);
-      
-      console.log(`Loaded NFT texture: ${filename} (${dimensions.width}x${dimensions.height})`);
-    }, undefined, function(error) {
-      console.error(`Error loading NFT texture ${filename}:`, error);
-      // Push a default dimension in case of error
-      nftDimensions.push({ width: 512, height: 512, aspectRatio: 1 });
-    });
-    nftImages.push(texture);
+
+  // Batched NFT loading
+  function loadNFTBatch(startIndex) {
+    const endIndex = Math.min(startIndex + BATCH_SIZE, nftFiles.length);
+
+    for (let i = startIndex; i < endIndex; i++) {
+      const filename = nftFiles[i];
+      const texture = textureLoader.load(getTextureUrl(filename), function(tex) {
+        tex.encoding = THREE.sRGBEncoding;
+
+        // Store the actual dimensions of the loaded texture
+        const dimensions = {
+          width: tex.image.width,
+          height: tex.image.height,
+          aspectRatio: tex.image.width / tex.image.height
+        };
+        nftDimensions[i] = dimensions;
+
+        console.log(`Loaded NFT ${i+1}/${nftFiles.length}: ${filename} (${dimensions.width}x${dimensions.height})`);
+      }, undefined, function(error) {
+        console.error(`Error loading NFT texture ${filename}:`, error);
+        // Push a default dimension in case of error
+        nftDimensions[i] = { width: 512, height: 512, aspectRatio: 1 };
+      });
+      nftImages[i] = texture;
+    }
+
+    // Load next batch if there are more textures
+    if (endIndex < nftFiles.length) {
+      setTimeout(() => loadNFTBatch(endIndex), BATCH_DELAY);
+    }
   }
+
+  // Start the batched loading process
+  loadCopperBatch(0);
   
   // Define the range for the NFT and copper tile placement
   const minHeight = 5; // Minimum height from floor (meters)

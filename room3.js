@@ -33,6 +33,7 @@ import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { createLinkedPortal, animateLinkedPortal, createMultiPortalChecker } from './src/core/portal-utils.js';
 import { getNftUrl } from './src/core/asset-utils.js';
+import { MOVEMENT_CONFIG } from './src/core/movement-config.js';
 
 // ----------------------------------------------------------------------
 // Global Variables for Jump Physics
@@ -46,7 +47,7 @@ const gravity = -30;
 // Global Variables and Picture Viewer Setup
 // ----------------------------------------------------------------------
 let picturePlanes = [];
-const speed = 100.0; // Significantly increased speed for faster movement
+// Movement speed now using shared config (was 100.0)
 const textureLoader = new THREE.TextureLoader(); // Texture loader for NFTs
 
 // Keep track of all NFTs in the room for the slider functionality
@@ -1239,13 +1240,14 @@ function animate() {
     // Movement - using room2's speed variable
     velocity.x -= velocity.x * 10.0 * delta;
     velocity.z -= velocity.z * 10.0 * delta;
-    
+
+    const speedDelta = MOVEMENT_CONFIG.getEffectiveSpeed() * delta;
     direction.z = Number(moveForward) - Number(moveBackward);
     direction.x = Number(moveRight) - Number(moveLeft);
     direction.normalize();
-    
-    if (moveForward || moveBackward) velocity.z -= direction.z * speed * delta;
-    if (moveLeft || moveRight) velocity.x -= direction.x * speed * delta;
+
+    if (moveForward || moveBackward) velocity.z -= direction.z * speedDelta;
+    if (moveLeft || moveRight) velocity.x -= direction.x * speedDelta;
     
     controls.moveRight(-velocity.x * delta);
     controls.moveForward(-velocity.z * delta);
