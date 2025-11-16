@@ -7,6 +7,21 @@ import { MOVEMENT_CONFIG } from './src/core/movement-config.js';
 // Room 6: "Lava Corridor" - Platforming Challenge
 // ----------------------------------------------------------------------
 
+// ROOM 6 CURRENT STATE (inspection before lava rework)
+// - Scene background: 0xffffff (WHITE) - causing bright atmosphere
+// - Floor: y = -0.5, lava grid texture (dark base + red grid), positioned at z = -50 (corridor center)
+// - Ceiling: y = 10, color 0x050507 (dark), has emissive bands
+// - Spawn: (0, 2.5, -5) - near front wall (z=0)
+// - Exit portal: (0, 2.5, -98) - near back wall (z=-100)
+// - Tiles: 16 tiles, start z = -10, step z = +5.5
+//   → First tile at z = -10
+//   → Last tile at z = -10 + (15 * 5.5) = 72.5
+//   → PROBLEM: Tiles go toward POSITIVE Z (away from portal at z=-98)
+// - Tiles: Side material 0x111111, emissive 0x441111 (very dark), top 0x000000 (black)
+//   → Tiles barely visible against dark floor
+// - Death/reset logic: Present in animate() loop, uses isOnSafeTile() check
+// - Movement: Uses controls.getObject().position (correct)
+
 // Basic parameters
 const corridorLength = 100;
 const corridorWidth = 20;
@@ -21,12 +36,12 @@ const ROOM6_CONFIG = {
   respawnPosition: new THREE.Vector3(0, eyeHeight, -5), // Corridor start
 
   // Hex tile settings
-  tileCount: 16,
-  tileRadius: 1.2,
+  tileCount: 14,                    // 14 tiles to reach portal
+  tileRadius: 1.3,
   tileHeight: 0.4,
-  tileStartZ: -10,
-  tileStepZ: 5.5,                   // Gap between tiles (easy intro jumps)
-  tileSafeRadius: 1.4,              // Slightly bigger than tile for forgiveness
+  tileStartZ: -10,                  // Start near spawn (z=-5)
+  tileStepZ: -6.0,                  // NEGATIVE step toward portal (z=-98)
+  tileSafeRadius: 1.5,              // Slightly bigger than tile for forgiveness
   tileFloatAmplitude: 0.05,         // Subtle hover animation
   tileFloatSpeed: 1.0
 };
@@ -40,7 +55,7 @@ let jumpVelocity = 0;
 let videosStarted = false;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xffffff);
+scene.background = new THREE.Color(0x0a0a0f); // Dark background, no blinding white
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(0, eyeHeight, -5);
@@ -109,10 +124,10 @@ function createLavaFloor() {
   gridTexture.repeat.set(4, 10); // Repeat along corridor
 
   const floorMat = new THREE.MeshStandardMaterial({
-    color: 0x0a0a0f,
-    emissive: 0x220000,
+    color: 0x050509,
+    emissive: 0x330000,
     emissiveMap: gridTexture,
-    emissiveIntensity: 0.4,
+    emissiveIntensity: 0.6, // Increased for visibility
     roughness: 0.9,
     metalness: 0.1
   });
@@ -248,20 +263,18 @@ const tileCenters = [];
 function createHexTiles() {
   const cfg = ROOM6_CONFIG;
 
-  // Side material - dark with red emissive glow
+  // Side material - BRIGHT red for clear visibility
   const sideMat = new THREE.MeshStandardMaterial({
-    color: 0x111111,
-    emissive: 0x441111,
-    emissiveIntensity: 0.2,
-    metalness: 0.3,
-    roughness: 0.5
+    color: 0x550808,
+    emissive: 0x330000,
+    emissiveIntensity: 0.4, // Much brighter for visibility
+    metalness: 0.2,
+    roughness: 0.4
   });
 
-  // Top material - black placeholder (NFT textures later)
-  const topMat = new THREE.MeshStandardMaterial({
-    color: 0x000000,
-    metalness: 0.2,
-    roughness: 0.7
+  // Top material - pure black placeholder (NFT textures later)
+  const topMat = new THREE.MeshBasicMaterial({
+    color: 0x000000
   });
 
   for (let i = 0; i < cfg.tileCount; i++) {
@@ -291,7 +304,13 @@ function createHexTiles() {
     tileCenters.push(new THREE.Vector2(xOffset, z));
   }
 
-  console.log(`Created ${cfg.tileCount} hex tiles from z=${cfg.tileStartZ} to z=${cfg.tileStartZ + (cfg.tileCount - 1) * cfg.tileStepZ}`);
+  const firstZ = cfg.tileStartZ;
+  const lastZ = cfg.tileStartZ + (cfg.tileCount - 1) * cfg.tileStepZ;
+  console.log(`✓ Room 6: Created ${cfg.tileCount} hex tiles`);
+  console.log(`  First tile: z = ${firstZ}`);
+  console.log(`  Last tile:  z = ${lastZ}`);
+  console.log(`  Spawn: z = -5, Portal: z = -98`);
+  console.log(`  Direction: ${cfg.tileStepZ > 0 ? 'POSITIVE (WRONG!)' : 'NEGATIVE (toward portal) ✓'}`);
 }
 
 createHexTiles();
