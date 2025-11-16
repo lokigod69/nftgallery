@@ -3,6 +3,7 @@ import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockCont
 import { createLinkedPortal, animateLinkedPortal, createMultiPortalChecker } from './src/core/portal-utils.js';
 import { getNftUrl } from './src/core/asset-utils.js';
 import { MOVEMENT_CONFIG } from './src/core/movement-config.js';
+import { initSpeedControl } from './src/ui/speed-control.js';
 
 // ----------------------------------------------------------------------
 // Global Variables for Jump Physics
@@ -694,11 +695,11 @@ function createDivider() {
 // Collision Detection
 // ----------------------------------------------------------------------
 function checkCollisions() {
-  const playerRadius = 1.5;
+  const playerRadius = 0.2; // Reduced to allow close wall approach like Room 1
   const cameraPosition = camera.position.clone();
-  const wallOffset = 1.0; // Distance to keep from walls
-  
-  // Check outer wall collisions
+  const wallOffset = 0.5; // Reduced for divider walls, allow closer approach
+
+  // Check outer wall collisions - keep player in room but allow close approach
   if (cameraPosition.x < -19 + playerRadius) camera.position.x = -19 + playerRadius;
   if (cameraPosition.x > 19 - playerRadius) camera.position.x = 19 - playerRadius;
   if (cameraPosition.z < -19 + playerRadius) camera.position.z = -19 + playerRadius;
@@ -858,7 +859,7 @@ function animate() {
   }
 
   if (controls.isLocked) {
-    const speedDelta = MOVEMENT_CONFIG.getEffectiveSpeed() * delta;
+    const speedDelta = MOVEMENT_CONFIG.getEffectiveSpeed('room2') * delta;
     velocity.x = 0;
     velocity.z = 0;
     direction.z = Number(moveForward) - Number(moveBackward);
@@ -869,11 +870,12 @@ function animate() {
     controls.moveRight(-velocity.x);
     controls.moveForward(-velocity.z);
 
+    // Check collisions before portal proximity to prevent blocking portal access
+    checkCollisions();
+
     // Check portal proximity
     checkPortalProximity();
   }
-
-  checkCollisions();
 
   // Animate portals using standardized system
   allPortals.forEach(portalObj => {
@@ -884,6 +886,9 @@ function animate() {
 }
 
 animate();
+
+// Initialize speed control UI
+initSpeedControl();
 
 // ----------------------------------------------------------------------
 // Handle Window Resize

@@ -3,6 +3,7 @@ import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockCont
 import { createLinkedPortal, animateLinkedPortal, createMultiPortalChecker } from './src/core/portal-utils.js';
 import { getNftUrl } from './src/core/asset-utils.js';
 import { MOVEMENT_CONFIG } from './src/core/movement-config.js';
+import { initSpeedControl } from './src/ui/speed-control.js';
 
 // ----------------------------------------------------------------------
 // Global Variables for Jump Physics
@@ -724,7 +725,7 @@ function animate() {
   }
 
   if (controls.isLocked) {
-    const speedDelta = MOVEMENT_CONFIG.getEffectiveSpeed() * delta;
+    const speedDelta = MOVEMENT_CONFIG.getEffectiveSpeed('room1') * delta;
     velocity.x = 0;
     velocity.z = 0;
     direction.z = Number(moveForward) - Number(moveBackward);
@@ -734,6 +735,12 @@ function animate() {
     if (moveLeft || moveRight) velocity.x -= direction.x * speedDelta;
     controls.moveRight(-velocity.x);
     controls.moveForward(-velocity.z);
+
+    // Collision bounds - keep player in room but allow close wall approach
+    const pos = controls.getObject().position;
+    const roomBounds = 19.8; // Room is 40x40, walls at ±20, allow 0.2 unit buffer
+    pos.x = Math.max(-roomBounds, Math.min(roomBounds, pos.x));
+    pos.z = Math.max(-roomBounds, Math.min(roomBounds, pos.z));
 
     // Check portal proximity
     checkPortalProximity();
@@ -747,6 +754,9 @@ function animate() {
   renderer.render(scene, camera);
 }
 animate();
+
+// Initialize speed control UI
+initSpeedControl();
 
 // ----------------------------------------------------------------------
 // Handle Window Resize

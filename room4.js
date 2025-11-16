@@ -25,6 +25,8 @@ import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { createLinkedPortal, animateLinkedPortal, createMultiPortalChecker } from './src/core/portal-utils.js';
 import { MOVEMENT_CONFIG } from './src/core/movement-config.js';
+import { getNftUrl } from './src/core/asset-utils.js';
+import { initSpeedControl } from './src/ui/speed-control.js';
 
 // ----------------------------------------------------------------------
 // Global Variables
@@ -631,10 +633,9 @@ function createFloatingNFT(displayIndex, position, rotation) {
   
   // Create a fallback texture immediately
   const fallbackTexture = new THREE.CanvasTexture(canvas);
-  
-  // Create the NFT path with cache-busting to prevent texture caching issues
-  const timestamp = Date.now(); // Use a timestamp to prevent caching
-  const nftPath = `/assets/nft${nftIndex}.png?t=${timestamp}`;
+
+  // Create the NFT path using WebP helper function
+  const nftPath = getNftUrl(nftIndex);
   
   // Create a single material that works on both sides of the plane
   const material = new THREE.MeshBasicMaterial({
@@ -1017,8 +1018,8 @@ function animate() {
     // Movement
     velocity.x -= velocity.x * 10.0 * delta;
     velocity.z -= velocity.z * 10.0 * delta;
-    
-    const speedDelta = MOVEMENT_CONFIG.getEffectiveSpeed() * delta;
+
+    const speedDelta = MOVEMENT_CONFIG.getEffectiveSpeed('room4') * delta;
     direction.z = Number(moveForward) - Number(moveBackward);
     direction.x = Number(moveRight) - Number(moveLeft);
     direction.normalize();
@@ -1071,4 +1072,7 @@ function animate() {
   renderer.render(scene, camera);
 }
 
-animate(); 
+animate();
+
+// Initialize speed control UI
+initSpeedControl(); 

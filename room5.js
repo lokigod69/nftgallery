@@ -16,6 +16,7 @@ import { getNftUrl } from './src/core/asset-utils.js';
 import { createLinkedPortal, createPortalLabel, animateLinkedPortal, createMultiPortalChecker } from './src/core/portal-utils.js';
 import { getPortalStyle } from './src/core/portal-styles.js';
 import { MOVEMENT_CONFIG } from './src/core/movement-config.js';
+import { initSpeedControl } from './src/ui/speed-control.js';
 
 // ----------------------------------------------------------------------
 // Global Variables
@@ -834,8 +835,9 @@ function createDoubleSidedNFT(index, position, angle) {
         
         loadSuccess = true;
         console.log(`Successfully loaded NFT texture ${index} from ${path}`);
-        
+
         // ANTI-FLICKER: Apply best possible texture settings
+        texture.encoding = THREE.sRGBEncoding; // Correct color representation
         texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
         texture.minFilter = THREE.LinearFilter;
         texture.magFilter = THREE.LinearFilter;
@@ -1022,8 +1024,8 @@ function animate() {
     // Movement
     velocity.x -= velocity.x * 10.0 * delta;
     velocity.z -= velocity.z * 10.0 * delta;
-    
-    const speedDelta = MOVEMENT_CONFIG.getEffectiveSpeed() * delta;
+
+    const speedDelta = MOVEMENT_CONFIG.getEffectiveSpeed('room5') * delta;
     direction.z = Number(moveForward) - Number(moveBackward);
     direction.x = Number(moveRight) - Number(moveLeft);
     direction.normalize();
@@ -1078,4 +1080,7 @@ function animate() {
   renderer.render(scene, camera);
 }
 
-animate(); 
+animate();
+
+// Initialize speed control UI
+initSpeedControl(); 
