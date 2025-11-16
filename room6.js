@@ -1,14 +1,35 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { createLinkedPortal, animateLinkedPortal, createMultiPortalChecker } from './src/core/portal-utils.js';
+import { MOVEMENT_CONFIG } from './src/core/movement-config.js';
+
+// ----------------------------------------------------------------------
+// Room 6: "Lava Corridor" - Platforming Challenge
+// ----------------------------------------------------------------------
 
 // Basic parameters
 const corridorLength = 100;
 const corridorWidth = 20;
 const wallHeight = 10;
 const eyeHeight = 2.5;
-const speed = 100.0;
 const gravity = -30;
+
+// Lava & platform configuration
+const ROOM6_CONFIG = {
+  lavaFloorY: -0.5,                 // Y threshold for lava death
+  safeHeightThreshold: -0.3,        // Player falls below this → death check
+  respawnPosition: new THREE.Vector3(0, eyeHeight, -5), // Corridor start
+
+  // Hex tile settings
+  tileCount: 16,
+  tileRadius: 1.2,
+  tileHeight: 0.4,
+  tileStartZ: -10,
+  tileStepZ: 5.5,                   // Gap between tiles (easy intro jumps)
+  tileSafeRadius: 1.4,              // Slightly bigger than tile for forgiveness
+  tileFloatAmplitude: 0.05,         // Subtle hover animation
+  tileFloatSpeed: 1.0
+};
 
 let moveForward = false;
 let moveBackward = false;
@@ -50,13 +71,61 @@ const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1.0);
 light.position.set(0, 20, 0);
 scene.add(light);
 
-// Floor
-const floorGeo = new THREE.PlaneGeometry(corridorWidth, corridorLength);
-const floorMat = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.5, roughness: 0.2 });
-const floor = new THREE.Mesh(floorGeo, floorMat);
-floor.rotation.x = -Math.PI / 2;
-floor.position.z = -corridorLength / 2;
-scene.add(floor);
+// ----------------------------------------------------------------------
+// Lava Floor - "Laser Lava" Grid
+// ----------------------------------------------------------------------
+function createLavaFloor() {
+  const floorGeo = new THREE.PlaneGeometry(corridorWidth, corridorLength);
+
+  // Create procedural grid texture for lava
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+
+  // Dark base
+  ctx.fillStyle = '#050509';
+  ctx.fillRect(0, 0, 512, 512);
+
+  // Red grid lines
+  ctx.strokeStyle = '#440000';
+  ctx.lineWidth = 2;
+  const gridSize = 32;
+  for (let i = 0; i <= 512; i += gridSize) {
+    ctx.beginPath();
+    ctx.moveTo(i, 0);
+    ctx.lineTo(i, 512);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(0, i);
+    ctx.lineTo(512, i);
+    ctx.stroke();
+  }
+
+  const gridTexture = new THREE.CanvasTexture(canvas);
+  gridTexture.wrapS = THREE.RepeatWrapping;
+  gridTexture.wrapT = THREE.RepeatWrapping;
+  gridTexture.repeat.set(4, 10); // Repeat along corridor
+
+  const floorMat = new THREE.MeshStandardMaterial({
+    color: 0x0a0a0f,
+    emissive: 0x220000,
+    emissiveMap: gridTexture,
+    emissiveIntensity: 0.4,
+    roughness: 0.9,
+    metalness: 0.1
+  });
+
+  const floor = new THREE.Mesh(floorGeo, floorMat);
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.set(0, ROOM6_CONFIG.lavaFloorY, -corridorLength / 2);
+  scene.add(floor);
+
+  return floor;
+}
+
+const floor = createLavaFloor();
 
 // Walls
 const wallMat = new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 0.7, roughness: 0.1 });
@@ -81,13 +150,54 @@ backWall.position.set(0, wallHeight / 2, -corridorLength);
 backWall.rotation.y = 0;
 scene.add(backWall);
 
-// Curved ceiling
-const ceilingGeo = new THREE.CylinderGeometry(corridorWidth / 2, corridorWidth / 2, corridorLength, 32, 1, true, 0, Math.PI);
-const ceilingMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.8, roughness: 0.1, side: THREE.BackSide });
-const ceiling = new THREE.Mesh(ceilingGeo, ceilingMat);
-ceiling.position.set(0, wallHeight, -corridorLength / 2);
-ceiling.rotation.z = Math.PI / 2;
-scene.add(ceiling);
+// ----------------------------------------------------------------------
+// Ceiling - Dark with Subtle Emissive Bands
+// ----------------------------------------------------------------------
+function createCeiling() {
+  // Main ceiling surface - very dark
+  const ceilingGeo = new THREE.CylinderGeometry(
+    corridorWidth / 2,
+    corridorWidth / 2,
+    corridorLength,
+    32, 1, true, 0, Math.PI
+  );
+  const ceilingMat = new THREE.MeshStandardMaterial({
+    color: 0x050507,
+    emissive: 0x111111,
+    emissiveIntensity: 0.2,
+    roughness: 0.8,
+    side: THREE.BackSide
+  });
+
+  const ceiling = new THREE.Mesh(ceilingGeo, ceilingMat);
+  ceiling.position.set(0, wallHeight, -corridorLength / 2);
+  ceiling.rotation.z = Math.PI / 2;
+  scene.add(ceiling);
+
+  // Add 3 emissive light bands along ceiling for depth
+  const bandMat = new THREE.MeshStandardMaterial({
+    color: 0x110000,
+    emissive: 0x330000,
+    emissiveIntensity: 0.3,
+    transparent: true,
+    opacity: 0.6
+  });
+
+  const bandPositions = [-30, -50, -70]; // Along corridor
+  bandPositions.forEach(z => {
+    const band = new THREE.Mesh(
+      new THREE.PlaneGeometry(corridorWidth * 0.6, 2),
+      bandMat
+    );
+    band.position.set(0, wallHeight - 0.1, z);
+    band.rotation.x = -Math.PI / 2;
+    scene.add(band);
+  });
+
+  return ceiling;
+}
+
+const ceiling = createCeiling();
 
 // Load videos
 const videoFiles = [
@@ -128,6 +238,94 @@ document.addEventListener('click', () => {
     videosStarted = true;
   }
 }, { once: true });
+
+// ----------------------------------------------------------------------
+// Hex Tile Platforms - Safe spots above lava
+// ----------------------------------------------------------------------
+const hexTiles = [];
+const tileCenters = [];
+
+function createHexTiles() {
+  const cfg = ROOM6_CONFIG;
+
+  // Side material - dark with red emissive glow
+  const sideMat = new THREE.MeshStandardMaterial({
+    color: 0x111111,
+    emissive: 0x441111,
+    emissiveIntensity: 0.2,
+    metalness: 0.3,
+    roughness: 0.5
+  });
+
+  // Top material - black placeholder (NFT textures later)
+  const topMat = new THREE.MeshStandardMaterial({
+    color: 0x000000,
+    metalness: 0.2,
+    roughness: 0.7
+  });
+
+  for (let i = 0; i < cfg.tileCount; i++) {
+    // Hexagonal prism geometry
+    const geom = new THREE.CylinderGeometry(
+      cfg.tileRadius,
+      cfg.tileRadius,
+      cfg.tileHeight,
+      6  // 6 segments = hexagon
+    );
+
+    // Apply materials: [sides, top, bottom]
+    const tile = new THREE.Mesh(geom, [sideMat, topMat.clone(), sideMat]);
+
+    // Position along corridor with mild left/right wiggle
+    const z = cfg.tileStartZ + i * cfg.tileStepZ;
+    const xOffset = (i % 2 === 0) ? 0.8 : -0.8; // Gentle zigzag for interest
+    const baseY = 0.0;
+
+    tile.position.set(xOffset, baseY, z);
+    tile.rotation.y = Math.random() * Math.PI * 2; // Random rotation for organic feel
+
+    scene.add(tile);
+    hexTiles.push(tile);
+
+    // Store center for collision detection (x, z in 2D)
+    tileCenters.push(new THREE.Vector2(xOffset, z));
+  }
+
+  console.log(`Created ${cfg.tileCount} hex tiles from z=${cfg.tileStartZ} to z=${cfg.tileStartZ + (cfg.tileCount - 1) * cfg.tileStepZ}`);
+}
+
+createHexTiles();
+
+// ----------------------------------------------------------------------
+// Safe Tile Detection - Check if player is above a tile
+// ----------------------------------------------------------------------
+function isOnSafeTile(position) {
+  const px = position.x;
+  const pz = position.z;
+  const safeRadiusSq = ROOM6_CONFIG.tileSafeRadius * ROOM6_CONFIG.tileSafeRadius;
+
+  for (let i = 0; i < tileCenters.length; i++) {
+    const c = tileCenters[i];
+    const dx = px - c.x;
+    const dz = pz - c.y; // Vector2 uses (x, y) for (x, z) in 3D
+    if (dx * dx + dz * dz < safeRadiusSq) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// ----------------------------------------------------------------------
+// Respawn Player - Reset to corridor start on lava death
+// ----------------------------------------------------------------------
+function respawnPlayer() {
+  const player = controls.getObject();
+  player.position.copy(ROOM6_CONFIG.respawnPosition);
+  velocity.set(0, 0, 0);
+  jumpVelocity = 0;
+  isJumping = false;
+  console.log('💀 Lava death! Respawning at start...');
+}
 
 function onKeyDown(event) {
   switch (event.code) {
@@ -195,7 +393,7 @@ const portalToRoom5 = portalObj.portal;
 const portalGlow = portalObj.glow;
 
 const checkPortalProximity = createMultiPortalChecker({
-  camera,
+  camera: controls.getObject(), // Use player position, not camera
   portals: [
     {
       position: new THREE.Vector3(0, eyeHeight, -corridorLength + 2),
@@ -217,18 +415,32 @@ const clock = new THREE.Clock();
 function animate() {
   requestAnimationFrame(animate);
   const delta = clock.getDelta();
+  const time = performance.now() * 0.001;
+
+  // Hover animation for hex tiles
+  hexTiles.forEach((tile, index) => {
+    const baseY = 0.0;
+    const phase = index * 0.3;
+    const amplitude = ROOM6_CONFIG.tileFloatAmplitude;
+    const speed = ROOM6_CONFIG.tileFloatSpeed;
+    tile.position.y = baseY + Math.sin(time * speed + phase) * amplitude;
+  });
 
   if (controls.isLocked) {
+    const player = controls.getObject();
+
+    // Jump physics
     if (isJumping) {
-      camera.position.y += jumpVelocity * delta;
+      player.position.y += jumpVelocity * delta;
       jumpVelocity += gravity * delta;
-      if (camera.position.y <= eyeHeight) {
-        camera.position.y = eyeHeight;
+      if (player.position.y <= eyeHeight) {
+        player.position.y = eyeHeight;
         isJumping = false;
         jumpVelocity = 0;
       }
     }
 
+    // Movement with shared config
     velocity.x -= velocity.x * 10.0 * delta;
     velocity.z -= velocity.z * 10.0 * delta;
 
@@ -236,19 +448,28 @@ function animate() {
     direction.x = Number(moveRight) - Number(moveLeft);
     direction.normalize();
 
-    if (moveForward || moveBackward) velocity.z -= direction.z * speed * delta;
-    if (moveLeft || moveRight) velocity.x -= direction.x * speed * delta;
+    const moveSpeed = MOVEMENT_CONFIG.getEffectiveSpeed('room6') || 60.0;
+
+    if (moveForward || moveBackward) velocity.z -= direction.z * moveSpeed * delta;
+    if (moveLeft || moveRight) velocity.x -= direction.x * moveSpeed * delta;
 
     controls.moveRight(-velocity.x * delta);
     controls.moveForward(-velocity.z * delta);
 
-    // Keep the camera inside the corridor bounds
+    // Keep player inside corridor bounds
     const buffer = 0.5;
     const halfWidth = corridorWidth / 2 - buffer;
     const minZ = -corridorLength + buffer;
     const maxZ = -buffer;
-    camera.position.x = Math.max(-halfWidth, Math.min(halfWidth, camera.position.x));
-    camera.position.z = Math.max(minZ, Math.min(maxZ, camera.position.z));
+    player.position.x = Math.max(-halfWidth, Math.min(halfWidth, player.position.x));
+    player.position.z = Math.max(minZ, Math.min(maxZ, player.position.z));
+
+    // Lava death detection
+    if (player.position.y < ROOM6_CONFIG.safeHeightThreshold) {
+      if (!isOnSafeTile(player.position)) {
+        respawnPlayer();
+      }
+    }
 
     // Check portal proximity
     checkPortalProximity();
