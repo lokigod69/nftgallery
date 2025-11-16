@@ -256,7 +256,9 @@ export function createLinkedPortal(options) {
     x, y, z,
     rotationY = 0,
     rotationX = 0,
-    createLabel = false
+    createLabel = false,
+    overrideColor = null,        // Optional color override
+    overrideOpacity = null        // Optional opacity override
   } = options;
 
   // Get style from centralized map
@@ -270,20 +272,21 @@ export function createLinkedPortal(options) {
     return createPortal({
       scene,
       x, y, z,
-      color: 0xff00ff, // Magenta to make missing styles obvious
+      color: overrideColor ?? 0xff00ff, // Use override or magenta fallback
       rotationY,
       rotationX
     });
   }
 
-  // Apply style from map
+  // Apply style from map with optional overrides
   const fxConfig = FX_TYPES[style.fxType] || FX_TYPES.default;
 
   const { portal, glow } = createPortal({
     scene,
     x, y, z,
-    color: style.color,
+    color: overrideColor ?? style.color,        // Use override or style color
     size: style.size,
+    opacity: overrideOpacity ?? 0.8,             // Use override or default opacity
     glowOpacity: fxConfig.glowIntensity,
     rotationY,
     rotationX

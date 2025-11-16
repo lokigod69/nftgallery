@@ -923,7 +923,7 @@ function createAtmosphericHaze() {
 function createAllPortals() {
   const portals = [];
 
-  // Portal to Room 4 (Floating Island) - South
+  // Portal to Room 4 (Floating Island) - South - Blood red theme
   const portal4 = createLinkedPortal({
     scene,
     fromRoom: '5',
@@ -932,11 +932,13 @@ function createAllPortals() {
     y: groundLevel + eyeHeight,
     z: roomRadius - 5,
     rotationX: 0.1,
-    createLabel: true
+    createLabel: true,
+    overrideColor: 0xaa1122,    // Deep blood red
+    overrideOpacity: 0.85        // Slightly more solid
   });
   portals.push({ ...portal4, name: 'Room 4', url: 'room4.html', position: new THREE.Vector3(0, groundLevel + eyeHeight, roomRadius - 5) });
 
-  // Portal to Room 6 (Video Corridor) - North
+  // Portal to Room 6 (Video Corridor) - North - White theme
   const portal6 = createLinkedPortal({
     scene,
     fromRoom: '5',
@@ -945,7 +947,8 @@ function createAllPortals() {
     y: eyeHeight,
     z: -(roomRadius - 5),
     rotationX: 0.1,
-    createLabel: true
+    createLabel: true,
+    overrideColor: 0xffffff      // Pure white
   });
   portals.push({ ...portal6, name: 'Room 6', url: 'room6.html', position: new THREE.Vector3(0, eyeHeight, -(roomRadius - 5)) });
 

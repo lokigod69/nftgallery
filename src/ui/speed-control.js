@@ -3,9 +3,14 @@ import { MOVEMENT_CONFIG } from '../core/movement-config.js';
 /**
  * Initialize movement speed control UI
  * Adds a slider to adjust movement speed multiplier (0.5x - 2.0x)
+ * Also adds mouse wheel control for speed adjustment
  * Persists setting to localStorage
  */
 export function initSpeedControl() {
+  const MIN = 0.5;
+  const MAX = 2.0;
+  const STEP = 0.1;
+
   // Create speed control UI
   const controlDiv = document.createElement('div');
   controlDiv.id = 'speed-control';
@@ -27,7 +32,7 @@ export function initSpeedControl() {
   const savedMultiplier = localStorage.getItem('movementSpeedMultiplier');
   if (savedMultiplier) {
     const multiplier = parseFloat(savedMultiplier);
-    if (!isNaN(multiplier) && multiplier >= 0.5 && multiplier <= 2.0) {
+    if (!isNaN(multiplier) && multiplier >= MIN && multiplier <= MAX) {
       MOVEMENT_CONFIG.setSpeedMultiplier(multiplier);
     }
   }
@@ -36,7 +41,7 @@ export function initSpeedControl() {
     <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
       <span>Speed:</span>
       <input type="range" id="speed-slider"
-             min="0.5" max="2.0" step="0.1"
+             min="${MIN}" max="${MAX}" step="${STEP}"
              value="${MOVEMENT_CONFIG.speedMultiplier}"
              style="width: 120px; vertical-align: middle; cursor: pointer;">
       <span id="speed-value" style="min-width: 35px;">${MOVEMENT_CONFIG.speedMultiplier.toFixed(1)}x</span>
@@ -45,18 +50,37 @@ export function initSpeedControl() {
 
   document.body.appendChild(controlDiv);
 
-  // Set up event listener
+  // Set up event listeners
   const slider = document.getElementById('speed-slider');
   const valueDisplay = document.getElementById('speed-value');
 
+  // Helper function to apply multiplier and sync UI
+  function applyMultiplier(multiplier) {
+    const clamped = Math.max(MIN, Math.min(MAX, multiplier));
+    MOVEMENT_CONFIG.setSpeedMultiplier(clamped);
+    if (slider) slider.value = clamped.toString();
+    if (valueDisplay) valueDisplay.textContent = `${clamped.toFixed(1)}x`;
+    localStorage.setItem('movementSpeedMultiplier', clamped.toString());
+  }
+
+  // Slider input handler
   if (slider && valueDisplay) {
     slider.addEventListener('input', (e) => {
       const multiplier = parseFloat(e.target.value);
-      MOVEMENT_CONFIG.setSpeedMultiplier(multiplier);
-      valueDisplay.textContent = `${multiplier.toFixed(1)}x`;
-
-      // Persist to localStorage
-      localStorage.setItem('movementSpeedMultiplier', multiplier.toString());
+      applyMultiplier(multiplier);
     });
   }
+
+  // Mouse wheel handler for speed control
+  window.addEventListener('wheel', (e) => {
+    const current = parseFloat(slider.value);
+    const delta = e.deltaY;
+
+    // Scroll down (deltaY > 0) → slower, scroll up → faster
+    const next = delta > 0 ? current - STEP : current + STEP;
+    applyMultiplier(next);
+
+    // Prevent page scroll when adjusting speed
+    e.preventDefault();
+  }, { passive: false });
 }

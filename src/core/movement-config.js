@@ -5,8 +5,8 @@
  * Room 4 & 5: balanced
  */
 const ROOM_BASE_SPEED = {
-  room1: 40.0,   // Room 1 (main.js) - traditional gallery
-  room2: 40.0,   // Room 2 - gallery continuation
+  room1: 25.0,   // Room 1 (main.js) - traditional gallery (small, slow viewing)
+  room2: 25.0,   // Room 2 - gallery continuation (small, slow viewing)
   room3: 70.0,   // Room 3 - large cubic gallery (bigger space)
   room4: 65.0,   // Room 4 - floating island
   room5: 60.0    // Room 5 - eternal eclipse

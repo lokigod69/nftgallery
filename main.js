@@ -8,7 +8,7 @@ import { initSpeedControl } from './src/ui/speed-control.js';
 // ----------------------------------------------------------------------
 // Global Variables for Jump Physics
 // ----------------------------------------------------------------------
-const groundLevels = { 1: 2 };
+const groundLevels = { 1: 2.5 }; // Raised for better NFT viewing height
 let isJumping = false;
 let jumpVelocity = 0;
 const gravity = -30;
@@ -738,9 +738,27 @@ function animate() {
 
     // Collision bounds - keep player in room but allow close wall approach
     const pos = controls.getObject().position;
-    const roomBounds = 19.8; // Room is 40x40, walls at ±20, allow 0.2 unit buffer
+    const roomBounds = 19.5; // Room is 40x40, walls at ±20, allow getting very close
     pos.x = Math.max(-roomBounds, Math.min(roomBounds, pos.x));
     pos.z = Math.max(-roomBounds, Math.min(roomBounds, pos.z));
+
+    // Divider wall collision - prevent walking through center wall
+    const dividerZ = 0;           // Divider is at z=0
+    const dividerMinX = -15;      // Divider spans x=-15 to x=15 (30 units wide)
+    const dividerMaxX = 15;
+    const minDistance = 0.25;     // How close player can get to divider
+
+    // Only apply divider collision when player is within divider's x range
+    if (pos.x > dividerMinX && pos.x < dividerMaxX) {
+      // Player is within divider's width - prevent crossing through
+      if (pos.z > dividerZ - minDistance && pos.z < dividerZ) {
+        // Approaching from negative z side
+        pos.z = dividerZ - minDistance;
+      } else if (pos.z < dividerZ + minDistance && pos.z > dividerZ) {
+        // Approaching from positive z side
+        pos.z = dividerZ + minDistance;
+      }
+    }
 
     // Check portal proximity
     checkPortalProximity();

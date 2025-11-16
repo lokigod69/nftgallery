@@ -697,7 +697,7 @@ function createDivider() {
 function checkCollisions() {
   const playerRadius = 0.2; // Reduced to allow close wall approach like Room 1
   const cameraPosition = camera.position.clone();
-  const wallOffset = 0.5; // Reduced for divider walls, allow closer approach
+  const minDistance = 0.25; // How close player can get to divider walls
 
   // Check outer wall collisions - keep player in room but allow close approach
   if (cameraPosition.x < -19 + playerRadius) camera.position.x = -19 + playerRadius;
@@ -705,27 +705,32 @@ function checkCollisions() {
   if (cameraPosition.z < -19 + playerRadius) camera.position.z = -19 + playerRadius;
   if (cameraPosition.z > 19 - playerRadius) camera.position.z = 19 - playerRadius;
 
-  // Left divider section (from x=-17 to x=-3)
-  if (cameraPosition.x < -3 && cameraPosition.x > -17) {
-    if (Math.abs(cameraPosition.z) < wallOffset) {
-      // Push player to the nearest side of the wall
-      if (cameraPosition.z > 0) {
-        camera.position.z = wallOffset;
-      } else {
-        camera.position.z = -wallOffset;
-      }
+  // Divider wall collision - two sections with gap in middle
+  const dividerZ = 0;           // Both dividers at z=0
+  const leftDividerMinX = -17.5;  // Left divider: 15 units wide centered at x=-10
+  const leftDividerMaxX = -2.5;
+  const rightDividerMinX = 2.5;   // Right divider: 15 units wide centered at x=10
+  const rightDividerMaxX = 17.5;
+
+  // Left divider section collision
+  if (cameraPosition.x > leftDividerMinX && cameraPosition.x < leftDividerMaxX) {
+    if (cameraPosition.z > dividerZ - minDistance && cameraPosition.z < dividerZ) {
+      // Approaching from negative z side
+      camera.position.z = dividerZ - minDistance;
+    } else if (cameraPosition.z < dividerZ + minDistance && cameraPosition.z > dividerZ) {
+      // Approaching from positive z side
+      camera.position.z = dividerZ + minDistance;
     }
   }
-  
-  // Right divider section (from x=3 to x=17)
-  if (cameraPosition.x > 3 && cameraPosition.x < 17) {
-    if (Math.abs(cameraPosition.z) < wallOffset) {
-      // Push player to the nearest side of the wall
-      if (cameraPosition.z > 0) {
-        camera.position.z = wallOffset;
-      } else {
-        camera.position.z = -wallOffset;
-      }
+
+  // Right divider section collision
+  if (cameraPosition.x > rightDividerMinX && cameraPosition.x < rightDividerMaxX) {
+    if (cameraPosition.z > dividerZ - minDistance && cameraPosition.z < dividerZ) {
+      // Approaching from negative z side
+      camera.position.z = dividerZ - minDistance;
+    } else if (cameraPosition.z < dividerZ + minDistance && cameraPosition.z > dividerZ) {
+      // Approaching from positive z side
+      camera.position.z = dividerZ + minDistance;
     }
   }
 
