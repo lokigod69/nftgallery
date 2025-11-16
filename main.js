@@ -8,7 +8,7 @@ import { initSpeedControl } from './src/ui/speed-control.js';
 // ----------------------------------------------------------------------
 // Global Variables for Jump Physics
 // ----------------------------------------------------------------------
-const groundLevels = { 1: 2.5 }; // Raised for better NFT viewing height
+const groundLevels = { 1: 2.7 }; // Match Room 2 eye height for consistent NFT viewing
 let isJumping = false;
 let jumpVelocity = 0;
 const gravity = -30;
@@ -253,6 +253,11 @@ audioLoader.load('/assets/ambient.mp3', function (buffer) {
 // Controls & Movement Setup
 // ----------------------------------------------------------------------
 const controls = new PointerLockControls(camera, document.body);
+
+// Sync controls object with camera to prevent spawn teleport on first lock
+// This ensures the view before and after pointer lock is identical
+controls.getObject().position.copy(camera.position);
+controls.getObject().rotation.copy(camera.rotation);
 
 // Only lock controls on click if we're not viewing an NFT
 document.addEventListener('click', () => {
@@ -747,7 +752,7 @@ function applyRoom1Collisions(position) {
   const w = ROOM1_COLLISION.walls;
   const d = ROOM1_COLLISION.divider;
 
-  // Outer wall collisions - stop before hitting picture planes
+  // Outer wall collisions - simple one-directional stops
   // Back wall (negative z)
   if (position.z < w.back + r) {
     position.z = w.back + r;
@@ -765,12 +770,12 @@ function applyRoom1Collisions(position) {
     position.x = w.right - r;
   }
 
-  // Divider wall collision - only applies when within divider's x range
+  // Divider collision - ONLY activate when actually near the divider (within 2 units of z=0)
+  // This prevents the "invisible barrier" bug that blocked the entire room
+  const nearDivider = Math.abs(position.z) < 2.0;
   const withinDividerX = (position.x > d.minX && position.x < d.maxX);
 
-  if (withinDividerX) {
-    // Check which side of divider we're approaching from
-
+  if (nearDivider && withinDividerX) {
     // Approaching from negative z side (moving toward front-facing pictures)
     if (position.z < d.backPictureZ - r) {
       position.z = d.backPictureZ - r;

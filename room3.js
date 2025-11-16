@@ -39,7 +39,7 @@ import { initSpeedControl } from './src/ui/speed-control.js';
 // ----------------------------------------------------------------------
 // Global Variables for Jump Physics
 // ----------------------------------------------------------------------
-const groundLevels = { 1: 3.5 }; // Raised camera height from 2 to 3.5
+const groundLevels = { 1: 2.7 }; // Match Room 1/2 eye height for consistent NFT viewing
 let isJumping = false;
 let jumpVelocity = 0;
 const gravity = -30;
@@ -1185,12 +1185,12 @@ const portalConfigs = allPortals.map(p => ({
   position: p.position,
   name: p.name,
   url: p.url,
-  showDistance: 3.0,
-  triggerDistance: 2.0
+  showDistance: 4.0,    // Increased from 3.0 for better visibility
+  triggerDistance: 2.5  // Increased from 2.0 for more reliable triggering
 }));
 
 const checkPortalProximity = createMultiPortalChecker({
-  camera,
+  camera: controls.getObject(),  // Use controls object for accurate player position
   portals: portalConfigs,
   controlsId: 'controls-description',
   overlayId: 'loading-overlay',
