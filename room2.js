@@ -8,7 +8,7 @@ import { initSpeedControl } from './src/ui/speed-control.js';
 // ----------------------------------------------------------------------
 // Global Variables for Jump Physics
 // ----------------------------------------------------------------------
-const groundLevels = { 1: 2.7 }; // Match Room 1 eye height for consistent NFT viewing
+const groundLevels = { 1: 3.0 }; // Raised eye height for better NFT center alignment
 let isJumping = false;
 let jumpVelocity = 0;
 const gravity = -30;
@@ -245,6 +245,7 @@ document.addEventListener('click', () => {
 let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
 const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
+const prevPosition = new THREE.Vector3();  // Track previous position for collision detection
 // Movement speed now using shared config (was 20.0)
 
 document.addEventListener('keydown', (event) => {
@@ -737,13 +738,14 @@ const ROOM2_COLLISION = {
  * Called once per frame after movement is computed
  *
  * @param {THREE.Vector3} position - Player position to constrain (modified in-place)
+ * @param {THREE.Vector3} prevPosition - Player position from previous frame (for crossing detection)
  */
-function applyRoom2Collisions(position) {
+function applyRoom2Collisions(position, prevPosition) {
   const r = ROOM2_COLLISION.playerRadius;
   const outer = ROOM2_COLLISION.outerBounds;
   const div = ROOM2_COLLISION.dividers;
 
-  // Outer wall collisions - preserve existing good behavior
+  // Outer wall collisions - keep as-is, working correctly per user feedback
   if (position.x < outer.minX + r) {
     position.x = outer.minX + r;
   }
@@ -757,19 +759,23 @@ function applyRoom2Collisions(position) {
     position.z = outer.maxZ - r;
   }
 
-  // Divider collision - check if player is within either divider section's X range
+  // Divider collision - use crossing detection to prevent clipping/getting stuck
+  const nearDivider = Math.abs(position.z) < 2.0;
   const inLeftDivider = (position.x > div.left.minX && position.x < div.left.maxX);
   const inRightDivider = (position.x > div.right.minX && position.x < div.right.maxX);
 
-  if (inLeftDivider || inRightDivider) {
-    // Approaching from negative z side (moving toward back-facing pictures)
-    if (position.z < div.backPictureZ - r) {
-      position.z = div.backPictureZ - r;
+  if (nearDivider && (inLeftDivider || inRightDivider)) {
+    const frontBoundary = div.frontPictureZ + r;  // 0.51 + 0.3 = 0.81
+    const backBoundary = div.backPictureZ - r;    // -0.51 - 0.3 = -0.81
+
+    // Detect crossing from +Z side (moving toward front-facing pictures at +0.51)
+    if (prevPosition.z > frontBoundary && position.z <= frontBoundary) {
+      position.z = frontBoundary;  // Stop at front boundary
     }
 
-    // Approaching from positive z side (moving toward front-facing pictures)
-    if (position.z > div.frontPictureZ + r) {
-      position.z = div.frontPictureZ + r;
+    // Detect crossing from -Z side (moving toward back-facing pictures at -0.51)
+    if (prevPosition.z < backBoundary && position.z >= backBoundary) {
+      position.z = backBoundary;  // Stop at back boundary
     }
   }
 }
@@ -887,6 +893,11 @@ function animate() {
   }
 
   if (controls.isLocked) {
+    const player = controls.getObject();
+
+    // Store previous position before movement
+    prevPosition.copy(player.position);
+
     const speedDelta = MOVEMENT_CONFIG.getEffectiveSpeed('room2') * delta;
     velocity.x = 0;
     velocity.z = 0;
@@ -898,8 +909,8 @@ function animate() {
     controls.moveRight(-velocity.x);
     controls.moveForward(-velocity.z);
 
-    // Check collisions before portal proximity to prevent blocking portal access
-    checkCollisions();
+    // Check collisions with crossing detection
+    applyRoom2Collisions(player.position, prevPosition);
 
     // Check portal proximity
     checkPortalProximity();

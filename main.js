@@ -269,6 +269,7 @@ document.addEventListener('click', () => {
 let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
 const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
+const prevPosition = new THREE.Vector3();  // Track previous position for collision detection
 // Movement speed now using shared config (was 20.0)
 
 document.addEventListener('keydown', (event) => {
@@ -746,13 +747,14 @@ const ROOM1_COLLISION = {
  * Called once per frame after movement is computed
  *
  * @param {THREE.Vector3} position - Player position to constrain (modified in-place)
+ * @param {THREE.Vector3} prevPosition - Player position from previous frame (for crossing detection)
  */
-function applyRoom1Collisions(position) {
+function applyRoom1Collisions(position, prevPosition) {
   const r = ROOM1_COLLISION.playerRadius;
   const w = ROOM1_COLLISION.walls;
   const d = ROOM1_COLLISION.divider;
 
-  // Outer wall collisions - simple one-directional stops
+  // Outer wall collisions - simple one-directional stops (keep as-is, working correctly)
   // Back wall (negative z)
   if (position.z < w.back + r) {
     position.z = w.back + r;
@@ -770,20 +772,23 @@ function applyRoom1Collisions(position) {
     position.x = w.right - r;
   }
 
-  // Divider collision - ONLY activate when actually near the divider (within 2 units of z=0)
-  // This prevents the "invisible barrier" bug that blocked the entire room
+  // Divider collision - use crossing detection to prevent clipping/getting stuck
+  // Only active when near the divider (within 2 units of z=0) and within X range
   const nearDivider = Math.abs(position.z) < 2.0;
   const withinDividerX = (position.x > d.minX && position.x < d.maxX);
 
   if (nearDivider && withinDividerX) {
-    // Approaching from negative z side (moving toward front-facing pictures)
-    if (position.z < d.backPictureZ - r) {
-      position.z = d.backPictureZ - r;
+    const frontBoundary = d.frontPictureZ + r;  // 0.32 + 0.3 = 0.62
+    const backBoundary = d.backPictureZ - r;    // -0.32 - 0.3 = -0.62
+
+    // Detect crossing from +Z side (moving toward front-facing pictures at +0.32)
+    if (prevPosition.z > frontBoundary && position.z <= frontBoundary) {
+      position.z = frontBoundary;  // Stop at front boundary
     }
 
-    // Approaching from positive z side (moving toward back-facing pictures)
-    if (position.z > d.frontPictureZ + r) {
-      position.z = d.frontPictureZ + r;
+    // Detect crossing from -Z side (moving toward back-facing pictures at -0.32)
+    if (prevPosition.z < backBoundary && position.z >= backBoundary) {
+      position.z = backBoundary;  // Stop at back boundary
     }
   }
 }
@@ -810,6 +815,11 @@ function animate() {
   }
 
   if (controls.isLocked) {
+    const player = controls.getObject();
+
+    // Store previous position before movement
+    prevPosition.copy(player.position);
+
     const speedDelta = MOVEMENT_CONFIG.getEffectiveSpeed('room1') * delta;
     velocity.x = 0;
     velocity.z = 0;
@@ -821,8 +831,8 @@ function animate() {
     controls.moveRight(-velocity.x);
     controls.moveForward(-velocity.z);
 
-    // Apply Room 1 collision system
-    applyRoom1Collisions(controls.getObject().position);
+    // Apply Room 1 collision system with crossing detection
+    applyRoom1Collisions(player.position, prevPosition);
 
     // Check portal proximity
     checkPortalProximity();
