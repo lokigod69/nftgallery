@@ -31,16 +31,18 @@ const gravity = -30;
 
 // Lava & platform configuration
 const ROOM6_CONFIG = {
-  lavaFloorY: -0.5,                 // Y threshold for lava death
-  safeHeightThreshold: -0.3,        // Player falls below this → death check
-  respawnPosition: new THREE.Vector3(0, eyeHeight, -5), // Corridor start
+  lavaFloorY: -0.5,                 // Actual floor mesh height
+  lavaTriggerY: 1.0,                // If player drops below this, trigger death check
+  respawnPosition: new THREE.Vector3(0, eyeHeight, -8), // Will be updated to first tile
 
   // Hex tile settings
   tileCount: 14,                    // 14 tiles to reach portal
   tileRadius: 1.3,
   tileHeight: 0.4,
-  tileStartZ: -10,                  // Start near spawn (z=-5)
-  tileStepZ: -6.0,                  // NEGATIVE step toward portal (z=-98)
+  tileStartZ: -8,                   // First tile just in front of spawn
+  tileStepZ: -3.5,                  // Easier jump distance
+  baseX: 0,
+  scatterX: 1.6,                    // Zigzag horizontally for interest
   tileSafeRadius: 1.5,              // Slightly bigger than tile for forgiveness
   tileFloatAmplitude: 0.05,         // Subtle hover animation
   tileFloatSpeed: 1.0
@@ -102,10 +104,10 @@ function createLavaFloor() {
   ctx.fillStyle = '#050509';
   ctx.fillRect(0, 0, 512, 512);
 
-  // Red grid lines
-  ctx.strokeStyle = '#440000';
-  ctx.lineWidth = 2;
-  const gridSize = 32;
+  // Red grid lines - brighter and less dense
+  ctx.strokeStyle = '#880000';
+  ctx.lineWidth = 3;
+  const gridSize = 48; // Larger grid = less dense
   for (let i = 0; i <= 512; i += gridSize) {
     ctx.beginPath();
     ctx.moveTo(i, 0);
@@ -121,13 +123,13 @@ function createLavaFloor() {
   const gridTexture = new THREE.CanvasTexture(canvas);
   gridTexture.wrapS = THREE.RepeatWrapping;
   gridTexture.wrapT = THREE.RepeatWrapping;
-  gridTexture.repeat.set(4, 10); // Repeat along corridor
+  gridTexture.repeat.set(6, 24); // Make pattern larger (less frequent)
 
   const floorMat = new THREE.MeshStandardMaterial({
     color: 0x050509,
-    emissive: 0x330000,
+    emissive: 0x440000, // Deeper red
     emissiveMap: gridTexture,
-    emissiveIntensity: 0.6, // Increased for visibility
+    emissiveIntensity: 0.9, // Brighter than before
     roughness: 0.9,
     metalness: 0.1
   });
@@ -214,6 +216,37 @@ function createCeiling() {
 
 const ceiling = createCeiling();
 
+// ----------------------------------------------------------------------
+// Wall Torches - Simple emissive lights for ambient lighting
+// ----------------------------------------------------------------------
+function addWallTorch(x, y, z, facing) {
+  const torchGeom = new THREE.PlaneGeometry(0.5, 1.5);
+  const torchMat = new THREE.MeshBasicMaterial({
+    color: 0xff5533,
+    transparent: true,
+    opacity: 0.8
+  });
+
+  const torch = new THREE.Mesh(torchGeom, torchMat);
+  torch.position.set(x, y, z);
+
+  if (facing === 'left') torch.rotation.y = Math.PI / 2;
+  if (facing === 'right') torch.rotation.y = -Math.PI / 2;
+
+  scene.add(torch);
+
+  const light = new THREE.PointLight(0xff5533, 1.2, 12);
+  light.position.set(x, y, z);
+  scene.add(light);
+}
+
+// Place torches along corridor walls
+const torchY = 3.5;
+for (let z = -15; z >= -90; z -= 15) {
+  addWallTorch(-9.5, torchY, z, 'right'); // Left wall
+  addWallTorch(9.5, torchY, z, 'left');   // Right wall
+}
+
 // Load videos
 const videoFiles = [
   'Amy1.mp4','Angel1.mp4','Anna1.mp4','April1.mp4','Cara1.mp4','Claire1.mp4','Cynthia2.mp4','Dasha1.mp4','Devon2.mp4','Huong1.mp4','Lucy1.mp4','Ruby1.mp4','Sarah1.mp4'
@@ -289,19 +322,25 @@ function createHexTiles() {
     // Apply materials: [sides, top, bottom]
     const tile = new THREE.Mesh(geom, [sideMat, topMat.clone(), sideMat]);
 
-    // Position along corridor with mild left/right wiggle
+    // Position along corridor with 3-phase zigzag pattern
     const z = cfg.tileStartZ + i * cfg.tileStepZ;
-    const xOffset = (i % 2 === 0) ? 0.8 : -0.8; // Gentle zigzag for interest
+
+    // Simple deterministic zigzag: 0 → +scatter → -scatter → repeat
+    let x = cfg.baseX;
+    const phase = i % 3;
+    if (phase === 1) x += cfg.scatterX;
+    if (phase === 2) x -= cfg.scatterX;
+
     const baseY = 0.0;
 
-    tile.position.set(xOffset, baseY, z);
+    tile.position.set(x, baseY, z);
     tile.rotation.y = Math.random() * Math.PI * 2; // Random rotation for organic feel
 
     scene.add(tile);
     hexTiles.push(tile);
 
     // Store center for collision detection (x, z in 2D)
-    tileCenters.push(new THREE.Vector2(xOffset, z));
+    tileCenters.push(new THREE.Vector2(x, z));
   }
 
   const firstZ = cfg.tileStartZ;
@@ -314,6 +353,22 @@ function createHexTiles() {
 }
 
 createHexTiles();
+
+// Set spawn position to first tile center
+if (tileCenters.length > 0) {
+  const firstTileCenter = tileCenters[0];
+  ROOM6_CONFIG.respawnPosition.set(
+    firstTileCenter.x,
+    eyeHeight,
+    firstTileCenter.y
+  );
+
+  // Initialize player at first tile
+  camera.position.copy(ROOM6_CONFIG.respawnPosition);
+  controls.getObject().position.copy(ROOM6_CONFIG.respawnPosition);
+
+  console.log(`✓ Spawn set to first tile at (${firstTileCenter.x.toFixed(1)}, ${eyeHeight}, ${firstTileCenter.y.toFixed(1)})`);
+}
 
 // ----------------------------------------------------------------------
 // Safe Tile Detection - Check if player is above a tile
@@ -483,11 +538,10 @@ function animate() {
     player.position.x = Math.max(-halfWidth, Math.min(halfWidth, player.position.x));
     player.position.z = Math.max(minZ, Math.min(maxZ, player.position.z));
 
-    // Lava death detection
-    if (player.position.y < ROOM6_CONFIG.safeHeightThreshold) {
-      if (!isOnSafeTile(player.position)) {
-        respawnPlayer();
-      }
+    // Lava death detection - trigger when falling below threshold
+    if (player.position.y < ROOM6_CONFIG.lavaTriggerY && !isOnSafeTile(player.position)) {
+      respawnPlayer();
+      console.log('ROOM 6: lava death triggered');
     }
 
     // Check portal proximity

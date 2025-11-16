@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <!-- Dark spacey background -->
+    <radialGradient id="bg" cx="50%" cy="20%" r="70%">
+      <stop offset="0%" stop-color="#020617" />
+      <stop offset="40%" stop-color="#020617" />
+      <stop offset="100%" stop-color="#000000" />
+    </radialGradient>
+
+    <!-- Cube edges gradient -->
+    <linearGradient id="cubeEdge" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22d3ee" />
+      <stop offset="50%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#a855f7" />
+    </linearGradient>
+
+    <!-- Faces subtle fill -->
+    <linearGradient id="cubeFill" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#020617" />
+      <stop offset="100%" stop-color="#0b1120" />
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded tile background -->
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#bg)" />
+
+  <!-- Slight inner border -->
+  <rect x="5" y="5" width="54" height="54" rx="12"
+        fill="none" stroke="#111827" stroke-width="1.5" />
+
+  <!-- NESTED 3D CUBES (isometric) -->
+  <!-- Base coordinate system centered slightly above middle -->
+  <g transform="translate(32 30)">
+    <!-- OUTER CUBE -->
+    <g transform="scale(1.0)">
+      <!-- Top face -->
+      <polygon
+        points="0,-14 12,-7 0,0 -12,-7"
+        fill="url(#cubeFill)"
+        stroke="url(#cubeEdge)"
+        stroke-width="1.6"
+        stroke-linejoin="round"
+      />
+      <!-- Left face -->
+      <polygon
+        points="-12,-7 0,0 0,13 -12,6"
+        fill="url(#cubeFill)"
+        stroke="url(#cubeEdge)"
+        stroke-width="1.6"
+        stroke-linejoin="round"
+      />
+      <!-- Right face -->
+      <polygon
+        points="0,0 12,-7 12,6 0,13"
+        fill="url(#cubeFill)"
+        stroke="url(#cubeEdge)"
+        stroke-width="1.6"
+        stroke-linejoin="round"
+      />
+    </g>
+
+    <!-- MIDDLE CUBE -->
+    <g transform="scale(0.7)">
+      <!-- Top face -->
+      <polygon
+        points="0,-14 12,-7 0,0 -12,-7"
+        fill="none"
+        stroke="url(#cubeEdge)"
+        stroke-width="1.8"
+        stroke-linejoin="round"
+      />
+      <!-- Left face -->
+      <polygon
+        points="-12,-7 0,0 0,13 -12,6"
+        fill="none"
+        stroke="url(#cubeEdge)"
+        stroke-width="1.8"
+        stroke-linejoin="round"
+      />
+      <!-- Right face -->
+      <polygon
+        points="0,0 12,-7 12,6 0,13"
+        fill="none"
+        stroke="url(#cubeEdge)"
+        stroke-width="1.8"
+        stroke-linejoin="round"
+      />
+    </g>
+
+    <!-- INNER CUBE -->
+    <g transform="scale(0.45)">
+      <!-- Top face -->
+      <polygon
+        points="0,-14 12,-7 0,0 -12,-7"
+        fill="#020617"
+        stroke="url(#cubeEdge)"
+        stroke-width="2"
+        stroke-linejoin="round"
+      />
+      <!-- Left face -->
+      <polygon
+        points="-12,-7 0,0 0,13 -12,6"
+        fill="#020617"
+        stroke="url(#cubeEdge)"
+        stroke-width="2"
+        stroke-linejoin="round"
+      />
+      <!-- Right face -->
+      <polygon
+        points="0,0 12,-7 12,6 0,13"
+        fill="#020617"
+        stroke="url(#cubeEdge)"
+        stroke-width="2"
+        stroke-linejoin="round"
+      />
+    </g>
+  </g>
+</svg>
