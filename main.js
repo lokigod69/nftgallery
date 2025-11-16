@@ -772,23 +772,25 @@ function applyRoom1Collisions(position, prevPosition) {
     position.x = w.right - r;
   }
 
-  // Divider collision - use crossing detection to prevent clipping/getting stuck
-  // Only active when near the divider (within 2 units of z=0) and within X range
-  const nearDivider = Math.abs(position.z) < 2.0;
+  // Divider collision - keep player on whichever side they're on
+  // Simpler approach: if within divider X range, prevent going through the wall
   const withinDividerX = (position.x > d.minX && position.x < d.maxX);
 
-  if (nearDivider && withinDividerX) {
-    const frontBoundary = d.frontPictureZ + r;  // 0.32 + 0.3 = 0.62
-    const backBoundary = d.backPictureZ - r;    // -0.32 - 0.3 = -0.62
+  if (withinDividerX) {
+    const frontLimit = d.frontPictureZ + r;  // 0.32 + 0.3 = 0.62
+    const backLimit = d.backPictureZ - r;    // -0.32 - 0.3 = -0.62
 
-    // Detect crossing from +Z side (moving toward front-facing pictures at +0.32)
-    if (prevPosition.z > frontBoundary && position.z <= frontBoundary) {
-      position.z = frontBoundary;  // Stop at front boundary
+    // If on the front side (positive z), don't let them go past the front NFT plane
+    if (position.z > 0) {
+      if (position.z < frontLimit) {
+        position.z = frontLimit;
+      }
     }
-
-    // Detect crossing from -Z side (moving toward back-facing pictures at -0.32)
-    if (prevPosition.z < backBoundary && position.z >= backBoundary) {
-      position.z = backBoundary;  // Stop at back boundary
+    // If on the back side (negative z), don't let them go past the back NFT plane
+    else {
+      if (position.z > backLimit) {
+        position.z = backLimit;
+      }
     }
   }
 }

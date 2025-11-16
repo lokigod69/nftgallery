@@ -39,7 +39,7 @@ import { initSpeedControl } from './src/ui/speed-control.js';
 // ----------------------------------------------------------------------
 // Global Variables for Jump Physics
 // ----------------------------------------------------------------------
-const groundLevels = { 1: 3.0 }; // Raised eye height for better NFT center alignment
+const groundLevels = { 1: 3.2 }; // Raised eye height for NFT center alignment at close distance
 let isJumping = false;
 let jumpVelocity = 0;
 const gravity = -30;

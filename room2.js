@@ -8,7 +8,7 @@ import { initSpeedControl } from './src/ui/speed-control.js';
 // ----------------------------------------------------------------------
 // Global Variables for Jump Physics
 // ----------------------------------------------------------------------
-const groundLevels = { 1: 3.0 }; // Raised eye height for better NFT center alignment
+const groundLevels = { 1: 3.2 }; // Raised eye height for NFT center alignment at close distance
 let isJumping = false;
 let jumpVelocity = 0;
 const gravity = -30;
@@ -759,23 +759,26 @@ function applyRoom2Collisions(position, prevPosition) {
     position.z = outer.maxZ - r;
   }
 
-  // Divider collision - use crossing detection to prevent clipping/getting stuck
-  const nearDivider = Math.abs(position.z) < 2.0;
+  // Divider collision - keep player on whichever side they're on
+  // Check if within either divider section's X range
   const inLeftDivider = (position.x > div.left.minX && position.x < div.left.maxX);
   const inRightDivider = (position.x > div.right.minX && position.x < div.right.maxX);
 
-  if (nearDivider && (inLeftDivider || inRightDivider)) {
-    const frontBoundary = div.frontPictureZ + r;  // 0.51 + 0.3 = 0.81
-    const backBoundary = div.backPictureZ - r;    // -0.51 - 0.3 = -0.81
+  if (inLeftDivider || inRightDivider) {
+    const frontLimit = div.frontPictureZ + r;  // 0.51 + 0.3 = 0.81
+    const backLimit = div.backPictureZ - r;    // -0.51 - 0.3 = -0.81
 
-    // Detect crossing from +Z side (moving toward front-facing pictures at +0.51)
-    if (prevPosition.z > frontBoundary && position.z <= frontBoundary) {
-      position.z = frontBoundary;  // Stop at front boundary
+    // If on the front side (positive z), don't let them go past the front NFT plane
+    if (position.z > 0) {
+      if (position.z < frontLimit) {
+        position.z = frontLimit;
+      }
     }
-
-    // Detect crossing from -Z side (moving toward back-facing pictures at -0.51)
-    if (prevPosition.z < backBoundary && position.z >= backBoundary) {
-      position.z = backBoundary;  // Stop at back boundary
+    // If on the back side (negative z), don't let them go past the back NFT plane
+    else {
+      if (position.z > backLimit) {
+        position.z = backLimit;
+      }
     }
   }
 }
