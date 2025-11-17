@@ -826,7 +826,7 @@ function animate() {
   }
 
   // Mobile controls update (auto-level and camera rotation)
-  if (mobileControls.enabled) {
+  if (mobileControls && mobileControls.enabled) {
     mobileControls.updateAutoLevel(delta);
     mobileControls.updateCameraRotation();
   }

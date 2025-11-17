@@ -999,7 +999,7 @@ function animate() {
   const delta = clock.getDelta();
 
   // Update mobile controls (auto-level and camera rotation)
-  if (mobileControls.enabled) {
+  if (mobileControls && mobileControls.enabled) {
     mobileControls.updateAutoLevel(delta);
     mobileControls.updateCameraRotation();
   }
