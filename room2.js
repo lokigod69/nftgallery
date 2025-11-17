@@ -642,7 +642,15 @@ function animate() {
     camera.position.y = groundLevel;
   }
 
-  if (controls.isLocked) {
+  // Update mobile controls (auto-level and camera rotation)
+  if (mobileControls.enabled) {
+    mobileControls.updateAutoLevel(delta);
+    mobileControls.updateCameraRotation();
+  }
+
+  // Allow movement on desktop (pointer locked) or mobile (mobile controls enabled)
+  const isActiveControls = controls.isLocked || (mobileControls && mobileControls.enabled);
+  if (isActiveControls) {
     const player = controls.getObject();
 
     // Store previous position before movement
@@ -670,12 +678,6 @@ function animate() {
   allPortals.forEach(portalObj => {
     animateLinkedPortal(portalObj.portal, portalObj.glow);
   });
-
-  // Update mobile controls (auto-level and camera rotation)
-  if (mobileControls.enabled) {
-    mobileControls.updateAutoLevel(delta);
-    mobileControls.updateCameraRotation();
-  }
 
   renderer.render(scene, camera);
 }
@@ -722,8 +724,8 @@ const mobileControls = initMobileControls({
     const intersects = raycaster.intersectObjects(picturePlanes, false);
     if (intersects.length > 0) {
       const nft = intersects[0].object;
-      if (nft.userData?.isNFT && typeof nftViewer?.openByIndex === 'function') {
-        nftViewer.openByIndex(nft.userData.index - 1);
+      if (nft.userData?.isNFT && typeof nftViewer?.open === 'function') {
+        nftViewer.open(nft.userData.index);  // Pass NFT ID directly
       }
     }
   }

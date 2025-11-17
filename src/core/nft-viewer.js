@@ -287,6 +287,11 @@ export function initNFTViewer(config) {
   // ----------------------------------------------------------------------
 
   return {
+    // Open viewer by NFT ID
+    open(nftId) {
+      openViewer(nftId);
+    },
+
     destroy() {
       // Remove event listeners
       leftArrow.removeEventListener('click', handleLeftArrowClick);

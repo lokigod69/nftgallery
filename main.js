@@ -247,8 +247,8 @@ const mobileControls = initMobileControls({
     const intersects = raycaster.intersectObjects(picturePlanes, false);
     if (intersects.length > 0) {
       const nft = intersects[0].object;
-      if (nft.userData?.isNFT && typeof nftViewer?.openByIndex === 'function') {
-        nftViewer.openByIndex(nft.userData.index - 1);  // nftViewer uses 0-based index
+      if (nft.userData?.isNFT && typeof nftViewer?.open === 'function') {
+        nftViewer.open(nft.userData.index);  // Pass NFT ID directly
       }
     }
   }
@@ -818,7 +818,9 @@ function animate() {
     mobileControls.updateCameraRotation();
   }
 
-  if (controls.isLocked) {
+  // Allow movement on desktop (pointer locked) or mobile (mobile controls enabled)
+  const isActiveControls = controls.isLocked || (mobileControls && mobileControls.enabled);
+  if (isActiveControls) {
     const player = controls.getObject();
 
     // Store previous position before movement

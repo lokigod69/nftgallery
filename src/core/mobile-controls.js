@@ -164,11 +164,27 @@ export function initMobileControls(config) {
   // Initialize orientation warning
   setupOrientationWarning(mobileUI.rotateMessage);
 
+  // Update controls description for mobile
+  updateControlsDescription();
+
   // Update camera rotation from yaw/pitch
   function updateCameraRotation() {
     if (config.camera) {
       config.camera.rotation.y = yaw;
       config.camera.rotation.x = pitch;
+    }
+  }
+
+  // Update controls description text for mobile
+  function updateControlsDescription() {
+    const controlsDesc = document.getElementById('controls-description');
+    if (controlsDesc) {
+      controlsDesc.innerHTML = `
+        <p>Controls:</p>
+        <p>Left joystick - Move</p>
+        <p>Right joystick - Look</p>
+        <p>Tap center - Interact</p>
+      `;
     }
   }
 
@@ -424,7 +440,7 @@ function createJoysticks(options) {
     }
 
     if (Math.abs(data.vector.y) > deadZone) {
-      currentPitch -= data.vector.y * sensitivity.look;
+      currentPitch += data.vector.y * sensitivity.look;  // Changed from -= to += to fix inverted Y
     }
 
     // Clamp pitch to limits

@@ -990,22 +990,30 @@ const portalToRoom4 = portalToRoom4Obj;
 // ----------------------------------------------------------------------
 function animate() {
   requestAnimationFrame(animate);
-  
-  if (controls.isLocked === true) {
-    const delta = clock.getDelta();
-    
+
+  const delta = clock.getDelta();
+
+  // Update mobile controls (auto-level and camera rotation)
+  if (mobileControls.enabled) {
+    mobileControls.updateAutoLevel(delta);
+    mobileControls.updateCameraRotation();
+  }
+
+  // Allow movement on desktop (pointer locked) or mobile (mobile controls enabled)
+  const isActiveControls = controls.isLocked || (mobileControls && mobileControls.enabled);
+  if (isActiveControls) {
     // Handle jumping and gravity
     if (isJumping) {
       camera.position.y += jumpVelocity * delta;
       jumpVelocity += gravity * delta;
-      
+
       if (camera.position.y <= groundLevels[1]) {
         camera.position.y = groundLevels[1];
         isJumping = false;
         jumpVelocity = 0;
       }
     }
-    
+
     // Movement - using room2's speed variable
     velocity.x -= velocity.x * 10.0 * delta;
     velocity.z -= velocity.z * 10.0 * delta;
@@ -1017,10 +1025,10 @@ function animate() {
 
     if (moveForward || moveBackward) velocity.z -= direction.z * speedDelta;
     if (moveLeft || moveRight) velocity.x -= direction.x * speedDelta;
-    
+
     controls.moveRight(-velocity.x * delta);
     controls.moveForward(-velocity.z * delta);
-    
+
     // Check for collisions
     checkCollisions();
 
@@ -1060,13 +1068,6 @@ function animate() {
     const hue = (time * orb.userData.hueShift) % 1;
     orb.material.color.setHSL(hue, 0.7, 0.5);
   });
-
-  // Update mobile controls (auto-level and camera rotation)
-  if (mobileControls.enabled) {
-    const delta = clock.getDelta();
-    mobileControls.updateAutoLevel(delta);
-    mobileControls.updateCameraRotation();
-  }
 
   renderer.render(scene, camera);
 }
@@ -1113,8 +1114,8 @@ const mobileControls = initMobileControls({
     const intersects = raycaster.intersectObjects(picturePlanes, false);
     if (intersects.length > 0) {
       const nft = intersects[0].object;
-      if (nft.userData?.isNFT && typeof nftViewer?.openByIndex === 'function') {
-        nftViewer.openByIndex(nft.userData.index - 1);
+      if (nft.userData?.isNFT && typeof nftViewer?.open === 'function') {
+        nftViewer.open(nft.userData.index);  // Pass NFT ID directly
       }
     }
   }
