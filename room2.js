@@ -4,6 +4,7 @@ import { createLinkedPortal, animateLinkedPortal, createMultiPortalChecker } fro
 import { getNftUrl } from './src/core/asset-utils.js';
 import { MOVEMENT_CONFIG } from './src/core/movement-config.js';
 import { initSpeedControl } from './src/ui/speed-control.js';
+import { initMobileControls } from './src/core/mobile-controls.js';
 
 // ----------------------------------------------------------------------
 // Global Variables for Jump Physics
@@ -243,7 +244,12 @@ document.addEventListener('click', () => {
   }
 });
 
-let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+// Movement flags now on window object for mobile/desktop sharing
+window.moveForward = false;
+window.moveBackward = false;
+window.moveLeft = false;
+window.moveRight = false;
+
 const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
 const prevPosition = new THREE.Vector3();  // Track previous position for collision detection
@@ -251,10 +257,10 @@ const prevPosition = new THREE.Vector3();  // Track previous position for collis
 
 document.addEventListener('keydown', (event) => {
   switch (event.code) {
-    case 'KeyW': moveForward = true; break;
-    case 'KeyA': moveLeft = true; break;
-    case 'KeyS': moveBackward = true; break;
-    case 'KeyD': moveRight = true; break;
+    case 'KeyW': window.moveForward = true; break;
+    case 'KeyA': window.moveLeft = true; break;
+    case 'KeyS': window.moveBackward = true; break;
+    case 'KeyD': window.moveRight = true; break;
     case 'Space':
       if (!isJumping) {
         isJumping = true;
@@ -274,10 +280,10 @@ document.addEventListener('keydown', (event) => {
 
 document.addEventListener('keyup', (event) => {
   switch (event.code) {
-    case 'KeyW': moveForward = false; break;
-    case 'KeyA': moveLeft = false; break;
-    case 'KeyS': moveBackward = false; break;
-    case 'KeyD': moveRight = false; break;
+    case 'KeyW': window.moveForward = false; break;
+    case 'KeyA': window.moveLeft = false; break;
+    case 'KeyS': window.moveBackward = false; break;
+    case 'KeyD': window.moveRight = false; break;
   }
 });
 
@@ -886,6 +892,28 @@ setTimeout(() => {
 }, 1000);
 
 // ----------------------------------------------------------------------
+// Mobile Controls Integration
+// ----------------------------------------------------------------------
+let mobileControls = null;
+
+mobileControls = initMobileControls({
+  camera,
+  controls,
+  sensitivity: { look: 0.04, move: 1.0 },
+  pitchLimits: { min: -Math.PI / 3, max: Math.PI / 4 },
+  autoLevel: { enabled: true, speed: 0.3, threshold: 0.1 },
+  onInteract: (raycaster) => {
+    const intersects = raycaster.intersectObjects(picturePlanes, false);
+    if (intersects.length > 0) {
+      const nft = intersects[0].object;
+      if (nft.userData?.isNFT) {
+        openImageViewer(nft.userData.imageUrl, nft.userData.index);
+      }
+    }
+  }
+});
+
+// ----------------------------------------------------------------------
 // Animation Loop
 // ----------------------------------------------------------------------
 function animate() {
@@ -906,20 +934,32 @@ function animate() {
     camera.position.y = groundLevel;
   }
 
-  if (controls.isLocked) {
+  // Update mobile controls
+  if (mobileControls && mobileControls.enabled) {
+    mobileControls.updateAutoLevel(delta);
+    mobileControls.updateCameraRotation();
+  }
+
+  const isActiveControls = controls.isLocked || (mobileControls && mobileControls.enabled);
+  if (isActiveControls) {
     const player = controls.getObject();
 
     // Store previous position before movement
     prevPosition.copy(player.position);
 
-    const speedDelta = MOVEMENT_CONFIG.getEffectiveSpeed('room2') * delta;
+    // Apply mobile speed scaling: halve speed on mobile for better control
+    const isMobileActive = mobileControls && mobileControls.enabled;
+    const baseSpeed = MOVEMENT_CONFIG.getEffectiveSpeed('room2');
+    const effectiveSpeed = isMobileActive ? baseSpeed * 0.5 : baseSpeed;
+    const speedDelta = effectiveSpeed * delta;
+
     velocity.x = 0;
     velocity.z = 0;
-    direction.z = Number(moveForward) - Number(moveBackward);
-    direction.x = Number(moveRight) - Number(moveLeft);
+    direction.z = Number(window.moveForward) - Number(window.moveBackward);
+    direction.x = Number(window.moveRight) - Number(window.moveLeft);
     direction.normalize();
-    if (moveForward || moveBackward) velocity.z -= direction.z * speedDelta;
-    if (moveLeft || moveRight) velocity.x -= direction.x * speedDelta;
+    if (window.moveForward || window.moveBackward) velocity.z -= direction.z * speedDelta;
+    if (window.moveLeft || window.moveRight) velocity.x -= direction.x * speedDelta;
     controls.moveRight(-velocity.x);
     controls.moveForward(-velocity.z);
 

@@ -252,11 +252,12 @@ const mobileControls = initMobileControls({
       const nft = intersects[0].object;
       console.log('[Room1 onInteract] First hit:', nft.userData);
 
-      if (nft.userData?.isNFT && typeof nftViewer?.open === 'function') {
+      if (nft.userData?.isNFT) {
         console.log('[Room1 onInteract] Opening NFT viewer for index:', nft.userData.index);
-        nftViewer.open(nft.userData.index);  // Pass NFT ID directly
+        // Use same viewer system as desktop (openImageViewer)
+        openImageViewer(nft.userData.imageUrl, nft.userData.index);
       } else {
-        console.log('[Room1 onInteract] Cannot open viewer - isNFT:', nft.userData?.isNFT, 'viewer available:', typeof nftViewer?.open);
+        console.log('[Room1 onInteract] Cannot open viewer - isNFT:', nft.userData?.isNFT);
       }
     }
   }
@@ -839,7 +840,11 @@ function animate() {
     // Store previous position before movement
     prevPosition.copy(player.position);
 
-    const speedDelta = MOVEMENT_CONFIG.getEffectiveSpeed('room1') * delta;
+    // Apply mobile speed scaling: halve speed on mobile for better control
+    const isMobileActive = mobileControls && mobileControls.enabled;
+    const baseSpeed = MOVEMENT_CONFIG.getEffectiveSpeed('room1');
+    const effectiveSpeed = isMobileActive ? baseSpeed * 0.5 : baseSpeed;
+    const speedDelta = effectiveSpeed * delta;
     velocity.x = 0;
     velocity.z = 0;
     direction.z = Number(window.moveForward) - Number(window.moveBackward);
