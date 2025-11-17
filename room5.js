@@ -19,6 +19,7 @@ import { MOVEMENT_CONFIG } from './src/core/movement-config.js';
 import { initSpeedControl } from './src/ui/speed-control.js';
 import { initScene } from './src/core/scene-setup.js';
 import { initNFTViewer } from './src/core/nft-viewer.js';
+import { initMobileControls } from './src/core/mobile-controls.js';
 
 // ----------------------------------------------------------------------
 // Global Variables
@@ -342,8 +343,11 @@ function handleClick(event) {
 window.removeEventListener('click', handleClick);
 window.addEventListener('click', handleClick);
 
-// Movement variables
-let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+// Movement variables - now on window object for mobile/desktop sharing
+window.moveForward = false;
+window.moveBackward = false;
+window.moveLeft = false;
+window.moveRight = false;
 const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
 const keyStates = {};
@@ -351,23 +355,23 @@ const keyStates = {};
 // Key handlers
 const onKeyDown = function (event) {
   keyStates[event.code] = true;
-  
+
   switch (event.code) {
     case 'ArrowUp':
     case 'KeyW':
-      moveForward = true;
+      window.moveForward = true;
       break;
     case 'ArrowLeft':
     case 'KeyA':
-      moveLeft = true;
+      window.moveLeft = true;
       break;
     case 'ArrowDown':
     case 'KeyS':
-      moveBackward = true;
+      window.moveBackward = true;
       break;
     case 'ArrowRight':
     case 'KeyD':
-      moveRight = true;
+      window.moveRight = true;
       break;
     case 'Space':
       if (!isJumping) {
@@ -380,23 +384,23 @@ const onKeyDown = function (event) {
 
 const onKeyUp = function (event) {
   keyStates[event.code] = false;
-  
+
   switch (event.code) {
     case 'ArrowUp':
     case 'KeyW':
-      moveForward = false;
+      window.moveForward = false;
       break;
     case 'ArrowLeft':
     case 'KeyA':
-      moveLeft = false;
+      window.moveLeft = false;
       break;
     case 'ArrowDown':
     case 'KeyS':
-      moveBackward = false;
+      window.moveBackward = false;
       break;
     case 'ArrowRight':
     case 'KeyD':
-      moveRight = false;
+      window.moveRight = false;
       break;
   }
 };
@@ -974,59 +978,101 @@ const portalLabels = allPortals
   .filter(label => label !== undefined);
 
 // ----------------------------------------------------------------------
+// Mobile Controls Initialization
+// ----------------------------------------------------------------------
+let mobileControls = null;
+
+mobileControls = initMobileControls({
+  camera,
+  controls,
+  sensitivity: { look: 0.04, move: 1.0 },
+  pitchLimits: { min: -Math.PI / 3, max: Math.PI / 4 },
+  autoLevel: { enabled: true, speed: 0.3, threshold: 0.1 },
+  onInteract: (raycaster) => {
+    const intersects = raycaster.intersectObjects(picturePlanes, false);
+    if (intersects.length > 0) {
+      const nft = intersects[0].object;
+      if (nft.userData?.isNFT) {
+        openImageViewer(nft.userData.imageUrl, nft.userData.index);
+      }
+    }
+  }
+});
+
+// Hide desktop tooltip on mobile
+if (mobileControls && mobileControls.enabled) {
+  const desktopTooltip = document.getElementById('controls-description');
+  if (desktopTooltip) {
+    desktopTooltip.style.display = 'none';
+  }
+}
+
+// ----------------------------------------------------------------------
 // Animation Loop
 // ----------------------------------------------------------------------
 const clock = new THREE.Clock();
 
 function animate() {
   requestAnimationFrame(animate);
-  
+
   // Get delta time
   const delta = clock.getDelta();
   const time = Date.now() * 0.001; // Time in seconds
-  
+
+  // Update mobile controls
+  if (mobileControls && mobileControls.enabled) {
+    mobileControls.updateAutoLevel(delta);
+    mobileControls.updateCameraRotation();
+  }
+
   // Update environment map for reflections (every few frames for performance)
   if (Math.floor(time * 10) % 5 === 0) { // Update every half second
     if (walls.userData && walls.userData.updateEnvironmentMap) {
       walls.userData.updateEnvironmentMap();
     }
   }
-  
+
   // NO ANIMATION FOR NFTs - they are completely static now
-  
-  if (controls.isLocked === true) {
+
+  const isActiveControls = controls.isLocked || (mobileControls && mobileControls.enabled);
+  if (isActiveControls) {
     // Handle jumping and gravity
     if (isJumping) {
       camera.position.y += jumpVelocity * delta;
       jumpVelocity += gravity * delta;
-      
+
       if (camera.position.y <= groundLevel + eyeHeight) {
         camera.position.y = groundLevel + eyeHeight;
         isJumping = false;
         jumpVelocity = 0;
       }
     }
-    
+
     // Movement
     velocity.x -= velocity.x * 10.0 * delta;
     velocity.z -= velocity.z * 10.0 * delta;
 
-    const speedDelta = MOVEMENT_CONFIG.getEffectiveSpeed('room5') * delta;
-    direction.z = Number(moveForward) - Number(moveBackward);
-    direction.x = Number(moveRight) - Number(moveLeft);
+    // Apply mobile speed scaling: halve speed on mobile for better control
+    const isMobileActive = mobileControls && mobileControls.enabled;
+    const baseSpeed = MOVEMENT_CONFIG.getEffectiveSpeed('room5');
+    const effectiveSpeed = isMobileActive ? baseSpeed * 0.5 : baseSpeed;
+    const speedDelta = effectiveSpeed * delta;
+
+    direction.z = Number(window.moveForward) - Number(window.moveBackward);
+    direction.x = Number(window.moveRight) - Number(window.moveLeft);
     direction.normalize();
 
-    if (moveForward || moveBackward) velocity.z -= direction.z * speedDelta;
-    if (moveLeft || moveRight) velocity.x -= direction.x * speedDelta;
-    
+    if (window.moveForward || window.moveBackward) velocity.z -= direction.z * speedDelta;
+    if (window.moveLeft || window.moveRight) velocity.x -= direction.x * speedDelta;
+
     controls.moveRight(-velocity.x * delta);
     controls.moveForward(-velocity.z * delta);
-    
+
     // Room boundary check - keep player inside the circular room but closer to walls
     const playerX = camera.position.x;
     const playerZ = camera.position.z;
     const distanceFromCenter = Math.sqrt(playerX * playerX + playerZ * playerZ);
-    
+
     if (distanceFromCenter > roomRadius - 0.5) { // Reduced boundary buffer (1 -> 0.5)
       // Calculate normalized direction from center
       const angle = Math.atan2(playerZ, playerX);
@@ -1034,12 +1080,12 @@ function animate() {
       camera.position.x = (roomRadius - 0.5) * Math.cos(angle);
       camera.position.z = (roomRadius - 0.5) * Math.sin(angle);
     }
-    
+
     // UPDATED: Maintain camera at NFT level when not jumping
     if (!isJumping) {
       camera.position.y = groundLevel + eyeHeight;
     }
-    
+
     // Check if near portal
     checkPortalProximity();
   }

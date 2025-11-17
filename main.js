@@ -299,6 +299,14 @@ const mobileControls = initMobileControls({
   }
 });
 
+// Hide desktop tooltip on mobile
+if (mobileControls && mobileControls.enabled) {
+  const desktopTooltip = document.getElementById('controls-description');
+  if (desktopTooltip) {
+    desktopTooltip.style.display = 'none';
+  }
+}
+
 // Clock for animation timing
 const clock = new THREE.Clock();
 

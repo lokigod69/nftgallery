@@ -274,12 +274,6 @@ document.body.appendChild(renderer.domElement);
 // ----------------------------------------------------------------------
 const controls = new PointerLockControls(camera, document.body);
 
-document.addEventListener('click', () => {
-  if (viewerOverlay.style.display !== 'flex') {
-    controls.lock();
-  }
-});
-
 // Movement flags now on window object for mobile/desktop sharing
 window.moveForward = false;
 window.moveBackward = false;
@@ -948,6 +942,14 @@ mobileControls = initMobileControls({
     }
   }
 });
+
+// Hide desktop tooltip on mobile
+if (mobileControls && mobileControls.enabled) {
+  const desktopTooltip = document.getElementById('controls-description');
+  if (desktopTooltip) {
+    desktopTooltip.style.display = 'none';
+  }
+}
 
 // ----------------------------------------------------------------------
 // Animation Loop
