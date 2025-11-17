@@ -113,7 +113,41 @@ viewerInstructions.style.opacity = '0.7';
 viewerInstructions.textContent = 'Left/Right Click to Navigate • Press ESC to Close';
 viewerOverlay.appendChild(viewerInstructions);
 
+// Close button (visible on both desktop and mobile)
+const closeButton = document.createElement('button');
+closeButton.style.position = 'absolute';
+closeButton.style.top = '20px';
+closeButton.style.right = '20px';
+closeButton.style.fontSize = '36px';
+closeButton.style.color = 'white';
+closeButton.style.background = 'rgba(0, 0, 0, 0.5)';
+closeButton.style.border = 'none';
+closeButton.style.borderRadius = '50%';
+closeButton.style.width = '50px';
+closeButton.style.height = '50px';
+closeButton.style.cursor = 'pointer';
+closeButton.style.display = 'flex';
+closeButton.style.alignItems = 'center';
+closeButton.style.justifyContent = 'center';
+closeButton.style.zIndex = '1001';
+closeButton.innerHTML = '×';
+closeButton.addEventListener('click', (e) => {
+  e.stopPropagation();
+  closeImageViewer();
+});
+closeButton.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  closeImageViewer();
+}, { passive: false });
+viewerOverlay.appendChild(closeButton);
+
 document.body.appendChild(viewerOverlay);
+
+function closeImageViewer() {
+  viewerOverlay.style.display = 'none';
+  controls.lock();
+}
 
 // Navigation handlers for the NFT viewer
 function showPreviousNFT() {
@@ -156,6 +190,9 @@ rightArrow.addEventListener('click', (event) => {
 
 // Handle mouse clicks on the viewer overlay for navigation
 viewerOverlay.addEventListener('click', (event) => {
+  // Only navigate if clicking on the overlay background itself, not on arrows or buttons
+  if (event.target !== viewerOverlay) return;
+
   // Only consider left and right mouse buttons
   if (event.button === 0) { // Left click
     showNextNFT();
@@ -174,8 +211,7 @@ viewerOverlay.addEventListener('contextmenu', (event) => {
 document.addEventListener('keydown', (event) => {
   if (viewerOverlay.style.display === 'flex') {
     if (event.key === 'Escape') {
-      viewerOverlay.style.display = 'none';
-      controls.lock();
+      closeImageViewer();
     } else if (event.key === 'ArrowLeft') {
       showPreviousNFT();
     } else if (event.key === 'ArrowRight') {
