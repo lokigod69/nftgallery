@@ -4,11 +4,15 @@ import { createLinkedPortal, animateLinkedPortal, createMultiPortalChecker } fro
 import { getNftUrl } from './src/core/asset-utils.js';
 import { MOVEMENT_CONFIG } from './src/core/movement-config.js';
 import { initSpeedControl } from './src/ui/speed-control.js';
+import { initScene } from './src/core/scene-setup.js';
+import { initNFTViewer } from './src/core/nft-viewer.js';
+import { applyOuterWallCollision, applyDividerCollision } from './src/core/collision-helpers.js';
+import { initMobileControls } from './src/core/mobile-controls.js';
 
 // ----------------------------------------------------------------------
 // Global Variables for Jump Physics
 // ----------------------------------------------------------------------
-const groundLevels = { 1: 2.7 }; // Match Room 2 eye height for consistent NFT viewing
+const groundLevels = { 1: 2.3 }; // Lowered for better NFT frame alignment
 let isJumping = false;
 let jumpVelocity = 0;
 const gravity = -30;
@@ -212,28 +216,46 @@ function openImageViewer(imageUrl, nftIndex) {
 // ----------------------------------------------------------------------
 // Scene, Camera & Renderer Setup
 // ----------------------------------------------------------------------
-const scene = new THREE.Scene();
-// Permanently set to night mode:
-scene.background = new THREE.Color(0x0a0a0a); // Night mode background
+const { scene, camera, renderer, controls } = initScene({
+  spawnPosition: { x: 0, y: groundLevels[1], z: 5 },
+  background: 0x0a0a0a,
+  outputEncoding: 'Linear'
+});
+
+// Room 1 uses FogExp2 (not regular Fog)
 scene.fog = new THREE.FogExp2(0x0a0a0a, 0.02);
 
-const camera = new THREE.PerspectiveCamera(
-  75,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  1000
-);
-// Start camera at ground level.
-camera.position.set(0, groundLevels[1], 5);
+// Initialize mobile controls
+const mobileControls = initMobileControls({
+  camera,
+  controls,
+  sensitivity: {
+    look: 0.04,
+    move: 1.0
+  },
+  pitchLimits: {
+    min: -Math.PI / 3,  // -60°
+    max: Math.PI / 4    // +45°
+  },
+  autoLevel: {
+    enabled: true,
+    speed: 0.3,
+    threshold: 0.1
+  },
+  onInteract: (raycaster) => {
+    // Mobile tap interaction - find NFT under center crosshair
+    const intersects = raycaster.intersectObjects(picturePlanes, false);
+    if (intersects.length > 0) {
+      const nft = intersects[0].object;
+      if (nft.userData?.isNFT && typeof nftViewer?.openByIndex === 'function') {
+        nftViewer.openByIndex(nft.userData.index - 1);  // nftViewer uses 0-based index
+      }
+    }
+  }
+});
 
 // Clock for animation timing
 const clock = new THREE.Clock();
-
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-// Set output encoding to Linear so that the pictures use their original brightness.
-renderer.outputEncoding = THREE.LinearEncoding;
-document.body.appendChild(renderer.domElement);
 
 // ----------------------------------------------------------------------
 // Audio Setup
@@ -252,14 +274,12 @@ audioLoader.load('/assets/ambient.mp3', function (buffer) {
 // ----------------------------------------------------------------------
 // Controls & Movement Setup
 // ----------------------------------------------------------------------
-const controls = new PointerLockControls(camera, document.body);
-
-// Sync controls object with camera to prevent spawn teleport on first lock
-// This ensures the view before and after pointer lock is identical
-controls.getObject().position.copy(camera.position);
+// Controls are now initialized by initScene()
+// Sync rotation to prevent spawn teleport (position sync handled by initScene)
 controls.getObject().rotation.copy(camera.rotation);
 
 // Only lock controls on click if we're not viewing an NFT
+// Note: initScene also adds a basic click-to-lock handler
 document.addEventListener('click', () => {
   if (viewerOverlay.style.display !== 'flex') {
     controls.lock();
@@ -754,45 +774,21 @@ function applyRoom1Collisions(position, prevPosition) {
   const w = ROOM1_COLLISION.walls;
   const d = ROOM1_COLLISION.divider;
 
-  // Outer wall collisions - simple one-directional stops (keep as-is, working correctly)
-  // Back wall (negative z)
-  if (position.z < w.back + r) {
-    position.z = w.back + r;
-  }
-  // Front wall (positive z)
-  if (position.z > w.front - r) {
-    position.z = w.front - r;
-  }
-  // Left wall (negative x)
-  if (position.x < w.left + r) {
-    position.x = w.left + r;
-  }
-  // Right wall (positive x)
-  if (position.x > w.right - r) {
-    position.x = w.right - r;
-  }
+  // Apply outer wall collision using centralized helper
+  applyOuterWallCollision(position, {
+    minX: w.left,
+    maxX: w.right,
+    minZ: w.back,
+    maxZ: w.front,
+    radius: r
+  });
 
-  // Divider collision - keep player on whichever side they're on
-  // Simpler approach: if within divider X range, prevent going through the wall
-  const withinDividerX = (position.x > d.minX && position.x < d.maxX);
-
-  if (withinDividerX) {
-    const frontLimit = d.frontPictureZ + r;  // 0.32 + 0.3 = 0.62
-    const backLimit = d.backPictureZ - r;    // -0.32 - 0.3 = -0.62
-
-    // If on the front side (positive z), don't let them go past the front NFT plane
-    if (position.z > 0) {
-      if (position.z < frontLimit) {
-        position.z = frontLimit;
-      }
-    }
-    // If on the back side (negative z), don't let them go past the back NFT plane
-    else {
-      if (position.z > backLimit) {
-        position.z = backLimit;
-      }
-    }
-  }
+  // Apply divider collision using centralized helper
+  applyDividerCollision(position, {
+    dividerX: { min: d.minX, max: d.maxX },
+    frontLimit: d.frontPictureZ + r,  // 0.32 + 0.3 = 0.62
+    backLimit: d.backPictureZ - r     // -0.32 - 0.3 = -0.62
+  });
 }
 
 // ----------------------------------------------------------------------
@@ -814,6 +810,12 @@ function animate() {
     }
   } else {
     camera.position.y = groundLevel;
+  }
+
+  // Mobile controls update (auto-level and camera rotation)
+  if (mobileControls.enabled) {
+    mobileControls.updateAutoLevel(delta);
+    mobileControls.updateCameraRotation();
   }
 
   if (controls.isLocked) {
@@ -852,11 +854,27 @@ animate();
 // Initialize speed control UI
 initSpeedControl();
 
+// Initialize NFT viewer
+const nftMetadata = picturePlanes
+  .filter(plane => plane.userData && plane.userData.isNFT)
+  .map(plane => ({
+    id: plane.userData.index,
+    url: plane.userData.imageUrl,
+    title: `NFT #${plane.userData.index}`,
+    description: ''
+  }))
+  .sort((a, b) => a.id - b.id);
+
+const nftViewer = initNFTViewer({
+  scene,
+  camera,
+  controls,
+  renderer,
+  nftMeshes: picturePlanes,
+  nftMetadata
+});
+
 // ----------------------------------------------------------------------
 // Handle Window Resize
 // ----------------------------------------------------------------------
-window.addEventListener('resize', () => {
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-});
+// Resize handling is now managed by initScene()

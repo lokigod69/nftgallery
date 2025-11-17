@@ -17,6 +17,8 @@ import { createLinkedPortal, createPortalLabel, animateLinkedPortal, createMulti
 import { getPortalStyle } from './src/core/portal-styles.js';
 import { MOVEMENT_CONFIG } from './src/core/movement-config.js';
 import { initSpeedControl } from './src/ui/speed-control.js';
+import { initScene } from './src/core/scene-setup.js';
+import { initNFTViewer } from './src/core/nft-viewer.js';
 
 // ----------------------------------------------------------------------
 // Global Variables
@@ -287,40 +289,21 @@ function openImageViewer(imageUrl, nftIndex) {
 // ----------------------------------------------------------------------
 // Scene, Camera & Renderer Setup
 // ----------------------------------------------------------------------
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x000000); // Pure black background
-scene.fog = new THREE.FogExp2(0x000000, 0.015); // Subtle fog for depth
+const { scene, camera, renderer, controls } = initScene({
+  spawnPosition: { x: 0, y: groundLevel + eyeHeight, z: 0 },
+  background: 0x000000
+});
 
-const camera = new THREE.PerspectiveCamera(
-  75,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  1000
-);
-camera.position.set(0, groundLevel + eyeHeight, 0);
+// Room 5 uses FogExp2 for subtle depth effect
+scene.fog = new THREE.FogExp2(0x000000, 0.015);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
+// Room 5 specific renderer settings
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Softer shadows for the eclipse effect
-document.body.appendChild(renderer.domElement);
 
-// Resize handler
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
-
-// Pointer lock controls
-const controls = new PointerLockControls(camera, document.body);
-controls.addEventListener('lock', () => {
-  document.getElementById('controls-description').style.display = 'none';
-});
-controls.addEventListener('unlock', () => {
-  document.getElementById('controls-description').style.display = 'block';
-});
+// Note: Pointer lock controls, resize handling, and overlay management
+// are now provided by initScene()
 
 // Click handler
 function handleClick(event) {
@@ -1086,4 +1069,24 @@ function animate() {
 animate();
 
 // Initialize speed control UI
-initSpeedControl(); 
+initSpeedControl();
+
+// Initialize NFT viewer
+const nftMetadata = picturePlanes
+  .filter(plane => plane.userData && plane.userData.isNFT)
+  .map(plane => ({
+    id: plane.userData.index,
+    url: plane.userData.imageUrl,
+    title: `NFT #${plane.userData.index}`,
+    description: ''
+  }))
+  .sort((a, b) => a.id - b.id);
+
+const nftViewer = initNFTViewer({
+  scene,
+  camera,
+  controls,
+  renderer,
+  nftMeshes: picturePlanes,
+  nftMetadata
+}); 

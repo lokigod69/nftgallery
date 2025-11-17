@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { createLinkedPortal, animateLinkedPortal, createMultiPortalChecker } from './src/core/portal-utils.js';
+import { initScene } from './src/core/scene-setup.js';
 
 // Room 8: "Liminal Passage"
 // Concept: Minimal geometric tunnel, transitional space
@@ -21,38 +22,10 @@ let moveRight = false;
 let isJumping = false;
 let jumpVelocity = 0;
 
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0a0a12); // Very dark blue-black
-scene.fog = new THREE.Fog(0x0a0a12, 20, 50);
-
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(0, eyeHeight, -TUNNEL_LENGTH / 2 + 5);
-
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
-
-const controls = new PointerLockControls(camera, document.body);
-scene.add(controls.getObject());
-
-document.addEventListener('click', () => {
-  if (!controls.isLocked) controls.lock();
-});
-
-controls.addEventListener('lock', () => {
-  const overlay = document.getElementById('controls-description');
-  if (overlay) overlay.style.display = 'none';
-});
-
-controls.addEventListener('unlock', () => {
-  const overlay = document.getElementById('controls-description');
-  if (overlay) overlay.style.display = 'block';
-});
-
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
+const { scene, camera, renderer, controls } = initScene({
+  spawnPosition: { x: 0, y: eyeHeight, z: -TUNNEL_LENGTH / 2 + 5 },
+  background: 0x0a0a12,
+  fog: { color: 0x0a0a12, near: 20, far: 50 }
 });
 
 // ----------------------------------------------------------------------
