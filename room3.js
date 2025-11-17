@@ -111,30 +111,35 @@ const clock = new THREE.Clock();
 
 // NFT click handling is now managed by initNFTViewer()
 
-let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+// Initialize global movement flags (shared by desktop keyboard and mobile joystick)
+window.moveForward = false;
+window.moveBackward = false;
+window.moveLeft = false;
+window.moveRight = false;
+
 const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
 const keyStates = {}; // Track the state of keys
 
 const onKeyDown = function (event) {
   keyStates[event.code] = true; // Update key state
-  
+
   switch (event.code) {
     case 'ArrowUp':
     case 'KeyW':
-      moveForward = true;
+      window.moveForward = true;
       break;
     case 'ArrowLeft':
     case 'KeyA':
-      moveLeft = true;
+      window.moveLeft = true;
       break;
     case 'ArrowDown':
     case 'KeyS':
-      moveBackward = true;
+      window.moveBackward = true;
       break;
     case 'ArrowRight':
     case 'KeyD':
-      moveRight = true;
+      window.moveRight = true;
       break;
     case 'Space':
       if (!isJumping) {
@@ -147,23 +152,23 @@ const onKeyDown = function (event) {
 
 const onKeyUp = function (event) {
   keyStates[event.code] = false; // Update key state
-  
+
   switch (event.code) {
     case 'ArrowUp':
     case 'KeyW':
-      moveForward = false;
+      window.moveForward = false;
       break;
     case 'ArrowLeft':
     case 'KeyA':
-      moveLeft = false;
+      window.moveLeft = false;
       break;
     case 'ArrowDown':
     case 'KeyS':
-      moveBackward = false;
+      window.moveBackward = false;
       break;
     case 'ArrowRight':
     case 'KeyD':
-      moveRight = false;
+      window.moveRight = false;
       break;
   }
 };
@@ -1019,12 +1024,12 @@ function animate() {
     velocity.z -= velocity.z * 10.0 * delta;
 
     const speedDelta = MOVEMENT_CONFIG.getEffectiveSpeed('room3') * delta;
-    direction.z = Number(moveForward) - Number(moveBackward);
-    direction.x = Number(moveRight) - Number(moveLeft);
+    direction.z = Number(window.moveForward) - Number(window.moveBackward);
+    direction.x = Number(window.moveRight) - Number(window.moveLeft);
     direction.normalize();
 
-    if (moveForward || moveBackward) velocity.z -= direction.z * speedDelta;
-    if (moveLeft || moveRight) velocity.x -= direction.x * speedDelta;
+    if (window.moveForward || window.moveBackward) velocity.z -= direction.z * speedDelta;
+    if (window.moveLeft || window.moveRight) velocity.x -= direction.x * speedDelta;
 
     controls.moveRight(-velocity.x * delta);
     controls.moveForward(-velocity.z * delta);

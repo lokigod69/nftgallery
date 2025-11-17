@@ -286,7 +286,12 @@ document.addEventListener('click', () => {
   }
 });
 
-let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+// Initialize global movement flags (shared by desktop keyboard and mobile joystick)
+window.moveForward = false;
+window.moveBackward = false;
+window.moveLeft = false;
+window.moveRight = false;
+
 const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
 const prevPosition = new THREE.Vector3();  // Track previous position for collision detection
@@ -294,10 +299,10 @@ const prevPosition = new THREE.Vector3();  // Track previous position for collis
 
 document.addEventListener('keydown', (event) => {
   switch (event.code) {
-    case 'KeyW': moveForward = true; break;
-    case 'KeyA': moveLeft = true; break;
-    case 'KeyS': moveBackward = true; break;
-    case 'KeyD': moveRight = true; break;
+    case 'KeyW': window.moveForward = true; break;
+    case 'KeyA': window.moveLeft = true; break;
+    case 'KeyS': window.moveBackward = true; break;
+    case 'KeyD': window.moveRight = true; break;
     case 'Space':
       if (!isJumping) {
         isJumping = true;
@@ -316,10 +321,10 @@ document.addEventListener('keydown', (event) => {
 });
 document.addEventListener('keyup', (event) => {
   switch (event.code) {
-    case 'KeyW': moveForward = false; break;
-    case 'KeyA': moveLeft = false; break;
-    case 'KeyS': moveBackward = false; break;
-    case 'KeyD': moveRight = false; break;
+    case 'KeyW': window.moveForward = false; break;
+    case 'KeyA': window.moveLeft = false; break;
+    case 'KeyS': window.moveBackward = false; break;
+    case 'KeyD': window.moveRight = false; break;
   }
 });
 
@@ -829,11 +834,11 @@ function animate() {
     const speedDelta = MOVEMENT_CONFIG.getEffectiveSpeed('room1') * delta;
     velocity.x = 0;
     velocity.z = 0;
-    direction.z = Number(moveForward) - Number(moveBackward);
-    direction.x = Number(moveRight) - Number(moveLeft);
+    direction.z = Number(window.moveForward) - Number(window.moveBackward);
+    direction.x = Number(window.moveRight) - Number(window.moveLeft);
     direction.normalize();
-    if (moveForward || moveBackward) velocity.z -= direction.z * speedDelta;
-    if (moveLeft || moveRight) velocity.x -= direction.x * speedDelta;
+    if (window.moveForward || window.moveBackward) velocity.z -= direction.z * speedDelta;
+    if (window.moveLeft || window.moveRight) velocity.x -= direction.x * speedDelta;
     controls.moveRight(-velocity.x);
     controls.moveForward(-velocity.z);
 
