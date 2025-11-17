@@ -409,8 +409,9 @@ function createJoysticks(options) {
     const deadZone = joystickOptions.moveDeadZone;
 
     // Apply dead zone and set movement flags
-    window.moveForward = data.vector.y < -deadZone;   // Negative Y = forward
-    window.moveBackward = data.vector.y > deadZone;   // Positive Y = backward
+    // Note: nipplejs Y-axis: positive = up, negative = down
+    window.moveForward = data.vector.y > deadZone;    // Positive Y = forward (up)
+    window.moveBackward = data.vector.y < -deadZone;  // Negative Y = backward (down)
     window.moveLeft = data.vector.x < -deadZone;      // Negative X = left
     window.moveRight = data.vector.x > deadZone;      // Positive X = right
   });
@@ -492,7 +493,10 @@ function createInteractionHandler(options) {
 
   function handleTouchStart(event) {
     // Only handle single touch
-    if (event.touches.length !== 1) return;
+    if (event.touches.length !== 1) {
+      console.log('[Mobile Interaction] Multi-touch detected, ignoring');
+      return;
+    }
 
     const touch = event.touches[0];
     const touchX = touch.clientX;
@@ -502,9 +506,15 @@ function createInteractionHandler(options) {
     const isLeftZone = (touchX < window.innerWidth * 0.25 && touchY > window.innerHeight * 0.65);
     const isRightZone = (touchX > window.innerWidth * 0.75 && touchY > window.innerHeight * 0.65);
 
-    if (isLeftZone || isRightZone) return;
+    console.log(`[Mobile Interaction] Touch at (${touchX}, ${touchY}) - Left zone: ${isLeftZone}, Right zone: ${isRightZone}`);
+
+    if (isLeftZone || isRightZone) {
+      console.log('[Mobile Interaction] Touch in joystick zone, ignoring');
+      return;
+    }
 
     // Tap in center area - perform interaction
+    console.log('[Mobile Interaction] Center tap detected, performing raycast');
     performCenterRaycast();
   }
 

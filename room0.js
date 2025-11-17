@@ -219,7 +219,7 @@ if (isMobile) {
   moveJoystick.on("end", () => { moveForward = moveBackward = moveLeft = moveRight = false; });
   lookJoystick.on("move", (evt, data) => {
     yaw -= data.vector.x * 0.05;
-    pitch -= data.vector.y * 0.05;
+    pitch += data.vector.y * 0.05;  // Fixed: changed -= to += to match Rooms 1-3 (non-inverted Y)
     pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitch));
   });
 }

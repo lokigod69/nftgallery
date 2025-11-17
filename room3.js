@@ -1116,11 +1116,19 @@ const mobileControls = initMobileControls({
   pitchLimits: { min: -Math.PI / 3, max: Math.PI / 4 },
   autoLevel: { enabled: true, speed: 0.3, threshold: 0.1 },
   onInteract: (raycaster) => {
+    console.log('[Room3 onInteract] Raycasting against', picturePlanes.length, 'picture planes');
     const intersects = raycaster.intersectObjects(picturePlanes, false);
+    console.log('[Room3 onInteract] Found', intersects.length, 'intersections');
+
     if (intersects.length > 0) {
       const nft = intersects[0].object;
+      console.log('[Room3 onInteract] First hit:', nft.userData);
+
       if (nft.userData?.isNFT && typeof nftViewer?.open === 'function') {
+        console.log('[Room3 onInteract] Opening NFT viewer for index:', nft.userData.index);
         nftViewer.open(nft.userData.index);  // Pass NFT ID directly
+      } else {
+        console.log('[Room3 onInteract] Cannot open viewer - isNFT:', nft.userData?.isNFT, 'viewer available:', typeof nftViewer?.open);
       }
     }
   }

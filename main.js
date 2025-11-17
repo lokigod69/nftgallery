@@ -244,11 +244,19 @@ const mobileControls = initMobileControls({
   },
   onInteract: (raycaster) => {
     // Mobile tap interaction - find NFT under center crosshair
+    console.log('[Room1 onInteract] Raycasting against', picturePlanes.length, 'picture planes');
     const intersects = raycaster.intersectObjects(picturePlanes, false);
+    console.log('[Room1 onInteract] Found', intersects.length, 'intersections');
+
     if (intersects.length > 0) {
       const nft = intersects[0].object;
+      console.log('[Room1 onInteract] First hit:', nft.userData);
+
       if (nft.userData?.isNFT && typeof nftViewer?.open === 'function') {
+        console.log('[Room1 onInteract] Opening NFT viewer for index:', nft.userData.index);
         nftViewer.open(nft.userData.index);  // Pass NFT ID directly
+      } else {
+        console.log('[Room1 onInteract] Cannot open viewer - isNFT:', nft.userData?.isNFT, 'viewer available:', typeof nftViewer?.open);
       }
     }
   }
