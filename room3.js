@@ -35,9 +35,6 @@ import { createLinkedPortal, animateLinkedPortal, createMultiPortalChecker } fro
 import { getNftUrl } from './src/core/asset-utils.js';
 import { MOVEMENT_CONFIG } from './src/core/movement-config.js';
 import { initSpeedControl } from './src/ui/speed-control.js';
-import { initScene } from './src/core/scene-setup.js';
-import { initNFTViewer } from './src/core/nft-viewer.js';
-import { initMobileControls } from './src/core/mobile-controls.js';
 
 // ----------------------------------------------------------------------
 // Global Variables for Jump Physics
@@ -55,7 +52,100 @@ let nftCenterMeasured = false;  // Flag to measure NFT center Y only once
 // Movement speed now using shared config (was 100.0)
 const textureLoader = new THREE.TextureLoader(); // Texture loader for NFTs
 
-// NFT viewer will be initialized after scene setup
+// Keep track of all NFTs in the room for the slider functionality
+const allNFTs = [];
+let currentNFTIndex = -1;
+
+// Create a full-screen image viewer overlay (initially hidden)
+const viewerOverlay = document.createElement('div');
+viewerOverlay.style.position = 'fixed';
+viewerOverlay.style.top = '0';
+viewerOverlay.style.left = '0';
+viewerOverlay.style.width = '100%';
+viewerOverlay.style.height = '100%';
+viewerOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.9)'; // Slightly transparent background
+viewerOverlay.style.display = 'none';
+viewerOverlay.style.alignItems = 'center';
+viewerOverlay.style.justifyContent = 'center';
+viewerOverlay.style.flexDirection = 'column';
+viewerOverlay.style.zIndex = '1000';
+
+// Create a container for the image and navigation arrows
+const viewerContainer = document.createElement('div');
+viewerContainer.style.position = 'relative';
+viewerContainer.style.width = '80%';
+viewerContainer.style.height = '80%';
+viewerContainer.style.display = 'flex';
+viewerContainer.style.alignItems = 'center';
+viewerContainer.style.justifyContent = 'center';
+viewerOverlay.appendChild(viewerContainer);
+
+// Left arrow for navigation
+const leftArrow = document.createElement('div');
+leftArrow.style.position = 'absolute';
+leftArrow.style.left = '20px';
+leftArrow.style.fontSize = '48px';
+leftArrow.style.color = 'white';
+leftArrow.style.cursor = 'pointer';
+leftArrow.style.userSelect = 'none';
+leftArrow.innerHTML = '&#9664;'; // Left-pointing triangle
+leftArrow.style.opacity = '0.7';
+leftArrow.style.transition = 'opacity 0.2s';
+leftArrow.addEventListener('mouseover', () => leftArrow.style.opacity = '1');
+leftArrow.addEventListener('mouseout', () => leftArrow.style.opacity = '0.7');
+viewerContainer.appendChild(leftArrow);
+
+const viewerImage = document.createElement('img');
+viewerImage.style.maxWidth = '90%';
+viewerImage.style.maxHeight = '90%';
+viewerImage.style.objectFit = 'contain';
+viewerContainer.appendChild(viewerImage);
+
+// Right arrow for navigation
+const rightArrow = document.createElement('div');
+rightArrow.style.position = 'absolute';
+rightArrow.style.right = '20px';
+rightArrow.style.fontSize = '48px';
+rightArrow.style.color = 'white';
+rightArrow.style.cursor = 'pointer';
+rightArrow.style.userSelect = 'none';
+rightArrow.innerHTML = '&#9654;'; // Right-pointing triangle
+rightArrow.style.opacity = '0.7';
+rightArrow.style.transition = 'opacity 0.2s';
+rightArrow.addEventListener('mouseover', () => rightArrow.style.opacity = '1');
+rightArrow.addEventListener('mouseout', () => rightArrow.style.opacity = '0.7');
+viewerContainer.appendChild(rightArrow);
+
+// NFT info display
+const nftInfo = document.createElement('div');
+nftInfo.style.marginTop = '20px';
+nftInfo.style.color = 'white';
+nftInfo.style.fontSize = '18px';
+nftInfo.style.textAlign = 'center';
+viewerOverlay.appendChild(nftInfo);
+
+const purchaseLink = document.createElement('a');
+purchaseLink.href = 'https://opensea.io';
+purchaseLink.innerText = 'Buy NFT on OpenSea';
+purchaseLink.style.marginTop = '20px';
+purchaseLink.style.color = '#fff';
+purchaseLink.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+purchaseLink.style.padding = '10px 20px';
+purchaseLink.style.textDecoration = 'none';
+purchaseLink.style.borderRadius = '5px';
+viewerOverlay.appendChild(purchaseLink);
+
+// Instructions for navigation
+const viewerInstructions = document.createElement('div');
+viewerInstructions.style.position = 'absolute';
+viewerInstructions.style.bottom = '20px';
+viewerInstructions.style.color = 'white';
+viewerInstructions.style.fontSize = '14px';
+viewerInstructions.style.opacity = '0.7';
+viewerInstructions.textContent = 'Left/Right Click to Navigate • Press ESC to Close';
+viewerOverlay.appendChild(viewerInstructions);
+
+document.body.appendChild(viewerOverlay);
 
 // Hide loading overlay when the page loads
 window.addEventListener('load', () => {
@@ -71,9 +161,118 @@ window.addEventListener('load', () => {
   }
 });
 
+// Navigation handlers for the NFT viewer
+function showPreviousNFT() {
+  if (allNFTs.length === 0) return;
+  
+  currentNFTIndex--;
+  if (currentNFTIndex < 0) currentNFTIndex = allNFTs.length - 1;
+  
+  updateNFTViewer();
+}
+
+function showNextNFT() {
+  if (allNFTs.length === 0) return;
+  
+  currentNFTIndex++;
+  if (currentNFTIndex >= allNFTs.length) currentNFTIndex = 0;
+  
+  updateNFTViewer();
+}
+
+function updateNFTViewer() {
+  if (currentNFTIndex < 0 || currentNFTIndex >= allNFTs.length) return;
+  
+  const currentNFT = allNFTs[currentNFTIndex];
+  viewerImage.src = currentNFT.imageUrl;
+  nftInfo.textContent = `NFT #${currentNFT.index} (${currentNFTIndex + 1}/${allNFTs.length})`;
+  purchaseLink.href = `https://opensea.io/assets/${currentNFT.index}`;
+}
+
+// Add click event listeners for navigation
+leftArrow.addEventListener('click', (event) => {
+  event.stopPropagation();
+  showPreviousNFT();
+});
+
+rightArrow.addEventListener('click', (event) => {
+  event.stopPropagation();
+  showNextNFT();
+});
+
+// Handle mouse clicks on the viewer overlay for navigation
+viewerOverlay.addEventListener('click', (event) => {
+  // Only consider left and right mouse buttons
+  if (event.button === 0) { // Left click
+    showNextNFT();
+  } else if (event.button === 2) { // Right click
+    showPreviousNFT();
+  }
+  event.stopPropagation();
+});
+
+// Prevent context menu on right-click while in the viewer
+viewerOverlay.addEventListener('contextmenu', (event) => {
+  event.preventDefault();
+});
+
+// Handle keyboard navigation and escape to close
+document.addEventListener('keydown', (event) => {
+  if (viewerOverlay.style.display === 'flex') {
+    if (event.key === 'Escape') {
+      viewerOverlay.style.display = 'none';
+      controls.lock();
+    } else if (event.key === 'ArrowLeft') {
+      showPreviousNFT();
+    } else if (event.key === 'ArrowRight') {
+      showNextNFT();
+    }
+  }
+});
+
+function openImageViewer(imageUrl, nftIndex) {
+  console.log("Opening image viewer for:", imageUrl); // Debug log
+  
+  // If this is the first time opening, gather all NFTs
+  if (allNFTs.length === 0) {
+    for (const plane of picturePlanes) {
+      if (plane.userData && plane.userData.isNFT) {
+        allNFTs.push({
+          index: plane.userData.index,
+          imageUrl: plane.userData.imageUrl
+        });
+      }
+    }
+    
+    // Sort NFTs by index
+    allNFTs.sort((a, b) => a.index - b.index);
+  }
+  
+  // Find the index of the current NFT in the array
+  currentNFTIndex = allNFTs.findIndex(nft => nft.index === nftIndex);
+  if (currentNFTIndex === -1 && allNFTs.length > 0) {
+    currentNFTIndex = 0;
+  }
+  
+  updateNFTViewer();
+  viewerOverlay.style.display = 'flex';
+  controls.unlock();
+}
+
 // ----------------------------------------------------------------------
 // Scene, Camera & Renderer Setup
 // ----------------------------------------------------------------------
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0a0a);
+scene.fog = new THREE.FogExp2(0x0a0a0a, 0.02);
+
+const camera = new THREE.PerspectiveCamera(
+  75,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  1000
+);
+
 // Define safe spawn positions that are away from NFTs and walls
 const spawnPositions = {
   default: new THREE.Vector3(-10, groundLevels[1], -10), // Offset from center, away from walls and pictures
@@ -85,61 +284,93 @@ const spawnPositions = {
 const urlParams = new URLSearchParams(window.location.search);
 const spawnParam = urlParams.get('spawn');
 
-// Determine spawn position based on URL parameter
-let initialSpawn = spawnPositions.default;
+// Set initial camera position based on spawn parameter
 if (spawnParam && spawnPositions[spawnParam]) {
   console.log(`Spawning at ${spawnParam} position`);
-  initialSpawn = spawnPositions[spawnParam];
+  camera.position.copy(spawnPositions[spawnParam]);
+} else {
+  camera.position.copy(spawnPositions.default);
 }
 
-const { scene, camera, renderer, controls } = initScene({
-  spawnPosition: { x: initialSpawn.x, y: initialSpawn.y, z: initialSpawn.z },
-  background: 0x0a0a0a,
-  outputEncoding: 'Linear'
-});
-
-// Room 3 uses FogExp2 (not regular Fog)
-scene.fog = new THREE.FogExp2(0x0a0a0a, 0.02);
-
-// Clock for animation timing
 const clock = new THREE.Clock();
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.outputEncoding = THREE.LinearEncoding;
+document.body.appendChild(renderer.domElement);
 
 // ----------------------------------------------------------------------
 // Controls & Movement Setup
 // ----------------------------------------------------------------------
-// Controls are now initialized by initScene()
+const controls = new PointerLockControls(camera, document.body);
 
-// NFT click handling is now managed by initNFTViewer()
+// Centralized click handler to prevent conflicts
+function handleClick(event) {
+  // If the viewer is open, the click is handled by the viewer's event listener
+  if (viewerOverlay.style.display === 'flex') return;
+  
+  // Check if we clicked on an NFT
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2();
+  
+  // Calculate mouse position in normalized device coordinates
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  
+  // Update the picking ray with the camera and mouse position
+  raycaster.setFromCamera(mouse, camera);
+  
+  // Calculate objects intersecting the picking ray
+  const intersects = raycaster.intersectObjects(picturePlanes, false);
+  
+  if (intersects.length > 0) {
+    const object = intersects[0].object;
+    if (object.userData && object.userData.isNFT) {
+      console.log("NFT clicked:", object.userData.index); // Debug log
+      openImageViewer(object.userData.imageUrl, object.userData.index);
+      event.preventDefault(); // Prevent default behavior
+      event.stopPropagation(); // Prevent other click handlers from firing
+      return;
+    }
+  }
+  
+  // If we didn't click on an NFT and controls are not locked, lock them
+  // Only if the click is on the canvas element to avoid unexpected camera jumps
+  if (!controls.isLocked && event.target === renderer.domElement) {
+    controls.lock();
+    event.preventDefault(); // Prevent default behavior
+    event.stopPropagation(); // Prevent other click handlers from firing
+  }
+}
 
-// Initialize global movement flags (shared by desktop keyboard and mobile joystick)
-window.moveForward = false;
-window.moveBackward = false;
-window.moveLeft = false;
-window.moveRight = false;
+// Remove any existing click listeners to prevent duplicates
+window.removeEventListener('click', handleClick);
+window.addEventListener('click', handleClick);
 
+let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
 const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
 const keyStates = {}; // Track the state of keys
 
 const onKeyDown = function (event) {
   keyStates[event.code] = true; // Update key state
-
+  
   switch (event.code) {
     case 'ArrowUp':
     case 'KeyW':
-      window.moveForward = true;
+      moveForward = true;
       break;
     case 'ArrowLeft':
     case 'KeyA':
-      window.moveLeft = true;
+      moveLeft = true;
       break;
     case 'ArrowDown':
     case 'KeyS':
-      window.moveBackward = true;
+      moveBackward = true;
       break;
     case 'ArrowRight':
     case 'KeyD':
-      window.moveRight = true;
+      moveRight = true;
       break;
     case 'Space':
       if (!isJumping) {
@@ -152,23 +383,23 @@ const onKeyDown = function (event) {
 
 const onKeyUp = function (event) {
   keyStates[event.code] = false; // Update key state
-
+  
   switch (event.code) {
     case 'ArrowUp':
     case 'KeyW':
-      window.moveForward = false;
+      moveForward = false;
       break;
     case 'ArrowLeft':
     case 'KeyA':
-      window.moveLeft = false;
+      moveLeft = false;
       break;
     case 'ArrowDown':
     case 'KeyS':
-      window.moveBackward = false;
+      moveBackward = false;
       break;
     case 'ArrowRight':
     case 'KeyD':
-      window.moveRight = false;
+      moveRight = false;
       break;
   }
 };
@@ -901,14 +1132,15 @@ const portalToRoom2 = createLinkedPortal({
   createLabel: true
 });
 
-// Portal to Room 4 (vertical portal in opposite corner)
+// Portal to Room 4 (ground portal in opposite corner)
 const portalToRoom4Obj = createLinkedPortal({
   scene,
   fromRoom: '3',
   toRoom: '4',
   x: 23,
-  y: 4.0,
+  y: 1.2,
   z: 23,
+  rotationX: -Math.PI / 2,  // Flat on ground (horizontal orientation)
   createLabel: true
 });
 
@@ -957,7 +1189,7 @@ const allPortals = [
   { ...portalToRoom2, name: 'Room 2', url: 'room2.html',
     position: new THREE.Vector3(-23, 1.2, -23) },
   { ...portalToRoom4Obj, name: 'Room 4 (Floating Island)', url: 'room4.html',
-    position: new THREE.Vector3(23, 4.0, 23) }
+    position: new THREE.Vector3(23, 1.2, 23) }
 ];
 
 const portalConfigs = allPortals.map(p => ({
@@ -988,52 +1220,50 @@ const portalToRoom4 = portalToRoom4Obj;
 // ----------------------------------------------------------------------
 // Window Resize Handler
 // ----------------------------------------------------------------------
-// Resize handling is now managed by initScene()
+function onWindowResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+window.addEventListener('resize', onWindowResize);
 
 // ----------------------------------------------------------------------
 // Animation Loop
 // ----------------------------------------------------------------------
 function animate() {
   requestAnimationFrame(animate);
-
-  const delta = clock.getDelta();
-
-  // Update mobile controls (auto-level and camera rotation)
-  if (mobileControls && mobileControls.enabled) {
-    mobileControls.updateAutoLevel(delta);
-    mobileControls.updateCameraRotation();
-  }
-
-  // Allow movement on desktop (pointer locked) or mobile (mobile controls enabled)
-  const isActiveControls = controls.isLocked || (mobileControls && mobileControls.enabled);
-  if (isActiveControls) {
+  
+  if (controls.isLocked === true) {
+    const delta = clock.getDelta();
+    
     // Handle jumping and gravity
     if (isJumping) {
       camera.position.y += jumpVelocity * delta;
       jumpVelocity += gravity * delta;
-
+      
       if (camera.position.y <= groundLevels[1]) {
         camera.position.y = groundLevels[1];
         isJumping = false;
         jumpVelocity = 0;
       }
     }
-
+    
     // Movement - using room2's speed variable
     velocity.x -= velocity.x * 10.0 * delta;
     velocity.z -= velocity.z * 10.0 * delta;
 
     const speedDelta = MOVEMENT_CONFIG.getEffectiveSpeed('room3') * delta;
-    direction.z = Number(window.moveForward) - Number(window.moveBackward);
-    direction.x = Number(window.moveRight) - Number(window.moveLeft);
+    direction.z = Number(moveForward) - Number(moveBackward);
+    direction.x = Number(moveRight) - Number(moveLeft);
     direction.normalize();
 
-    if (window.moveForward || window.moveBackward) velocity.z -= direction.z * speedDelta;
-    if (window.moveLeft || window.moveRight) velocity.x -= direction.x * speedDelta;
-
+    if (moveForward || moveBackward) velocity.z -= direction.z * speedDelta;
+    if (moveLeft || moveRight) velocity.x -= direction.x * speedDelta;
+    
     controls.moveRight(-velocity.x * delta);
     controls.moveForward(-velocity.z * delta);
-
+    
     // Check for collisions
     checkCollisions();
 
@@ -1068,68 +1298,16 @@ function animate() {
     // Float up and down
     const float = Math.sin(time * orb.userData.floatSpeed) * orb.userData.floatAmount;
     orb.position.y = orb.userData.initialY + float;
-
+    
     // Shift color
     const hue = (time * orb.userData.hueShift) % 1;
     orb.material.color.setHSL(hue, 0.7, 0.5);
   });
-
+  
   renderer.render(scene, camera);
 }
 
 animate();
 
 // Initialize speed control UI
-initSpeedControl();
-
-// ----------------------------------------------------------------------
-// Initialize NFT Viewer
-// ----------------------------------------------------------------------
-// Prepare NFT metadata from picturePlanes
-const nftMetadata = picturePlanes
-  .filter(plane => plane.userData && plane.userData.isNFT)
-  .map(plane => ({
-    id: plane.userData.index,
-    url: plane.userData.imageUrl,
-    title: `NFT #${plane.userData.index}`,
-    description: ''
-  }))
-  .sort((a, b) => a.id - b.id);
-
-// Initialize the NFT viewer
-const nftViewer = initNFTViewer({
-  scene,
-  camera,
-  controls,
-  renderer,
-  nftMeshes: picturePlanes,
-  nftMetadata
-});
-
-// ----------------------------------------------------------------------
-// Mobile Controls Integration
-// ----------------------------------------------------------------------
-const mobileControls = initMobileControls({
-  camera,
-  controls,
-  sensitivity: { look: 0.04, move: 1.0 },
-  pitchLimits: { min: -Math.PI / 3, max: Math.PI / 4 },
-  autoLevel: { enabled: true, speed: 0.3, threshold: 0.1 },
-  onInteract: (raycaster) => {
-    console.log('[Room3 onInteract] Raycasting against', picturePlanes.length, 'picture planes');
-    const intersects = raycaster.intersectObjects(picturePlanes, false);
-    console.log('[Room3 onInteract] Found', intersects.length, 'intersections');
-
-    if (intersects.length > 0) {
-      const nft = intersects[0].object;
-      console.log('[Room3 onInteract] First hit:', nft.userData);
-
-      if (nft.userData?.isNFT && typeof nftViewer?.open === 'function') {
-        console.log('[Room3 onInteract] Opening NFT viewer for index:', nft.userData.index);
-        nftViewer.open(nft.userData.index);  // Pass NFT ID directly
-      } else {
-        console.log('[Room3 onInteract] Cannot open viewer - isNFT:', nft.userData?.isNFT, 'viewer available:', typeof nftViewer?.open);
-      }
-    }
-  }
-}); 
+initSpeedControl(); 
