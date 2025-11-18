@@ -839,34 +839,32 @@ const mouse = new THREE.Vector2();
 
 function handleNFTClick(event) {
   // If viewer is already open, let the viewer handle clicks
-  if (nftViewer && nftViewer.isOpen()) {
+  if (nftViewer && nftViewer.isOpen && nftViewer.isOpen()) {
     return;
   }
 
-  // Check if we clicked on an NFT when controls are locked
-  if (controls.isLocked) {
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-    raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObjects(picturePlanes, false);
-
-    if (intersects.length > 0) {
-      const object = intersects[0].object;
-      if (object.userData?.isNFT && nftViewer) {
-        nftViewer.openByMesh(object);
-        event.preventDefault();
-        event.stopPropagation();
-        return;
-      }
-    }
-  }
-
-  // If we didn't click on an NFT and controls are not locked, lock them
-  if (!controls.isLocked && event.target === renderer.domElement) {
+  // Lock-first pattern (matches Room 1): if not locked, lock and wait for next click
+  if (!controls.isLocked) {
     controls.lock();
     event.preventDefault();
     event.stopPropagation();
+    return;  // Wait for next click
+  }
+
+  // Only raycast when controls are already locked
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObjects(picturePlanes, false);
+
+  if (intersects.length > 0) {
+    const object = intersects[0].object;
+    if (object.userData?.isNFT && nftViewer) {
+      nftViewer.openByMesh(object);
+      event.preventDefault();
+      event.stopPropagation();
+    }
   }
 }
 

@@ -191,15 +191,19 @@ export function initUnifiedNFTViewer(config) {
 
   function goPrev() {
     if (nftList.length === 0) return;
+    const oldIndex = currentIndex;
     currentIndex--;
     if (currentIndex < 0) currentIndex = nftList.length - 1;
+    console.log('[Viewer] showPrevious from index', oldIndex, '->', currentIndex);
     showAtCurrentIndex();
   }
 
   function goNext() {
     if (nftList.length === 0) return;
+    const oldIndex = currentIndex;
     currentIndex++;
     if (currentIndex >= nftList.length) currentIndex = 0;
+    console.log('[Viewer] showNext from index', oldIndex, '->', currentIndex);
     showAtCurrentIndex();
   }
 
@@ -219,6 +223,7 @@ export function initUnifiedNFTViewer(config) {
     if (currentIndex < 0) currentIndex = 0;
     if (currentIndex >= nftList.length) currentIndex = nftList.length - 1;
 
+    console.log('[Viewer] openByIndex called with index', idx, '-> showing index', currentIndex, 'of', nftList.length);
     showAtCurrentIndex();
     viewerOverlay.style.display = 'flex';
     isViewerOpen = true;
@@ -232,14 +237,19 @@ export function initUnifiedNFTViewer(config) {
     nftList = getNFTList();
     const idx = nftList.findIndex(nft => nft.mesh === mesh);
     if (idx !== -1) {
+      console.log('[Viewer] openByMesh found mesh at index', idx, '(userData.index:', mesh.userData?.index, ')');
       openByIndex(idx);
     } else {
       // Fallback: try to match by userData.index
       const userDataIndex = mesh.userData?.index;
+      console.log('[Viewer] openByMesh mesh not found directly, trying fallback with userData.index', userDataIndex);
       if (userDataIndex !== undefined) {
         const fallbackIdx = nftList.findIndex(nft => nft.mesh.userData?.index === userDataIndex);
         if (fallbackIdx !== -1) {
+          console.log('[Viewer] openByMesh fallback found match at index', fallbackIdx);
           openByIndex(fallbackIdx);
+        } else {
+          console.error('[Viewer] openByMesh failed - no match found for userData.index', userDataIndex);
         }
       }
     }
