@@ -103,12 +103,9 @@ export function initUnifiedNFTViewer(config) {
   rightArrow.addEventListener('mouseout', () => rightArrow.style.opacity = '0.7');
   viewerContainer.appendChild(rightArrow);
 
-  // NFT info display
+  // NFT info display (hidden per user request)
   const nftInfo = document.createElement('div');
-  nftInfo.style.marginTop = '20px';
-  nftInfo.style.color = 'white';
-  nftInfo.style.fontSize = '18px';
-  nftInfo.style.textAlign = 'center';
+  nftInfo.style.display = 'none';  // Hidden - user wants clean viewer
   viewerOverlay.appendChild(nftInfo);
 
   // Instructions (orientation-aware)

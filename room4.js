@@ -781,6 +781,14 @@ mobileControls = initMobileControls({
   pitchLimits: { min: -Math.PI / 3, max: Math.PI / 4 },
   autoLevel: { enabled: true, speed: 0.3, threshold: 0.1 },
   onInteract: (raycaster) => {
+    // Guard: Don't process interactions when viewer is already open
+    if (nftViewer && nftViewer.isOpen && nftViewer.isOpen()) {
+      console.log('[R4 mobile] onInteract called but viewer is open, ignoring');
+      return;
+    }
+
+    console.log('[R4 mobile] onInteract called, performing raycast');
+
     // Mobile tap interaction - find NFT under center crosshair
     const intersects = raycaster.intersectObjects(picturePlanes, false);
 
@@ -788,8 +796,11 @@ mobileControls = initMobileControls({
       const nft = intersects[0].object;
 
       if (nft.userData?.isNFT && nftViewer) {
+        console.log('[R4 mobile] NFT tapped, opening viewer for NFT #' + nft.userData.index);
         nftViewer.openByMesh(nft);
       }
+    } else {
+      console.log('[R4 mobile] No NFT hit by raycast');
     }
   }
 });
