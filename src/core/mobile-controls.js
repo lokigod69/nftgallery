@@ -259,9 +259,11 @@ function injectMobileUI(joystickOptions) {
 
   // Create orientation warning overlay
   const rotateMessage = document.createElement('div');
-  rotateMessage.id = 'rotate-message';
-  rotateMessage.className = 'rotate-message';
+  rotateMessage.id = 'rotate-warning';
+  rotateMessage.className = 'rotate-warning rotate-message';
+  rotateMessage.setAttribute('data-rotate-message', 'true');
   rotateMessage.textContent = 'Please rotate your device to landscape';
+  rotateMessage.style.zIndex = '4000';  // Below viewer overlay (9999)
   document.body.appendChild(rotateMessage);
 
   // Create center crosshair (subtle)
@@ -584,20 +586,35 @@ function createInteractionHandler(options) {
  */
 function setupOrientationWarning(rotateMessageElement) {
   function checkOrientation() {
-    if (!rotateMessageElement) return;
+    // Resolve rotate element fresh each time to avoid stale refs
+    const el = document.getElementById('rotate-warning')
+      || document.querySelector('.rotate-warning')
+      || rotateMessageElement;
+
+    if (!el) return;
 
     // Never show orientation warning while NFT viewer is open
     const isViewerOpen = !!window.__NFT_VIEWER_OPEN || document.body.classList.contains('nft-viewer-open');
     if (isViewerOpen) {
-      rotateMessageElement.style.display = 'none';
+      el.style.display = 'none';
+      el.style.visibility = 'hidden';
+      el.style.opacity = '0';
+      el.style.pointerEvents = 'none';
+      console.log('[Orientation] Viewer open, hiding rotate overlay');
       return;
     }
 
     // Show warning if in portrait mode (only when viewer is closed)
     if (window.innerWidth < window.innerHeight) {
-      rotateMessageElement.style.display = 'flex';
+      el.style.display = 'flex';
+      el.style.visibility = 'visible';
+      el.style.opacity = '1';
+      el.style.pointerEvents = 'auto';
     } else {
-      rotateMessageElement.style.display = 'none';
+      el.style.display = 'none';
+      el.style.visibility = 'hidden';
+      el.style.opacity = '0';
+      el.style.pointerEvents = 'none';
     }
   }
 

@@ -56,7 +56,7 @@ export function initUnifiedNFTViewer(config) {
   viewerOverlay.style.alignItems = 'center';
   viewerOverlay.style.justifyContent = 'center';
   viewerOverlay.style.flexDirection = 'column';
-  viewerOverlay.style.zIndex = '1000';
+  viewerOverlay.style.zIndex = '9999';  // Must be above rotate warning (4000)
 
   // Container for image and navigation arrows
   const viewerContainer = document.createElement('div');
@@ -197,6 +197,21 @@ export function initUnifiedNFTViewer(config) {
   updateOrientation();
 
   // ----------------------------------------------------------------------
+  // Orientation Warning Hard-Hide
+  // ----------------------------------------------------------------------
+
+  function hideOrientationWarningHard() {
+    const elems = document.querySelectorAll('#rotate-warning, .rotate-warning, [data-rotate-message]');
+    elems.forEach(el => {
+      el.style.display = 'none';
+      el.style.visibility = 'hidden';
+      el.style.opacity = '0';
+      el.style.pointerEvents = 'none';
+    });
+    console.log('[Viewer] Hard-hiding', elems.length, 'orientation warning element(s)');
+  }
+
+  // ----------------------------------------------------------------------
   // Navigation Functions (Room 3 pattern)
   // ----------------------------------------------------------------------
 
@@ -244,7 +259,10 @@ export function initUnifiedNFTViewer(config) {
     // Set global viewer-open flag (disables orientation warning)
     document.body.classList.add('nft-viewer-open');
     window.__NFT_VIEWER_OPEN = true;
-    // Trigger orientation check to hide warning immediately
+    console.log('[Viewer] open, __NFT_VIEWER_OPEN = true');
+
+    // Hard-hide orientation warning and trigger check
+    hideOrientationWarningHard();
     window.dispatchEvent(new Event('resize'));
 
     onOpen(nftList[currentIndex]);
@@ -280,7 +298,9 @@ export function initUnifiedNFTViewer(config) {
     // Clear global viewer-open flag (re-enables orientation warning)
     document.body.classList.remove('nft-viewer-open');
     window.__NFT_VIEWER_OPEN = false;
-    // Trigger orientation check to show warning if needed
+    console.log('[Viewer] close, __NFT_VIEWER_OPEN = false');
+
+    // Trigger orientation check to show warning if needed (let checkOrientation decide)
     window.dispatchEvent(new Event('resize'));
 
     onClose();

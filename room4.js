@@ -787,23 +787,39 @@ mobileControls = initMobileControls({
       return;
     }
 
-    console.log('[R4 mobile] onInteract called, performing raycast');
+    console.log('[R4 interact] mobile tap, performing raycast');
 
     // Mobile tap interaction - find NFT under center crosshair
     const intersects = raycaster.intersectObjects(picturePlanes, false);
 
-    if (intersects.length > 0) {
-      const hit = intersects[0];
-      const nft = hit.object;
+    if (intersects.length === 0) {
+      console.log('[R4 interact] no picturePlanes hit');
+      return;
+    }
 
-      if (nft.userData?.isNFT && hit.distance <= MAX_NFT_INTERACTION_DISTANCE && nftViewer) {
-        console.log('[R4 mobile] NFT tapped at distance', hit.distance.toFixed(1), '- opening viewer for NFT #' + nft.userData.index);
-        nftViewer.openByMesh(nft);
-      } else if (nft.userData?.isNFT) {
-        console.log('[R4 mobile] NFT hit too far away (distance:', hit.distance.toFixed(1), '), ignoring tap');
-      }
-    } else {
-      console.log('[R4 mobile] No NFT hit by raycast');
+    const hit = intersects[0];
+    const nft = hit.object;
+
+    console.log('[R4 interact]', {
+      distance: hit.distance.toFixed(2),
+      name: nft.name || '(unnamed)',
+      isNFT: !!nft.userData?.isNFT,
+      userIndex: nft.userData?.index
+    });
+
+    if (!nft.userData?.isNFT) {
+      console.log('[R4 interact] hit non-NFT picturePlane, ignoring');
+      return;
+    }
+
+    if (hit.distance > MAX_NFT_INTERACTION_DISTANCE) {
+      console.log('[R4 interact] rejected: too far (distance', hit.distance.toFixed(2), ')');
+      return;
+    }
+
+    if (nftViewer) {
+      console.log('[R4 interact] accepted: opening NFT #', nft.userData.index);
+      nftViewer.openByMesh(nft);
     }
   }
 });
@@ -861,14 +877,36 @@ function handleNFTClick(event) {
   raycaster.setFromCamera(mouse, camera);
   const intersects = raycaster.intersectObjects(picturePlanes, false);
 
-  if (intersects.length > 0) {
-    const hit = intersects[0];
-    const object = hit.object;
-    if (object.userData?.isNFT && hit.distance <= MAX_NFT_INTERACTION_DISTANCE && nftViewer) {
-      nftViewer.openByMesh(object);
-      event.preventDefault();
-      event.stopPropagation();
-    }
+  if (intersects.length === 0) {
+    console.log('[R4 interact] desktop click: no picturePlanes hit');
+    return;
+  }
+
+  const hit = intersects[0];
+  const object = hit.object;
+
+  console.log('[R4 interact] desktop click:', {
+    distance: hit.distance.toFixed(2),
+    name: object.name || '(unnamed)',
+    isNFT: !!object.userData?.isNFT,
+    userIndex: object.userData?.index
+  });
+
+  if (!object.userData?.isNFT) {
+    console.log('[R4 interact] hit non-NFT picturePlane, ignoring');
+    return;
+  }
+
+  if (hit.distance > MAX_NFT_INTERACTION_DISTANCE) {
+    console.log('[R4 interact] rejected: too far (distance', hit.distance.toFixed(2), ')');
+    return;
+  }
+
+  if (nftViewer) {
+    console.log('[R4 interact] accepted: opening NFT #', object.userData.index);
+    nftViewer.openByMesh(object);
+    event.preventDefault();
+    event.stopPropagation();
   }
 }
 
