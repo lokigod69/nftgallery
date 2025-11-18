@@ -13,6 +13,7 @@ import * as THREE from 'three';
  * @param {PointerLockControls} config.controls - Pointer lock controls
  * @param {Function} config.onOpen - Optional callback when viewer opens
  * @param {Function} config.onClose - Optional callback when viewer closes
+ * @param {boolean} config.enablePortraitSwipe - Enable portrait mode with swipe navigation (default: false)
  * @returns {Object} API object with openByIndex, openByMesh, close methods
  */
 export function initUnifiedNFTViewer(config) {
@@ -20,7 +21,8 @@ export function initUnifiedNFTViewer(config) {
     getNFTList,
     controls,
     onOpen = () => {},
-    onClose = () => {}
+    onClose = () => {},
+    enablePortraitSwipe = false
   } = config;
 
   // Internal state
@@ -154,12 +156,16 @@ export function initUnifiedNFTViewer(config) {
     isMobile = detectMobile();
     isPortrait = window.innerHeight > window.innerWidth;
 
-    if (isMobile && isPortrait) {
+    // Only enable portrait mode if flag is set AND device is mobile AND in portrait
+    const usePortraitMode = enablePortraitSwipe && isMobile && isPortrait;
+
+    if (usePortraitMode) {
       viewerOverlay.classList.add('portrait-mode');
       viewerOverlay.classList.remove('landscape-mode');
       // Hide arrows in portrait
       leftArrow.style.display = 'none';
       rightArrow.style.display = 'none';
+      console.log('[Viewer] Portrait mode enabled - swipe to navigate');
     } else {
       viewerOverlay.classList.remove('portrait-mode');
       viewerOverlay.classList.add('landscape-mode');
@@ -172,10 +178,12 @@ export function initUnifiedNFTViewer(config) {
   }
 
   function updateInstructions() {
+    const usePortraitMode = enablePortraitSwipe && isMobile && isPortrait;
+
     if (!isMobile) {
       viewerInstructions.textContent = 'Click arrows or use ← / → to navigate • ESC / × to close';
-    } else if (isPortrait) {
-      viewerInstructions.textContent = 'Swipe left/right to browse • Tap × to close • Rotate phone for gallery view';
+    } else if (usePortraitMode) {
+      viewerInstructions.textContent = 'Swipe left/right to navigate • Tap × to close';
     } else {
       viewerInstructions.textContent = 'Tap arrows to navigate • Tap × to close';
     }
@@ -323,32 +331,47 @@ export function initUnifiedNFTViewer(config) {
   document.addEventListener('keydown', handleKeyDown);
 
   // Touch/swipe handlers for portrait mode
+  let touchStartTime = null;
+  const SWIPE_MAX_DURATION = 300; // ms
+  const SWIPE_MIN_DISTANCE = 40;  // px
+
   viewerOverlay.addEventListener('touchstart', (e) => {
-    if (!isMobile || !isPortrait) return;
+    // Only enable swipe when flag is set AND mobile AND portrait
+    if (!enablePortraitSwipe || !isMobile || !isPortrait) return;
     const t = e.touches[0];
     touchStartX = t.clientX;
     touchStartY = t.clientY;
+    touchStartTime = performance.now();
   });
 
   viewerOverlay.addEventListener('touchend', (e) => {
-    if (!isMobile || !isPortrait || touchStartX === null) return;
+    // Only process swipe when flag is set AND mobile AND portrait
+    if (!enablePortraitSwipe || !isMobile || !isPortrait || touchStartX === null) return;
+
     const t = e.changedTouches[0];
     const dx = t.clientX - touchStartX;
     const dy = t.clientY - touchStartY;
+    const duration = performance.now() - touchStartTime;
 
-    // Only treat as swipe if mostly horizontal and significant distance
-    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+    // Only treat as swipe if:
+    // - Duration within threshold
+    // - Mostly horizontal
+    // - Significant distance
+    if (duration < SWIPE_MAX_DURATION && Math.abs(dx) > SWIPE_MIN_DISTANCE && Math.abs(dx) > Math.abs(dy)) {
       if (dx < 0) {
         // Swipe left → next
+        console.log('[Viewer] Swipe left detected, showing next');
         goNext();
       } else {
         // Swipe right → prev
+        console.log('[Viewer] Swipe right detected, showing previous');
         goPrev();
       }
     }
 
     touchStartX = null;
     touchStartY = null;
+    touchStartTime = null;
   });
 
   // ----------------------------------------------------------------------

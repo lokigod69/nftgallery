@@ -474,7 +474,8 @@ nftViewer = initUnifiedNFTViewer({
         description: '',
         index: mesh.userData.index
       })),
-  controls
+  controls,
+  enablePortraitSwipe: true  // Enable portrait mode with swipe navigation for Room 1
 });
 
 // ----------------------------------------------------------------------
