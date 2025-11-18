@@ -36,6 +36,7 @@ import { getNftUrl } from './src/core/asset-utils.js';
 import { MOVEMENT_CONFIG } from './src/core/movement-config.js';
 import { initSpeedControl } from './src/ui/speed-control.js';
 import { initMobileControls } from './src/core/mobile-controls.js';
+import { initUnifiedNFTViewer } from './src/core/nft-viewer.js';
 
 // ----------------------------------------------------------------------
 // Global Variables for Jump Physics
@@ -53,12 +54,11 @@ let nftCenterMeasured = false;  // Flag to measure NFT center Y only once
 // Movement speed now using shared config (was 100.0)
 const textureLoader = new THREE.TextureLoader(); // Texture loader for NFTs
 
-// Keep track of all NFTs in the room for the slider functionality
-const allNFTs = [];
-let currentNFTIndex = -1;
+// Unified viewer will be initialized after scene setup
+let nftViewer = null;
 
-// Create a full-screen image viewer overlay (initially hidden)
-const viewerOverlay = document.createElement('div');
+// Placeholder for viewer overlay element (will be created by unified viewer)
+const viewerOverlay = null;
 viewerOverlay.style.position = 'fixed';
 viewerOverlay.style.top = '0';
 viewerOverlay.style.left = '0';

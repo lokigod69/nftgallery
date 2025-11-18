@@ -5,6 +5,7 @@ import { getNftUrl } from './src/core/asset-utils.js';
 import { MOVEMENT_CONFIG } from './src/core/movement-config.js';
 import { initSpeedControl } from './src/ui/speed-control.js';
 import { initMobileControls } from './src/core/mobile-controls.js';
+import { initUnifiedNFTViewer } from './src/core/nft-viewer.js';
 
 // ----------------------------------------------------------------------
 // Global Variables for Jump Physics
@@ -15,245 +16,11 @@ let jumpVelocity = 0;
 const gravity = -30;
 
 // ----------------------------------------------------------------------
-// Global Variables and Picture Viewer Setup
+// Global Variables
 // ----------------------------------------------------------------------
 let picturePlanes = [];
 let nftCenterMeasured = false;  // Flag to measure NFT center Y only once
-
-// Keep track of all NFTs in the room for the slider functionality
-const allNFTs = [];
-let currentNFTIndex = -1;
-
-// Create a full-screen image viewer overlay (initially hidden)
-const viewerOverlay = document.createElement('div');
-viewerOverlay.style.position = 'fixed';
-viewerOverlay.style.top = '0';
-viewerOverlay.style.left = '0';
-viewerOverlay.style.width = '100%';
-viewerOverlay.style.height = '100%';
-viewerOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
-viewerOverlay.style.display = 'none';
-viewerOverlay.style.alignItems = 'center';
-viewerOverlay.style.justifyContent = 'center';
-viewerOverlay.style.flexDirection = 'column';
-viewerOverlay.style.zIndex = '1000';
-
-// Create a container for the image and navigation arrows
-const viewerContainer = document.createElement('div');
-viewerContainer.style.position = 'relative';
-viewerContainer.style.width = '80%';
-viewerContainer.style.height = '80%';
-viewerContainer.style.display = 'flex';
-viewerContainer.style.alignItems = 'center';
-viewerContainer.style.justifyContent = 'center';
-viewerOverlay.appendChild(viewerContainer);
-
-// Left arrow for navigation
-const leftArrow = document.createElement('div');
-leftArrow.style.position = 'absolute';
-leftArrow.style.left = '20px';
-leftArrow.style.fontSize = '48px';
-leftArrow.style.color = 'white';
-leftArrow.style.cursor = 'pointer';
-leftArrow.style.userSelect = 'none';
-leftArrow.innerHTML = '&#9664;'; // Left-pointing triangle
-leftArrow.style.opacity = '0.7';
-leftArrow.style.transition = 'opacity 0.2s';
-leftArrow.addEventListener('mouseover', () => leftArrow.style.opacity = '1');
-leftArrow.addEventListener('mouseout', () => leftArrow.style.opacity = '0.7');
-viewerContainer.appendChild(leftArrow);
-
-const viewerImage = document.createElement('img');
-viewerImage.style.maxWidth = '90%';
-viewerImage.style.maxHeight = '90%';
-viewerImage.style.objectFit = 'contain';
-viewerContainer.appendChild(viewerImage);
-
-// Right arrow for navigation
-const rightArrow = document.createElement('div');
-rightArrow.style.position = 'absolute';
-rightArrow.style.right = '20px';
-rightArrow.style.fontSize = '48px';
-rightArrow.style.color = 'white';
-rightArrow.style.cursor = 'pointer';
-rightArrow.style.userSelect = 'none';
-rightArrow.innerHTML = '&#9654;'; // Right-pointing triangle
-rightArrow.style.opacity = '0.7';
-rightArrow.style.transition = 'opacity 0.2s';
-rightArrow.addEventListener('mouseover', () => rightArrow.style.opacity = '1');
-rightArrow.addEventListener('mouseout', () => rightArrow.style.opacity = '0.7');
-viewerContainer.appendChild(rightArrow);
-
-// NFT info display
-const nftInfo = document.createElement('div');
-nftInfo.style.marginTop = '20px';
-nftInfo.style.color = 'white';
-nftInfo.style.fontSize = '18px';
-nftInfo.style.textAlign = 'center';
-viewerOverlay.appendChild(nftInfo);
-
-const purchaseLink = document.createElement('a');
-purchaseLink.href = 'https://opensea.io';
-purchaseLink.innerText = 'Buy NFT on OpenSea';
-purchaseLink.style.marginTop = '20px';
-purchaseLink.style.color = '#fff';
-purchaseLink.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-purchaseLink.style.padding = '10px 20px';
-purchaseLink.style.textDecoration = 'none';
-purchaseLink.style.borderRadius = '5px';
-viewerOverlay.appendChild(purchaseLink);
-
-// Instructions for navigation
-const viewerInstructions = document.createElement('div');
-viewerInstructions.style.position = 'absolute';
-viewerInstructions.style.bottom = '20px';
-viewerInstructions.style.color = 'white';
-viewerInstructions.style.fontSize = '14px';
-viewerInstructions.style.opacity = '0.7';
-viewerInstructions.textContent = 'Left/Right Click to Navigate • Press ESC to Close';
-viewerOverlay.appendChild(viewerInstructions);
-
-// Close button (visible on both desktop and mobile)
-const closeButton = document.createElement('button');
-closeButton.style.position = 'absolute';
-closeButton.style.top = '20px';
-closeButton.style.right = '20px';
-closeButton.style.fontSize = '36px';
-closeButton.style.color = 'white';
-closeButton.style.background = 'rgba(0, 0, 0, 0.5)';
-closeButton.style.border = 'none';
-closeButton.style.borderRadius = '50%';
-closeButton.style.width = '50px';
-closeButton.style.height = '50px';
-closeButton.style.cursor = 'pointer';
-closeButton.style.display = 'flex';
-closeButton.style.alignItems = 'center';
-closeButton.style.justifyContent = 'center';
-closeButton.style.zIndex = '1001';
-closeButton.innerHTML = '×';
-closeButton.addEventListener('click', (e) => {
-  e.stopPropagation();
-  closeImageViewer();
-});
-closeButton.addEventListener('touchstart', (e) => {
-  e.preventDefault();
-  e.stopPropagation();
-  closeImageViewer();
-}, { passive: false });
-viewerOverlay.appendChild(closeButton);
-
-document.body.appendChild(viewerOverlay);
-
-function closeImageViewer() {
-  viewerOverlay.style.display = 'none';
-  controls.lock();
-}
-
-// Navigation handlers for the NFT viewer
-function showPreviousNFT() {
-  if (allNFTs.length === 0) return;
-
-  const prevIndex = currentNFTIndex;
-  currentNFTIndex--;
-  if (currentNFTIndex < 0) currentNFTIndex = allNFTs.length - 1;
-
-  console.log('[R2 viewer] prev from:', prevIndex, 'to:', currentNFTIndex);
-  updateNFTViewer();
-}
-
-function showNextNFT() {
-  if (allNFTs.length === 0) return;
-
-  const prevIndex = currentNFTIndex;
-  currentNFTIndex++;
-  if (currentNFTIndex >= allNFTs.length) currentNFTIndex = 0;
-
-  console.log('[R2 viewer] next from:', prevIndex, 'to:', currentNFTIndex);
-  updateNFTViewer();
-}
-
-function updateNFTViewer() {
-  if (currentNFTIndex < 0 || currentNFTIndex >= allNFTs.length) return;
-  
-  const currentNFT = allNFTs[currentNFTIndex];
-  viewerImage.src = currentNFT.imageUrl;
-  nftInfo.textContent = `NFT #${currentNFT.index} (${currentNFTIndex + 1}/${allNFTs.length})`;
-  purchaseLink.href = `https://opensea.io/assets/${currentNFT.index}`;
-}
-
-// Add click event listeners for navigation
-leftArrow.addEventListener('click', (event) => {
-  event.stopPropagation();
-  showPreviousNFT();
-});
-
-rightArrow.addEventListener('click', (event) => {
-  event.stopPropagation();
-  showNextNFT();
-});
-
-// Handle mouse clicks on the viewer overlay for navigation
-viewerOverlay.addEventListener('click', (event) => {
-  // Only navigate if clicking on the overlay background itself, not on arrows or buttons
-  if (event.target !== viewerOverlay) return;
-
-  // Only consider left and right mouse buttons
-  if (event.button === 0) { // Left click
-    showNextNFT();
-  } else if (event.button === 2) { // Right click
-    showPreviousNFT();
-  }
-  event.stopPropagation();
-});
-
-// Prevent context menu on right-click while in the viewer
-viewerOverlay.addEventListener('contextmenu', (event) => {
-  event.preventDefault();
-});
-
-// Handle keyboard navigation and escape to close
-document.addEventListener('keydown', (event) => {
-  if (viewerOverlay.style.display === 'flex') {
-    if (event.key === 'Escape') {
-      closeImageViewer();
-    } else if (event.key === 'ArrowLeft') {
-      showPreviousNFT();
-    } else if (event.key === 'ArrowRight') {
-      showNextNFT();
-    }
-  }
-});
-
-function openImageViewer(imageUrl, nftIndex) {
-  console.log('[R2 viewer] opening - nftIndex:', nftIndex);
-
-  // If this is the first time opening, gather all NFTs
-  if (allNFTs.length === 0) {
-    for (const plane of picturePlanes) {
-      if (plane.userData && plane.userData.isNFT) {
-        allNFTs.push({
-          index: plane.userData.index,
-          imageUrl: plane.userData.imageUrl
-        });
-      }
-    }
-    
-    // Sort NFTs by index
-    allNFTs.sort((a, b) => a.index - b.index);
-  }
-  
-  // Find the index of the current NFT in the array
-  currentNFTIndex = allNFTs.findIndex(nft => nft.index === nftIndex);
-  if (currentNFTIndex === -1 && allNFTs.length > 0) {
-    currentNFTIndex = 0;
-  }
-
-  console.log('[R2 viewer] open index:', currentNFTIndex, 'total images:', allNFTs.length);
-
-  updateNFTViewer();
-  viewerOverlay.style.display = 'flex';
-  controls.unlock();
-}
+let nftViewer = null;  // Unified viewer instance
 
 // ----------------------------------------------------------------------
 // Scene, Camera & Renderer Setup
@@ -306,9 +73,8 @@ document.addEventListener('keydown', (event) => {
       }
       break;
     case 'Escape':
-      if (viewerOverlay.style.display === 'flex') {
-        viewerOverlay.style.display = 'none';
-        controls.lock();
+      if (nftViewer && nftViewer.isOpen()) {
+        nftViewer.close();
       } else {
         controls.unlock();
       }
@@ -330,11 +96,11 @@ document.addEventListener('keyup', (event) => {
 // ----------------------------------------------------------------------
 function createLights() {
   // Ambient light for overall brightness
-  const ambientLight = new THREE.AmbientLight(0xffffff, 1.0); 
+  const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
   scene.add(ambientLight);
 
   // Main directional light
-  const mainLight = new THREE.DirectionalLight(0xffffff, 1.2); 
+  const mainLight = new THREE.DirectionalLight(0xffffff, 1.2);
   mainLight.position.set(0, 10, 0);
   scene.add(mainLight);
 
@@ -408,7 +174,7 @@ function createWallsAndFloor() {
 
   // Walls
   const wallGeometry = new THREE.PlaneGeometry(40, 8);
-  
+
   // Back wall
   const backWall = new THREE.Mesh(wallGeometry, wallMaterial.clone());
   backWall.position.z = -20;
@@ -517,7 +283,7 @@ function createNFT(index, position, rotation) {
 
   const nftIndex = index + 29; // Adjusted to start from nft29
   const imageUrl = getNftUrl(nftIndex);
-  
+
   const loader = new THREE.TextureLoader();
   loader.load(
     imageUrl,
@@ -530,7 +296,7 @@ function createNFT(index, position, rotation) {
           side: THREE.DoubleSide
         })
       );
-      // Add necessary userData properties for click detection and slider functionality
+      // Add necessary userData properties for click detection and viewer
       picturePlane.userData = {
         isNFT: true,
         index: nftIndex,
@@ -562,64 +328,13 @@ function createNFT(index, position, rotation) {
 }
 
 // ----------------------------------------------------------------------
-// Centralized Click Handler
-// ----------------------------------------------------------------------
-function handleClick(event) {
-  // If the viewer is open, clicks are handled by the viewer's event listener
-  if (viewerOverlay.style.display === 'flex') return;
-  
-  // Check if we clicked on an NFT
-  const raycaster = new THREE.Raycaster();
-  const mouse = new THREE.Vector2();
-  
-  // Calculate mouse position in normalized device coordinates
-  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-  
-  // Update the picking ray with the camera and mouse position
-  raycaster.setFromCamera(mouse, camera);
-  
-  // Calculate objects intersecting the picking ray
-  const intersects = raycaster.intersectObjects(picturePlanes, false);
-  
-  if (intersects.length > 0) {
-    const object = intersects[0].object;
-    if (object.userData && object.userData.isNFT) {
-      console.log("NFT clicked:", object.userData.index); // Debug log
-      openImageViewer(object.userData.imageUrl, object.userData.index);
-      event.stopPropagation(); // Prevent other click handlers from firing
-      return;
-    }
-  }
-  
-  // If we didn't click on an NFT and controls are not locked, lock them
-  if (!controls.isLocked) {
-    controls.lock();
-    event.stopPropagation(); // Prevent other click handlers from firing
-  }
-}
-
-// Remove any existing click listeners to prevent duplicates
-window.removeEventListener('click', onNFTClick);
-window.removeEventListener('click', handleClick);
-window.addEventListener('click', handleClick);
-
-// ----------------------------------------------------------------------
-// NFT Click Detection (Legacy function - now handled by handleClick)
-// ----------------------------------------------------------------------
-function onNFTClick(event) {
-  // This function is now handled by the centralized click handler
-  console.log("onNFTClick is deprecated, using centralized click handler instead");
-}
-
-// ----------------------------------------------------------------------
 // Separate handler for divider NFTs
 // ----------------------------------------------------------------------
 function createDividerNFT(nftNumber, localX, localZ, rotationY, parentGroup) {
   const frameGroup = new THREE.Group();
   const frameWidth = 2.0, frameHeight = 3.0;
   const pictureWidth = 1.8, pictureHeight = 2.7;
-  
+
   // Create frame
   const frameBox = new THREE.Mesh(
     new THREE.BoxGeometry(frameWidth, frameHeight, 0.2),
@@ -653,11 +368,11 @@ function createDividerNFT(nftNumber, localX, localZ, rotationY, parentGroup) {
     undefined,
     (err) => { console.error(`Error loading texture: ${textureUrl}`, err); }
   );
-  
+
   frameGroup.position.set(localX, 0, localZ);  // Adjusted Y position to 0, relative to divider wall
   frameGroup.rotation.y = rotationY;
   parentGroup.add(frameGroup);
-  
+
   return frameGroup;
 }
 
@@ -941,11 +656,14 @@ mobileControls = initMobileControls({
   pitchLimits: { min: -Math.PI / 3, max: Math.PI / 4 },
   autoLevel: { enabled: true, speed: 0.3, threshold: 0.1 },
   onInteract: (raycaster) => {
+    // Mobile tap interaction - find NFT under center crosshair
     const intersects = raycaster.intersectObjects(picturePlanes, false);
+
     if (intersects.length > 0) {
       const nft = intersects[0].object;
-      if (nft.userData?.isNFT) {
-        openImageViewer(nft.userData.imageUrl, nft.userData.index);
+
+      if (nft.userData?.isNFT && nftViewer) {
+        nftViewer.openByMesh(nft);
       }
     }
   }
@@ -958,6 +676,62 @@ if (mobileControls && mobileControls.enabled) {
     desktopTooltip.style.display = 'none';
   }
 }
+
+// ----------------------------------------------------------------------
+// Initialize Unified NFT Viewer
+// ----------------------------------------------------------------------
+nftViewer = initUnifiedNFTViewer({
+  getNFTList: () =>
+    picturePlanes
+      .filter(p => p.userData?.isNFT)
+      .sort((a, b) => (a.userData.index ?? 0) - (b.userData.index ?? 0))
+      .map(mesh => ({
+        mesh,
+        url: mesh.userData.imageUrl,
+        title: `NFT #${mesh.userData.index}`,
+        description: '',
+        index: mesh.userData.index
+      })),
+  controls
+});
+
+// ----------------------------------------------------------------------
+// Desktop Click Handler
+// ----------------------------------------------------------------------
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+function handleNFTClick(event) {
+  // If viewer is already open, let the viewer handle clicks
+  if (nftViewer && nftViewer.isOpen()) {
+    return;
+  }
+
+  // Only process clicks when controls are locked (in-game mode)
+  if (!controls.isLocked) {
+    // If not locked, lock on click
+    controls.lock();
+    return;
+  }
+
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObjects(picturePlanes, false);
+
+  if (intersects.length > 0) {
+    const object = intersects[0].object;
+    if (object.userData?.isNFT && nftViewer) {
+      nftViewer.openByMesh(object);
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+  }
+}
+
+window.addEventListener('click', handleNFTClick);
 
 // ----------------------------------------------------------------------
 // Animation Loop
