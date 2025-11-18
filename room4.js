@@ -481,7 +481,7 @@ function createFloatingNFT(displayIndex, position, rotation) {
   plane.userData = {
     isNFT: true,
     index: nftIndex,
-    imageUrl: nftPath.split('?')[0] // Remove cache-busting query string for viewer
+    imageUrl: nftPath // Use full URL from getNftUrl (don't strip query params)
   };
   picturePlanes.push(plane);
 

@@ -469,7 +469,11 @@ function handleNFTClick(event) {
   }
 
   // Only process clicks when controls are locked (in-game mode)
-  if (!controls.isLocked) return;
+  if (!controls.isLocked) {
+    // If not locked, lock on click (aligns with Room 2 behavior)
+    controls.lock();
+    return;
+  }
 
   mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
   mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;

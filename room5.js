@@ -586,14 +586,14 @@ function createDoubleSidedNFT(index, position, angle) {
   // Start the loading attempts
   attemptLoad(pathFormats[0]);
 
-  // Store for click detection
+  // Store for click detection (use getNftUrl for consistent URL format)
   nftMeshFront.userData.isNFT = true;
   nftMeshFront.userData.index = index;
-  nftMeshFront.userData.imageUrl = pathFormats[0].split('?')[0];
+  nftMeshFront.userData.imageUrl = getNftUrl(index);
 
   nftMeshBack.userData.isNFT = true;
   nftMeshBack.userData.index = index;
-  nftMeshBack.userData.imageUrl = pathFormats[0].split('?')[0];
+  nftMeshBack.userData.imageUrl = getNftUrl(index);
 
   // Add both sides to picturePlanes for interaction
   picturePlanes.push(nftMeshFront);
