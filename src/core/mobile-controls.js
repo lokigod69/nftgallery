@@ -586,7 +586,14 @@ function setupOrientationWarning(rotateMessageElement) {
   function checkOrientation() {
     if (!rotateMessageElement) return;
 
-    // Show warning if in portrait mode
+    // Never show orientation warning while NFT viewer is open
+    const isViewerOpen = !!window.__NFT_VIEWER_OPEN || document.body.classList.contains('nft-viewer-open');
+    if (isViewerOpen) {
+      rotateMessageElement.style.display = 'none';
+      return;
+    }
+
+    // Show warning if in portrait mode (only when viewer is closed)
     if (window.innerWidth < window.innerHeight) {
       rotateMessageElement.style.display = 'flex';
     } else {

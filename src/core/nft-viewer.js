@@ -1,5 +1,8 @@
 import * as THREE from 'three';
 
+// Maximum distance from camera to NFT for interaction (prevents opening distant NFTs)
+export const MAX_NFT_INTERACTION_DISTANCE = 35;
+
 /**
  * Unified NFT Viewer System
  *
@@ -238,6 +241,12 @@ export function initUnifiedNFTViewer(config) {
     controls.unlock();
     updateOrientation(); // Ensure correct mode on open
 
+    // Set global viewer-open flag (disables orientation warning)
+    document.body.classList.add('nft-viewer-open');
+    window.__NFT_VIEWER_OPEN = true;
+    // Trigger orientation check to hide warning immediately
+    window.dispatchEvent(new Event('resize'));
+
     onOpen(nftList[currentIndex]);
   }
 
@@ -267,6 +276,13 @@ export function initUnifiedNFTViewer(config) {
     viewerOverlay.style.display = 'none';
     isViewerOpen = false;
     controls.lock();
+
+    // Clear global viewer-open flag (re-enables orientation warning)
+    document.body.classList.remove('nft-viewer-open');
+    window.__NFT_VIEWER_OPEN = false;
+    // Trigger orientation check to show warning if needed
+    window.dispatchEvent(new Event('resize'));
+
     onClose();
   }
 

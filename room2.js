@@ -5,7 +5,7 @@ import { getNftUrl } from './src/core/asset-utils.js';
 import { MOVEMENT_CONFIG } from './src/core/movement-config.js';
 import { initSpeedControl } from './src/ui/speed-control.js';
 import { initMobileControls } from './src/core/mobile-controls.js';
-import { initUnifiedNFTViewer } from './src/core/nft-viewer.js';
+import { initUnifiedNFTViewer, MAX_NFT_INTERACTION_DISTANCE } from './src/core/nft-viewer.js';
 
 // ----------------------------------------------------------------------
 // Global Variables for Jump Physics
@@ -668,11 +668,14 @@ mobileControls = initMobileControls({
     const intersects = raycaster.intersectObjects(picturePlanes, false);
 
     if (intersects.length > 0) {
-      const nft = intersects[0].object;
+      const hit = intersects[0];
+      const nft = hit.object;
 
-      if (nft.userData?.isNFT && nftViewer) {
-        console.log('[R2 mobile] NFT tapped, opening viewer for NFT #' + nft.userData.index);
+      if (nft.userData?.isNFT && hit.distance <= MAX_NFT_INTERACTION_DISTANCE && nftViewer) {
+        console.log('[R2 mobile] NFT tapped at distance', hit.distance.toFixed(1), '- opening viewer for NFT #' + nft.userData.index);
         nftViewer.openByMesh(nft);
+      } else if (nft.userData?.isNFT) {
+        console.log('[R2 mobile] NFT hit too far away (distance:', hit.distance.toFixed(1), '), ignoring tap');
       }
     } else {
       console.log('[R2 mobile] No NFT hit by raycast');
@@ -732,8 +735,9 @@ function handleNFTClick(event) {
   const intersects = raycaster.intersectObjects(picturePlanes, false);
 
   if (intersects.length > 0) {
-    const object = intersects[0].object;
-    if (object.userData?.isNFT && nftViewer) {
+    const hit = intersects[0];
+    const object = hit.object;
+    if (object.userData?.isNFT && hit.distance <= MAX_NFT_INTERACTION_DISTANCE && nftViewer) {
       nftViewer.openByMesh(object);
       event.preventDefault();
       event.stopPropagation();
