@@ -152,19 +152,23 @@ function closeImageViewer() {
 // Navigation handlers for the NFT viewer
 function showPreviousNFT() {
   if (allNFTs.length === 0) return;
-  
+
+  const prevIndex = currentNFTIndex;
   currentNFTIndex--;
   if (currentNFTIndex < 0) currentNFTIndex = allNFTs.length - 1;
-  
+
+  console.log('[R2 viewer] prev from:', prevIndex, 'to:', currentNFTIndex);
   updateNFTViewer();
 }
 
 function showNextNFT() {
   if (allNFTs.length === 0) return;
-  
+
+  const prevIndex = currentNFTIndex;
   currentNFTIndex++;
   if (currentNFTIndex >= allNFTs.length) currentNFTIndex = 0;
-  
+
+  console.log('[R2 viewer] next from:', prevIndex, 'to:', currentNFTIndex);
   updateNFTViewer();
 }
 
@@ -221,6 +225,8 @@ document.addEventListener('keydown', (event) => {
 });
 
 function openImageViewer(imageUrl, nftIndex) {
+  console.log('[R2 viewer] opening - nftIndex:', nftIndex);
+
   // If this is the first time opening, gather all NFTs
   if (allNFTs.length === 0) {
     for (const plane of picturePlanes) {
@@ -241,7 +247,9 @@ function openImageViewer(imageUrl, nftIndex) {
   if (currentNFTIndex === -1 && allNFTs.length > 0) {
     currentNFTIndex = 0;
   }
-  
+
+  console.log('[R2 viewer] open index:', currentNFTIndex, 'total images:', allNFTs.length);
+
   updateNFTViewer();
   viewerOverlay.style.display = 'flex';
   controls.unlock();

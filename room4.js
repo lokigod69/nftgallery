@@ -123,6 +123,35 @@ viewerInstructions.style.opacity = '0.7';
 viewerInstructions.textContent = 'Left/Right Click to Navigate • Press ESC to Close';
 viewerOverlay.appendChild(viewerInstructions);
 
+// Close button
+const closeButton = document.createElement('button');
+closeButton.style.position = 'absolute';
+closeButton.style.top = '20px';
+closeButton.style.right = '20px';
+closeButton.style.fontSize = '36px';
+closeButton.style.color = 'white';
+closeButton.style.background = 'rgba(0, 0, 0, 0.5)';
+closeButton.style.border = 'none';
+closeButton.style.borderRadius = '50%';
+closeButton.style.width = '50px';
+closeButton.style.height = '50px';
+closeButton.style.cursor = 'pointer';
+closeButton.style.display = 'flex';
+closeButton.style.alignItems = 'center';
+closeButton.style.justifyContent = 'center';
+closeButton.style.zIndex = '1001';
+closeButton.innerHTML = '×';
+closeButton.addEventListener('click', (e) => {
+  e.stopPropagation();
+  closeImageViewer();
+});
+closeButton.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  closeImageViewer();
+});
+viewerOverlay.appendChild(closeButton);
+
 document.body.appendChild(viewerOverlay);
 
 // Hide loading overlay when the page loads
@@ -193,8 +222,7 @@ viewerOverlay.addEventListener('contextmenu', (event) => {
 document.addEventListener('keydown', (event) => {
   if (viewerOverlay.style.display === 'flex') {
     if (event.key === 'Escape') {
-      viewerOverlay.style.display = 'none';
-      controls.lock();
+      closeImageViewer();
     } else if (event.key === 'ArrowLeft') {
       showPreviousNFT();
     } else if (event.key === 'ArrowRight') {
@@ -202,6 +230,11 @@ document.addEventListener('keydown', (event) => {
     }
   }
 });
+
+function closeImageViewer() {
+  viewerOverlay.style.display = 'none';
+  controls.lock();
+}
 
 function openImageViewer(imageUrl, nftIndex) {
   console.log("Opening image viewer for:", imageUrl);
