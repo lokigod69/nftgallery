@@ -219,6 +219,26 @@ export function initMobileControls(config) {
     mobileUI.destroy();
   }
 
+  // Reset all input state (call on viewer open/close to prevent stuck controls)
+  function resetInput() {
+    // 1) Zero out movement flags
+    window.moveForward = false;
+    window.moveBackward = false;
+    window.moveLeft = false;
+    window.moveRight = false;
+
+    // 2) Zero out internal look state
+    yaw = config.camera ? config.camera.rotation.y : 0;
+    pitch = config.camera ? config.camera.rotation.x : 0;
+    isAutoLeveling = false;
+    lookStickDeflection = 0;
+
+    // 3) Update joystick internal state if they track current values
+    // The joysticks will reset their currentYaw/currentPitch on next 'start' event
+
+    console.log('[Mobile Controls] resetInput called - all input state zeroed');
+  }
+
   // Return mobile controls instance
   return {
     enabled: true,
@@ -226,6 +246,7 @@ export function initMobileControls(config) {
     controls: mobileControls,  // Mock controls object for compatibility
     updateAutoLevel,
     updateCameraRotation,  // Expose for manual updates if needed
+    resetInput,  // Reset all input state
     destroy
   };
 }

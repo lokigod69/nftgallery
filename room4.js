@@ -797,8 +797,39 @@ mobileControls = initMobileControls({
       return;
     }
 
+    // Log full intersects list for debugging
+    console.log(
+      '[R4 interact] intersects:',
+      intersects.map((hit, i) => ({
+        i,
+        distance: hit.distance.toFixed(2),
+        name: hit.object.name || '(unnamed)',
+        isNFT: !!hit.object.userData?.isNFT,
+        userIndex: hit.object.userData?.index
+      }))
+    );
+
     const hit = intersects[0];
     const nft = hit.object;
+
+    // Front-facing check: reject surfaces not facing the camera
+    let isFrontFacing = true;
+    if (hit.face && nft && nft.matrixWorld) {
+      const worldNormal = hit.face.normal.clone().transformDirection(nft.matrixWorld);
+      const camToHit = hit.point.clone().sub(camera.position).normalize();
+      const alignment = worldNormal.dot(camToHit.clone().multiplyScalar(-1));
+
+      console.log('[R4 interact] normal alignment', alignment.toFixed(3));
+
+      if (alignment < 0.5) {
+        isFrontFacing = false;
+      }
+    }
+
+    if (!isFrontFacing) {
+      console.log('[R4 interact] rejected: surface not front-facing enough');
+      return;
+    }
 
     console.log('[R4 interact]', {
       distance: hit.distance.toFixed(2),
@@ -835,6 +866,9 @@ if (mobileControls && mobileControls.enabled) {
 // ----------------------------------------------------------------------
 // Initialize Unified NFT Viewer
 // ----------------------------------------------------------------------
+// Check if mobile controls are active for resetInput calls
+const mobileActive = mobileControls && mobileControls.enabled;
+
 nftViewer = initUnifiedNFTViewer({
   getNFTList: () =>
     picturePlanes
@@ -847,7 +881,18 @@ nftViewer = initUnifiedNFTViewer({
         description: '',
         index: mesh.userData.index
       })),
-  controls
+  controls,
+  enablePortraitSwipe: true,  // Enable portrait mode with swipe navigation
+  onOpen: () => {
+    if (mobileActive && mobileControls.resetInput) {
+      mobileControls.resetInput();
+    }
+  },
+  onClose: () => {
+    if (mobileActive && mobileControls.resetInput) {
+      mobileControls.resetInput();
+    }
+  }
 });
 
 // ----------------------------------------------------------------------
@@ -882,8 +927,39 @@ function handleNFTClick(event) {
     return;
   }
 
+  // Log full intersects list for debugging
+  console.log(
+    '[R4 interact] desktop intersects:',
+    intersects.map((hit, i) => ({
+      i,
+      distance: hit.distance.toFixed(2),
+      name: hit.object.name || '(unnamed)',
+      isNFT: !!hit.object.userData?.isNFT,
+      userIndex: hit.object.userData?.index
+    }))
+  );
+
   const hit = intersects[0];
   const object = hit.object;
+
+  // Front-facing check: reject surfaces not facing the camera
+  let isFrontFacing = true;
+  if (hit.face && object && object.matrixWorld) {
+    const worldNormal = hit.face.normal.clone().transformDirection(object.matrixWorld);
+    const camToHit = hit.point.clone().sub(camera.position).normalize();
+    const alignment = worldNormal.dot(camToHit.clone().multiplyScalar(-1));
+
+    console.log('[R4 interact] desktop normal alignment', alignment.toFixed(3));
+
+    if (alignment < 0.5) {
+      isFrontFacing = false;
+    }
+  }
+
+  if (!isFrontFacing) {
+    console.log('[R4 interact] desktop rejected: surface not front-facing enough');
+    return;
+  }
 
   console.log('[R4 interact] desktop click:', {
     distance: hit.distance.toFixed(2),
