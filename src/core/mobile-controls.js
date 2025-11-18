@@ -58,6 +58,7 @@ export function detectMobileDevice() {
  * @param {number} [config.autoLevel.speed=0.3] - Lerp factor for auto-level (0-1)
  * @param {number} [config.autoLevel.threshold=0.1] - Stick deflection threshold for auto-level
  * @param {Function} [config.onInteract] - Callback when user taps center screen
+ * @param {Function} [config.onJump] - Callback when user taps left joystick (jump action)
  * @param {Function} [config.onMobileDetected] - Callback when mobile is detected
  * @param {Object} [config.joystickOptions] - Joystick customization
  * @param {string} [config.joystickOptions.color='white'] - Joystick color
@@ -144,6 +145,8 @@ export function initMobileControls(config) {
     sensitivity,
     pitchLimits,
     autoLevelConfig,
+    // Callbacks
+    onJump: config.onJump,
     // State setters
     setYaw: (value) => { yaw = value; },
     setPitch: (value) => { pitch = value; },
@@ -182,6 +185,7 @@ export function initMobileControls(config) {
       controlsDesc.innerHTML = `
         <p>Controls:</p>
         <p>Left joystick - Move</p>
+        <p>Tap left joystick - Jump</p>
         <p>Right joystick - Look</p>
         <p>Tap center - Interact</p>
       `;
@@ -372,6 +376,7 @@ function createJoysticks(options) {
     sensitivity,
     pitchLimits,
     autoLevelConfig,
+    onJump,
     setYaw,
     setPitch,
     setAutoLeveling,
@@ -405,8 +410,25 @@ function createJoysticks(options) {
   });
 
   // Movement joystick event handlers
+  // Tap detection for jump action
+  let tapStartTime = 0;
+  let maxDistance = 0;
+  const TAP_MAX_DURATION = 200;   // ms
+  const TAP_MAX_DISTANCE = 10;    // nipplejs distance units
+
+  moveJoystick.on('start', (evt, data) => {
+    tapStartTime = performance.now();
+    maxDistance = 0;
+  });
+
   moveJoystick.on('move', (evt, data) => {
     const deadZone = joystickOptions.moveDeadZone;
+    const dist = data.distance || 0;
+
+    // Track maximum distance for tap detection
+    if (dist > maxDistance) {
+      maxDistance = dist;
+    }
 
     // Apply dead zone and set movement flags
     // Note: nipplejs Y-axis: positive = up, negative = down
@@ -417,11 +439,21 @@ function createJoysticks(options) {
   });
 
   moveJoystick.on('end', () => {
+    const duration = performance.now() - tapStartTime;
+
     // Reset all movement flags when stick released
     window.moveForward = false;
     window.moveBackward = false;
     window.moveLeft = false;
     window.moveRight = false;
+
+    // Detect tap gesture for jump
+    const isTap = duration < TAP_MAX_DURATION && maxDistance < TAP_MAX_DISTANCE;
+
+    if (isTap && onJump) {
+      console.log('[Mobile Controls] Jump tap detected (duration:', duration, 'ms, distance:', maxDistance, ')');
+      onJump();
+    }
   });
 
   // Look joystick event handlers

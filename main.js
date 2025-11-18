@@ -69,6 +69,15 @@ const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
 const prevPosition = new THREE.Vector3();  // Track previous position for collision detection
 
+// Jump function (shared by keyboard and mobile joystick tap)
+function triggerJump() {
+  if (!isJumping) {
+    console.log('[R1] Jump triggered');
+    isJumping = true;
+    jumpVelocity = 8; // initial jump velocity
+  }
+}
+
 document.addEventListener('keydown', (event) => {
   switch (event.code) {
     case 'KeyW': window.moveForward = true; break;
@@ -76,10 +85,7 @@ document.addEventListener('keydown', (event) => {
     case 'KeyS': window.moveBackward = true; break;
     case 'KeyD': window.moveRight = true; break;
     case 'Space':
-      if (!isJumping) {
-        isJumping = true;
-        jumpVelocity = 8; // initial jump velocity
-      }
+      triggerJump();
       break;
   }
 });
@@ -416,7 +422,19 @@ const mobileControls = initMobileControls({
     speed: 0.3,
     threshold: 0.1
   },
+  onJump: () => {
+    // Tap left joystick to jump
+    triggerJump();
+  },
   onInteract: (raycaster) => {
+    // Guard: Don't process interactions when viewer is already open
+    if (nftViewer && nftViewer.isOpen && nftViewer.isOpen()) {
+      console.log('[R1 mobile] onInteract called but viewer is open, ignoring');
+      return;
+    }
+
+    console.log('[R1 mobile] onInteract called, performing raycast');
+
     // Mobile tap interaction - find NFT under center crosshair
     const intersects = raycaster.intersectObjects(picturePlanes, false);
 
@@ -424,8 +442,11 @@ const mobileControls = initMobileControls({
       const nft = intersects[0].object;
 
       if (nft.userData?.isNFT && nftViewer) {
+        console.log('[R1 mobile] NFT tapped, opening viewer for NFT #' + nft.userData.index);
         nftViewer.openByMesh(nft);
       }
+    } else {
+      console.log('[R1 mobile] No NFT hit by raycast');
     }
   }
 });

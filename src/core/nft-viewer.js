@@ -259,40 +259,40 @@ export function initUnifiedNFTViewer(config) {
   // Event Handlers
   // ----------------------------------------------------------------------
 
-  // Arrow clicks
+  // Arrow clicks (using click only to avoid double-firing with touch events)
   leftArrow.addEventListener('click', (e) => {
+    e.preventDefault();
     e.stopPropagation();
+    console.log('[Viewer] Left arrow clicked, showing previous NFT from index', currentIndex);
     goPrev();
   });
 
   rightArrow.addEventListener('click', (e) => {
+    e.preventDefault();
     e.stopPropagation();
+    console.log('[Viewer] Right arrow clicked, showing next NFT from index', currentIndex);
     goNext();
   });
 
-  // Close button (both click and touch)
+  // Close button (using click only to avoid double-firing with touch events)
   closeButton.addEventListener('click', (e) => {
+    e.preventDefault();
     e.stopPropagation();
+    console.log('[Viewer] Close button clicked');
     close();
   });
 
-  closeButton.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    close();
-  }, { passive: false });
-
-  // Overlay background clicks (navigate in landscape mode)
+  // Overlay background clicks (strict - only overlay itself, not children)
   viewerOverlay.addEventListener('click', (event) => {
-    // Only navigate if clicking overlay background, not buttons/arrows
-    if (event.target !== viewerOverlay && event.target !== viewerContainer && event.target !== viewerImage) return;
-
-    if (event.button === 0) { // Left click
-      goNext();
-    } else if (event.button === 2) { // Right click
-      goPrev();
+    // STRICT: Only allow clicks on the overlay background itself
+    if (event.target !== viewerOverlay) {
+      return;
     }
+
+    event.preventDefault();
     event.stopPropagation();
+    // Close viewer when clicking on background
+    close();
   });
 
   // Prevent context menu
@@ -354,6 +354,9 @@ export function initUnifiedNFTViewer(config) {
     close,
     isOpen() {
       return isViewerOpen;
+    },
+    getCurrentIndex() {
+      return currentIndex;
     }
   };
 }
