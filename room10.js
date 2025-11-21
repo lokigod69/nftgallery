@@ -252,7 +252,8 @@ function generatePlatforms() {
   const platformMeshes = [];
 
   // Shared planar hex geometry for NFT top/bottom surfaces
-  const hexRadius = PLATFORM_SIZE * 1.02; // Slightly larger than cylinder to cover rim
+  // Slightly smaller than cylinder so NFT print sits just inside the hex frame
+  const hexRadius = PLATFORM_SIZE * 0.995;
   const hexTopGeometry = new THREE.CircleGeometry(hexRadius, 6);
   // Nudge orientation so hex edges line up nicely with cylinder sides
   hexTopGeometry.rotateZ(Math.PI / 6);
