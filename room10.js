@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
-import { PMREMGenerator } from 'three/examples/jsm/utils/PMREMGenerator.js';
 import { createLinkedPortal, animateLinkedPortal } from './src/core/portal-utils.js';
 import { getRoomXNftUrl } from './src/core/asset-utils.js';
 
@@ -431,27 +430,28 @@ function createTopPortal() {
 }
 
 // ----------------------------------------------------------------------
-// Create Starting Platform (Floor)
+// Create Starting Platform (Hexagonal Floor with NFT Grid)
 // ----------------------------------------------------------------------
 function createStartingPlatform() {
-  const platformRadius = 45; // Large stable floor
+  const platformRadius = 50; // Large hexagonal platform
   const platformY = -SPHERE_RADIUS + 8; // 8 units from bottom of sphere
 
-  const geometry = new THREE.CylinderGeometry(platformRadius, platformRadius, 1, 32);
+  // Create hexagonal platform (6 segments = hexagon)
+  const geometry = new THREE.CylinderGeometry(platformRadius, platformRadius, 1, 6);
   const material = new THREE.MeshStandardMaterial({
-    color: 0x2a2a3a,
-    metalness: 0.5,
-    roughness: 0.7,
-    emissive: 0x111122,
-    emissiveIntensity: 0.3
+    color: 0x1a1a2a,
+    metalness: 0.3,
+    roughness: 0.8,
+    emissive: 0x0a0a15,
+    emissiveIntensity: 0.2
   });
 
   const platform = new THREE.Mesh(geometry, material);
   platform.position.set(0, platformY, 0);
   scene.add(platform);
 
-  // Add a glowing rim for visibility
-  const rimGeometry = new THREE.TorusGeometry(platformRadius, 0.5, 16, 64);
+  // Add a glowing rim for visibility (hexagonal torus)
+  const rimGeometry = new THREE.TorusGeometry(platformRadius, 0.5, 8, 6);
   const rimMaterial = new THREE.MeshStandardMaterial({
     color: 0x4466ff,
     emissive: 0x4466ff,
@@ -469,6 +469,125 @@ function createStartingPlatform() {
     y: platformY + 0.5, // Top surface Y position
     radius: platformRadius
   };
+}
+
+/**
+ * Create hexagonal grid of NFT tiles on starting platform
+ * Arranges NFTs in a hexagonal pattern, blurred and semi-transparent
+ */
+function createHexagonalNFTGrid() {
+  const platformY = -SPHERE_RADIUS + 8 + 0.5; // Top surface of platform
+  const tileSize = 2.5; // Size of each NFT tile
+  const tileSpacing = 3.0; // Spacing between tiles
+  const gridRadius = 7; // Number of rings in hexagonal grid
+  const nftTiles = [];
+  const MAX_NFT_COUNT = 50; // Maximum NFTs to load for grid
+
+  // Calculate hexagonal grid positions
+  // Hexagonal coordinates: q (column), r (row)
+  const positions = [];
+  
+  for (let q = -gridRadius; q <= gridRadius; q++) {
+    const r1 = Math.max(-gridRadius, -q - gridRadius);
+    const r2 = Math.min(gridRadius, -q + gridRadius);
+    for (let r = r1; r <= r2; r++) {
+      positions.push({ q, r });
+    }
+  }
+
+  // Convert hexagonal coordinates to world positions
+  const hexToWorld = (q, r) => {
+    const x = tileSpacing * (Math.sqrt(3) * q + Math.sqrt(3) / 2 * r);
+    const z = tileSpacing * (3 / 2 * r);
+    return { x, z };
+  };
+
+  // Filter out center position and limit to max NFTs
+  const validPositions = positions.filter(({ q, r }) => {
+    const { x, z } = hexToWorld(q, r);
+    return !(Math.abs(x) < 0.1 && Math.abs(z) < 0.1); // Skip center
+  }).slice(0, MAX_NFT_COUNT);
+
+  // Load all NFT textures and create tiles
+  const loader = new THREE.TextureLoader();
+  let nftIndex = 1;
+
+  validPositions.forEach(({ q, r }, arrayIndex) => {
+    const { x, z } = hexToWorld(q, r);
+    const url = getRoomXNftUrl(nftIndex);
+    const currentIndex = nftIndex - 1; // Store for texture callback
+    nftIndex++;
+
+    // Create hexagonal tile geometry first
+    const tileGeometry = new THREE.CylinderGeometry(
+      tileSize * 0.8,
+      tileSize * 0.8,
+      0.1,
+      6 // Hexagon
+    );
+
+    // Placeholder material (will be replaced when texture loads)
+    const placeholderMaterial = new THREE.MeshStandardMaterial({
+      color: 0x333333,
+      transparent: true,
+      opacity: 0.3,
+      metalness: 0.1,
+      roughness: 0.9
+    });
+
+    const tile = new THREE.Mesh(tileGeometry, placeholderMaterial);
+    tile.position.set(x, platformY + 0.05, z); // Slightly above platform
+    tile.rotation.y = Math.random() * Math.PI * 2; // Random rotation
+    tile.userData.nftIndex = currentIndex; // Store index for texture callback
+    
+    scene.add(tile);
+    nftTiles.push(tile);
+
+    // Load texture and apply when ready
+    loader.load(
+      url,
+      (loadedTexture) => {
+        // Configure texture for blur effect
+        loadedTexture.colorSpace = THREE.SRGBColorSpace;
+        loadedTexture.wrapS = THREE.ClampToEdgeWrapping;
+        loadedTexture.wrapT = THREE.ClampToEdgeWrapping;
+        loadedTexture.anisotropy = 1; // Low anisotropy for blur effect
+        loadedTexture.minFilter = THREE.LinearFilter; // Use linear filtering for softer look
+        loadedTexture.magFilter = THREE.LinearFilter;
+        
+        // Create blurred material with opacity and slight glow
+        // The blur effect is achieved through:
+        // 1. Low opacity (semi-transparent)
+        // 2. Linear filtering (softer edges)
+        // 3. Slight emissive glow for visibility
+        const blurredMaterial = new THREE.MeshStandardMaterial({
+          map: loadedTexture,
+          color: 0xffffff,
+          metalness: 0.05,
+          roughness: 0.9,
+          transparent: true,
+          opacity: 0.35, // Semi-transparent for blurry effect
+          emissive: 0x222222, // Slight glow to maintain visibility
+          emissiveIntensity: 0.3,
+          side: THREE.DoubleSide // Show on both sides
+        });
+
+        // Find tile by stored index and apply material
+        const targetTile = nftTiles.find(t => t.userData.nftIndex === currentIndex);
+        if (targetTile) {
+          targetTile.material = blurredMaterial;
+          targetTile.material.needsUpdate = true;
+        }
+      },
+      undefined,
+      (err) => {
+        console.warn(`Room X: Failed to load NFT texture ${url} for grid tile`, err);
+      }
+    );
+  });
+
+  console.log(`Room X: Created ${nftTiles.length} blurred NFT tiles in hexagonal grid`);
+  return nftTiles;
 }
 
 // ----------------------------------------------------------------------
@@ -536,7 +655,7 @@ function createSphereChain(startY, endY) {
 /**
  * Load HDRI environment map for sphere reflections
  * This creates a mirror-like reflection environment
- * Uses PMREMGenerator for optimal PBR reflection quality
+ * Uses HDRI texture directly (compatible with all Three.js versions)
  */
 function loadHDRIEnvironment() {
   const loader = new RGBELoader();
@@ -545,22 +664,16 @@ function loadHDRIEnvironment() {
     (texture) => {
       texture.mapping = THREE.EquirectangularReflectionMapping;
       
-      // Use PMREMGenerator to convert HDRI to optimized environment map for PBR
-      // This provides much better reflection quality than using the HDRI directly
-      const pmremGenerator = new PMREMGenerator(renderer);
-      pmremGenerator.compileEquirectangularShader();
-      
-      const envMap = pmremGenerator.fromEquirectangular(texture).texture;
-      
       // Set as scene environment - this is crucial for reflections
-      scene.environment = envMap;
-      hdriEnvironment = envMap;
+      // The HDRI texture works directly as an environment map
+      scene.environment = texture;
+      hdriEnvironment = texture;
 
       // Update all sphere materials with environment map
       // Ensure they have proper mirror-like settings
       sphereChain.forEach(sphere => {
         if (sphere.material) {
-          sphere.material.envMap = envMap;
+          sphere.material.envMap = texture;
           sphere.material.metalness = 1.0; // Fully metallic for mirror
           sphere.material.roughness = 0.0; // Perfect mirror (0 = mirror, 1 = matte)
           sphere.material.envMapIntensity = 1.0;
@@ -568,11 +681,7 @@ function loadHDRIEnvironment() {
         }
       });
 
-      // Clean up
-      pmremGenerator.dispose();
-      texture.dispose(); // Original HDRI no longer needed
-
-      console.log('Room X: HDRI environment map loaded and processed - spheres now have mirror reflections');
+      console.log('Room X: HDRI environment map loaded - spheres now have mirror reflections');
     },
     undefined,
     (err) => {
@@ -595,6 +704,7 @@ function loadHDRIEnvironment() {
 // ----------------------------------------------------------------------
 const { sphere, stars } = createHollowSphere();
 const startingPlatform = createStartingPlatform();
+const nftGridTiles = createHexagonalNFTGrid(); // Create hexagonal NFT grid on starting platform
 const { platforms, platformMeshes } = generatePlatforms();
 const topPortal = createTopPortal();
 
