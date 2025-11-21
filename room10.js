@@ -534,7 +534,7 @@ function createHexagonalNFTGrid() {
 
     const tile = new THREE.Mesh(tileGeometry, placeholderMaterial);
     tile.position.set(x, platformY + tileHeight * 0.5, z);
-    tile.rotation.y = Math.random() * Math.PI * 2;
+    // No random rotation - lock alignment
     tile.userData.nftIndex = currentIndex;
     scene.add(tile);
     nftTiles.push(tile);
@@ -896,8 +896,9 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
-// Set spawn position on starting platform
-controls.getObject().position.set(0, startingPlatform.y + PLAYER_HEIGHT, 0);
+// Set spawn position on safe tile (Ring 1) instead of hole
+// Move forward to the first tile in front of center
+controls.getObject().position.set(0, startingPlatform.y + PLAYER_HEIGHT, HIVE_TILE_RADIUS * 1.75);
 velocity.set(0, 0, 0); // Start with zero velocity
 canJump = true; // Start grounded
 
@@ -945,37 +946,43 @@ function applyTextureToPlatform(platformMesh, texture, index) {
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = 8;
 
+  // Side texture: Wrapped
   const sideTexture = texture;
   sideTexture.wrapS = THREE.RepeatWrapping;
   sideTexture.wrapT = THREE.RepeatWrapping;
 
+  // Top texture: Planar Projection to fix stretching
+  // We'll handle mapping in geometry UVs or by cloning and centering
   const topTexture = texture.clone();
   topTexture.colorSpace = THREE.SRGBColorSpace;
+  // Center and scale to fit hexagon without stretch
+  topTexture.center.set(0.5, 0.5);
+  topTexture.repeat.set(0.8, 0.8); // Zoom in slightly to cover corners
+  topTexture.offset.set(0.1, 0.1); // Re-center after repeat change
   topTexture.wrapS = THREE.ClampToEdgeWrapping;
   topTexture.wrapT = THREE.ClampToEdgeWrapping;
   topTexture.anisotropy = 8;
   topTexture.needsUpdate = true;
 
-  // Create NFT material for sides - artwork wraps over edges like gallery canvas
-  // NO tint, NO emissive, NO transparency - artwork extends naturally
+  // Create NFT material for sides - darker/metallic frame look
   const nftSideMaterial = new THREE.MeshStandardMaterial({
     map: sideTexture,
-    color: 0xffffff,         // Pure white - no color tinting
-    metalness: 0.1,
-    roughness: 0.6,
-    emissive: 0x000000,      // No glow on sides
-    emissiveIntensity: 0,
+    color: 0x888888,         // Dim sides slightly
+    metalness: 0.3,
+    roughness: 0.7,
+    emissive: 0x000000,
     transparent: false,
   });
 
-  // Create NFT material for top - original art, no stretching
+  // Create NFT material for top - Bright, correct colors
   const nftTopMaterial = new THREE.MeshStandardMaterial({
     map: topTexture,
-    color: 0xffffff,         // Pure white - no color tinting
-    metalness: 0.05,
-    roughness: 0.55,
-    emissive: 0x000000,      // No emissive bleed
-    emissiveIntensity: 0,
+    color: 0xffffff,         // Pure white for correct color
+    metalness: 0.0,          // Non-metallic to avoid darkening
+    roughness: 0.8,          // High roughness to diffuse light evenly
+    emissive: 0xffffff,      // Add emissive to self-illuminate (fix darkness)
+    emissiveMap: topTexture, // Use texture as emissive map
+    emissiveIntensity: 0.4,  // Adjust brightness (0.4 = natural glow)
     transparent: false,
   });
 
