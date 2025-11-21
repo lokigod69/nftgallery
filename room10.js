@@ -196,102 +196,49 @@ function createHollowSphere() {
 }
 
 // ----------------------------------------------------------------------
-// Canvas Wrap UV Mapping for Platform Tiles
+// Canvas Wrap UV Mapping for Platform Sides (no caps)
 // ----------------------------------------------------------------------
 /**
- * Modify CylinderGeometry UVs to fix top/bottom face distortion
- * - Top/Bottom faces: Planar projection (flat square mapping) instead of radial
- * - Side faces: Sample from edges for wrapped canvas effect
+ * Adjust CylinderGeometry UVs for a subtle \"canvas wrap\" effect on the
+ * side faces only. This function assumes the geometry is openEnded=true,
+ * so it only contains side vertices (no top/bottom caps).
+ *
+ * We remap the U coordinate so the texture samples mainly from the left
+ * and right edges of the image, similar to how a printed canvas wraps
+ * around its sides. V (vertical) coordinates remain unchanged.
  *
  * @param {THREE.CylinderGeometry} geometry - Platform cylinder geometry
  */
 function applyCanvasWrapUVs(geometry) {
   const uvAttribute = geometry.attributes.uv;
+  if (!uvAttribute) return;
+
   const uvArray = uvAttribute.array;
-  const radialSegments = 6; // Hexagon
 
-  // CylinderGeometry vertex layout:
-  // - Top cap center: 1 vertex (index 0)
-  // - Top cap perimeter: radialSegments vertices (indices 1-6)
-  // - Side vertices: (radialSegments + 1) * 2 vertices
-  // - Bottom cap perimeter: radialSegments vertices
-  // - Bottom cap center: 1 vertex
+  // Edge strip widths for sampling from texture edges
+  const edgeWidth = 0.12;          // 12% of texture width on each side
+  const leftEdgeEnd = edgeWidth;   // 0.0 → 0.12
+  const rightEdgeStart = 1.0 - edgeWidth; // 0.88 → 1.0
 
-  const topCapCenterIdx = 0;
-  const topCapPerimeterStart = 1;
-  const topCapPerimeterEnd = 1 + radialSegments;
-  const topCapVertices = 1 + radialSegments;
-  const sideVertices = (radialSegments + 1) * 2;
-  const bottomCapPerimeterStart = topCapVertices + sideVertices;
-  const bottomCapCenterIdx = bottomCapPerimeterStart + radialSegments;
-
-  // Fix TOP FACE UVs: Convert radial mapping to planar (square) mapping
-  // Top cap center: map to center of texture (0.5, 0.5)
-  const topCenterUVIdx = topCapCenterIdx * 2;
-  uvArray[topCenterUVIdx] = 0.5;     // U = center
-  uvArray[topCenterUVIdx + 1] = 0.5; // V = center
-
-  // Top cap perimeter: map hexagon vertices to square corners/edges
-  for (let i = 0; i < radialSegments; i++) {
-    const vertexIdx = topCapPerimeterStart + i;
-    const uvIdx = vertexIdx * 2;
-    const angle = (i / radialSegments) * Math.PI * 2;
-    
-    // Map hexagon to square: project hex vertices onto square
-    // This creates planar projection instead of radial
-    const hexX = Math.cos(angle);
-    const hexZ = Math.sin(angle);
-    
-    // Convert hex coordinates to square UV (0-1 range)
-    // Scale and center to fit square texture
-    const u = 0.5 + hexX * 0.5;
-    const v = 0.5 + hexZ * 0.5;
-    
-    uvArray[uvIdx] = Math.max(0, Math.min(1, u));
-    uvArray[uvIdx + 1] = Math.max(0, Math.min(1, v));
-  }
-
-  // Fix BOTTOM FACE UVs: Same planar projection as top
-  const bottomCenterUVIdx = bottomCapCenterIdx * 2;
-  uvArray[bottomCenterUVIdx] = 0.5;
-  uvArray[bottomCenterUVIdx + 1] = 0.5;
-
-  for (let i = 0; i < radialSegments; i++) {
-    const vertexIdx = bottomCapPerimeterStart + i;
-    const uvIdx = vertexIdx * 2;
-    const angle = (i / radialSegments) * Math.PI * 2;
-    
-    const hexX = Math.cos(angle);
-    const hexZ = Math.sin(angle);
-    
-    const u = 0.5 + hexX * 0.5;
-    const v = 0.5 + hexZ * 0.5;
-    
-    uvArray[uvIdx] = Math.max(0, Math.min(1, u));
-    uvArray[uvIdx + 1] = Math.max(0, Math.min(1, v));
-  }
-
-  // Side face UVs: Sample from edges for wrapped canvas effect
-  const sideUVStart = topCapVertices * 2;
-  const sideUVEnd = sideUVStart + (sideVertices * 2);
-  const edgeWidth = 0.12;
-  const leftEdgeEnd = edgeWidth;
-  const rightEdgeStart = 1.0 - edgeWidth;
-
-  for (let i = sideUVStart; i < sideUVEnd; i += 2) {
+  for (let i = 0; i < uvArray.length; i += 2) {
     let originalU = uvArray[i];
+
+    // Normalize U to [0, 1]
     originalU = Math.max(0, Math.min(1, originalU));
-    
+
     let mappedU;
     if (originalU < 0.5) {
-      const t = originalU / 0.5;
+      // First half of circumference → left edge strip
+      const t = originalU / 0.5; // [0, 1]
       mappedU = t * leftEdgeEnd;
     } else {
-      const t = (originalU - 0.5) / 0.5;
+      // Second half → right edge strip
+      const t = (originalU - 0.5) / 0.5; // [0, 1]
       mappedU = rightEdgeStart + (t * edgeWidth);
     }
-    
+
     uvArray[i] = Math.max(0, Math.min(1, mappedU));
+    // V coordinate (uvArray[i + 1]) is left untouched
   }
 
   uvAttribute.needsUpdate = true;
@@ -303,6 +250,9 @@ function applyCanvasWrapUVs(geometry) {
 function generatePlatforms() {
   const platforms = [];
   const platformMeshes = [];
+
+  // Shared planar hex geometry for NFT top/bottom surfaces
+  const hexTopGeometry = new THREE.CircleGeometry(PLATFORM_SIZE, 6);
 
   // Starting platform is at (-SPHERE_RADIUS + 8), top surface at +0.5 = -61.5
   // First floating platform should be ABOVE that, not below!
@@ -365,10 +315,12 @@ function generatePlatforms() {
       PLATFORM_SIZE,
       PLATFORM_SIZE,
       0.4,
-      6
+      6,
+      1,
+      true // openEnded: sides only, no caps
     );
 
-    // Apply canvas wrap UV mapping for side faces
+    // Apply canvas wrap UV mapping for side faces only
     applyCanvasWrapUVs(platformGeometry);
 
     // Color gradient - cooler colors at bottom, warmer at top
@@ -376,8 +328,7 @@ function generatePlatforms() {
     const saturation = 70 + progress * 20;
     const lightness = 40 + progress * 20;
 
-    // Multi-material setup: sides with glow, top/bottom clean for NFT display
-    // CylinderGeometry groups: [0] = sides, [1] = top cap, [2] = bottom cap
+    // Side material with subtle glow; NFT will be placed on separate top/bottom meshes
     const sideMaterial = new THREE.MeshStandardMaterial({
       color: new THREE.Color().setHSL(hue / 360, saturation / 100, lightness / 100),
       metalness: 0.6,
@@ -386,23 +337,40 @@ function generatePlatforms() {
       emissiveIntensity: 0.3
     });
 
-    // Initial top material (will be replaced with NFT texture)
-    // IMPORTANT: Pure white color, no emissive, no transparency for vivid NFT display
-    const topMaterial = new THREE.MeshStandardMaterial({
-      color: 0xffffff,        // Pure white - no tinting
-      metalness: 0.2,
-      roughness: 0.7,
-      emissive: 0x000000,     // No emissive glow on top
-      transparent: false
-    });
-
-    const bottomMaterial = sideMaterial; // Bottom can use same as sides
-
-    const platform = new THREE.Mesh(platformGeometry, [sideMaterial, topMaterial, bottomMaterial]);
+    // Base platform mesh: sides only
+    const platform = new THREE.Mesh(platformGeometry, sideMaterial);
     platform.position.set(x, y, z);
 
     // Slight random rotation for organic feel
     platform.rotation.y = Math.random() * Math.PI * 2;
+
+    // Separate top hex mesh for clean, planar NFT display
+    const topMaterial = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      side: THREE.DoubleSide,
+      toneMapped: false,
+      transparent: false
+    });
+    const topMesh = new THREE.Mesh(hexTopGeometry, topMaterial);
+    topMesh.position.set(0, 0.2 + 0.001, 0); // just above cylinder top to avoid z-fighting
+    topMesh.rotation.x = -Math.PI / 2;       // face upward (+Y)
+    platform.add(topMesh);
+
+    // Mirror bottom hex mesh so artwork matches from below
+    const bottomMaterial = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      side: THREE.DoubleSide,
+      toneMapped: false,
+      transparent: false
+    });
+    const bottomMesh = new THREE.Mesh(hexTopGeometry, bottomMaterial);
+    bottomMesh.position.set(0, -0.2 - 0.001, 0); // just below cylinder bottom
+    bottomMesh.rotation.x = Math.PI / 2;         // face downward (-Y)
+    platform.add(bottomMesh);
+
+    // Store references so textures can be applied later
+    platform.userData.topMesh = topMesh;
+    platform.userData.bottomMesh = bottomMesh;
 
     scene.add(platform);
     platformMeshes.push(platform);
@@ -1043,7 +1011,7 @@ function applyTextureToPlatform(platformMesh, texture, index) {
   sideTexture.wrapS = THREE.RepeatWrapping;
   sideTexture.wrapT = THREE.RepeatWrapping;
 
-  // Top texture: Planar projection (UVs already fixed in geometry)
+  // Top texture: planar projection on separate hex mesh
   const topTexture = texture.clone();
   topTexture.colorSpace = THREE.SRGBColorSpace;
   topTexture.wrapS = THREE.ClampToEdgeWrapping;
@@ -1051,7 +1019,7 @@ function applyTextureToPlatform(platformMesh, texture, index) {
   topTexture.anisotropy = 8;
   topTexture.needsUpdate = true;
 
-  // Bottom texture: Same as top (mirror match)
+  // Bottom texture: same as top (mirror match) on its own mesh
   const bottomTexture = texture.clone();
   bottomTexture.colorSpace = THREE.SRGBColorSpace;
   bottomTexture.wrapS = THREE.ClampToEdgeWrapping;
@@ -1083,17 +1051,26 @@ function applyTextureToPlatform(platformMesh, texture, index) {
     transparent: false
   });
 
-  if (Array.isArray(platformMesh.material)) {
-    platformMesh.material[0] = nftSideMaterial;
-    platformMesh.material[1] = nftTopMaterial;
-    platformMesh.material[2] = nftBottomMaterial;
-    platformMesh.material[0].needsUpdate = true;
-    platformMesh.material[1].needsUpdate = true;
-    platformMesh.material[2].needsUpdate = true;
+  // Apply side material to cylinder
+  platformMesh.material = nftSideMaterial;
+  platformMesh.material.needsUpdate = true;
+
+  // Apply top/bottom materials to dedicated meshes
+  const topMesh = platformMesh.userData.topMesh;
+  const bottomMesh = platformMesh.userData.bottomMesh;
+
+  if (topMesh) {
+    topMesh.material = nftTopMaterial;
+    topMesh.material.needsUpdate = true;
   } else {
-    console.warn('Platform material is not an array, replacing entire material');
-    platformMesh.material = nftTopMaterial;
-    platformMesh.material.needsUpdate = true;
+    console.warn('Room X: Missing topMesh for platform index', index);
+  }
+
+  if (bottomMesh) {
+    bottomMesh.material = nftBottomMaterial;
+    bottomMesh.material.needsUpdate = true;
+  } else {
+    console.warn('Room X: Missing bottomMesh for platform index', index);
   }
 }
 
