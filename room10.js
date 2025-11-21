@@ -199,14 +199,9 @@ function createHollowSphere() {
 // Canvas Wrap UV Mapping for Platform Tiles
 // ----------------------------------------------------------------------
 /**
- * Modify CylinderGeometry UVs to create "wrapped canvas" effect
- * - Top face: unchanged (shows full NFT artwork)
- * - Side faces: sample from both edges of texture (like canvas edge wrap)
- *   This creates a natural wrap-around effect without stretching
- *
- * CylinderGeometry UV layout (radialSegments=6):
- * - Vertices are organized as groups for top cap, sides, bottom cap
- * - Side faces use rectangular UVs (U wraps around, V is height)
+ * Modify CylinderGeometry UVs to fix top/bottom face distortion
+ * - Top/Bottom faces: Planar projection (flat square mapping) instead of radial
+ * - Side faces: Sample from edges for wrapped canvas effect
  *
  * @param {THREE.CylinderGeometry} geometry - Platform cylinder geometry
  */
@@ -216,53 +211,87 @@ function applyCanvasWrapUVs(geometry) {
   const radialSegments = 6; // Hexagon
 
   // CylinderGeometry vertex layout:
-  // - Top cap center: 1 vertex
-  // - Top cap perimeter: radialSegments vertices
-  // - Side vertices: (radialSegments + 1) * 2 vertices (top ring + bottom ring)
+  // - Top cap center: 1 vertex (index 0)
+  // - Top cap perimeter: radialSegments vertices (indices 1-6)
+  // - Side vertices: (radialSegments + 1) * 2 vertices
   // - Bottom cap perimeter: radialSegments vertices
   // - Bottom cap center: 1 vertex
 
-  const topCapVertices = 1 + radialSegments; // center + perimeter
-  const sideVertices = (radialSegments + 1) * 2; // top ring + bottom ring
+  const topCapCenterIdx = 0;
+  const topCapPerimeterStart = 1;
+  const topCapPerimeterEnd = 1 + radialSegments;
+  const topCapVertices = 1 + radialSegments;
+  const sideVertices = (radialSegments + 1) * 2;
+  const bottomCapPerimeterStart = topCapVertices + sideVertices;
+  const bottomCapCenterIdx = bottomCapPerimeterStart + radialSegments;
 
-  // Side face UVs start after top cap vertices
-  const sideUVStart = topCapVertices * 2; // Each vertex has 2 UV components (U, V)
+  // Fix TOP FACE UVs: Convert radial mapping to planar (square) mapping
+  // Top cap center: map to center of texture (0.5, 0.5)
+  const topCenterUVIdx = topCapCenterIdx * 2;
+  uvArray[topCenterUVIdx] = 0.5;     // U = center
+  uvArray[topCenterUVIdx + 1] = 0.5; // V = center
+
+  // Top cap perimeter: map hexagon vertices to square corners/edges
+  for (let i = 0; i < radialSegments; i++) {
+    const vertexIdx = topCapPerimeterStart + i;
+    const uvIdx = vertexIdx * 2;
+    const angle = (i / radialSegments) * Math.PI * 2;
+    
+    // Map hexagon to square: project hex vertices onto square
+    // This creates planar projection instead of radial
+    const hexX = Math.cos(angle);
+    const hexZ = Math.sin(angle);
+    
+    // Convert hex coordinates to square UV (0-1 range)
+    // Scale and center to fit square texture
+    const u = 0.5 + hexX * 0.5;
+    const v = 0.5 + hexZ * 0.5;
+    
+    uvArray[uvIdx] = Math.max(0, Math.min(1, u));
+    uvArray[uvIdx + 1] = Math.max(0, Math.min(1, v));
+  }
+
+  // Fix BOTTOM FACE UVs: Same planar projection as top
+  const bottomCenterUVIdx = bottomCapCenterIdx * 2;
+  uvArray[bottomCenterUVIdx] = 0.5;
+  uvArray[bottomCenterUVIdx + 1] = 0.5;
+
+  for (let i = 0; i < radialSegments; i++) {
+    const vertexIdx = bottomCapPerimeterStart + i;
+    const uvIdx = vertexIdx * 2;
+    const angle = (i / radialSegments) * Math.PI * 2;
+    
+    const hexX = Math.cos(angle);
+    const hexZ = Math.sin(angle);
+    
+    const u = 0.5 + hexX * 0.5;
+    const v = 0.5 + hexZ * 0.5;
+    
+    uvArray[uvIdx] = Math.max(0, Math.min(1, u));
+    uvArray[uvIdx + 1] = Math.max(0, Math.min(1, v));
+  }
+
+  // Side face UVs: Sample from edges for wrapped canvas effect
+  const sideUVStart = topCapVertices * 2;
   const sideUVEnd = sideUVStart + (sideVertices * 2);
-
-  // Edge strip width (sample from both left and right edges for seamless wrap)
-  const edgeWidth = 0.12; // 12% of texture width from each edge (reduced to prevent stretching)
-  const leftEdgeEnd = edgeWidth; // 0.0 to 0.12
-  const rightEdgeStart = 1.0 - edgeWidth; // 0.88 to 1.0
+  const edgeWidth = 0.12;
+  const leftEdgeEnd = edgeWidth;
+  const rightEdgeStart = 1.0 - edgeWidth;
 
   for (let i = sideUVStart; i < sideUVEnd; i += 2) {
     let originalU = uvArray[i];
-    
-    // Normalize U to [0, 1] range (handle any edge cases)
     originalU = Math.max(0, Math.min(1, originalU));
     
-    // Map U coordinate to create seamless edge wrap
-    // Strategy: Sample from edges proportionally as we go around the cylinder
-    // This creates a natural canvas wrap effect without stretching
-    
     let mappedU;
-    
-    // For each face, map U from [0, 1] to edge regions
-    // Use smooth interpolation to avoid stretching
     if (originalU < 0.5) {
-      // First half of face: sample from left edge
-      // Map [0, 0.5] → [0.0, leftEdgeEnd] smoothly
-      const t = originalU / 0.5; // Normalize to [0, 1]
+      const t = originalU / 0.5;
       mappedU = t * leftEdgeEnd;
     } else {
-      // Second half of face: sample from right edge  
-      // Map [0.5, 1.0] → [rightEdgeStart, 1.0] smoothly
-      const t = (originalU - 0.5) / 0.5; // Normalize to [0, 1]
+      const t = (originalU - 0.5) / 0.5;
       mappedU = rightEdgeStart + (t * edgeWidth);
     }
     
-    // Clamp to valid range
     uvArray[i] = Math.max(0, Math.min(1, mappedU));
-    // V coordinate (uvArray[i + 1]) stays unchanged for vertical sampling
   }
 
   uvAttribute.needsUpdate = true;
@@ -516,13 +545,48 @@ function createHexagonalNFTGrid() {
     }
   }
 
-  const loader = new THREE.TextureLoader();
-  let nftIndex = 1;
+  // Create distribution pattern using NFTs 1-28 only
+  // Pattern: Start with 7 uses, decrease gradually
+  // Calculate how many tiles we have
+  const totalTiles = positions.length;
+  
+  // Create distribution: NFT 1 gets most uses, decreasing pattern
+  // Start with 7 uses for NFT 1, then decrease
+  const maxUses = 7;
+  const availableNFTs = 28; // Only use NFTs 1-28
+  const distribution = [];
+  
+  // Calculate distribution pattern
+  let remainingTiles = totalTiles;
+  for (let nftId = 1; nftId <= availableNFTs && remainingTiles > 0; nftId++) {
+    const uses = Math.min(maxUses - (nftId - 1), remainingTiles);
+    if (uses > 0) {
+      for (let u = 0; u < uses; u++) {
+        distribution.push(nftId);
+      }
+      remainingTiles -= uses;
+    }
+  }
+  
+  // Fill remaining with last NFT if needed
+  while (remainingTiles > 0) {
+    distribution.push(availableNFTs);
+    remainingTiles--;
+  }
+  
+  // Shuffle distribution to space out duplicates
+  // Fisher-Yates shuffle
+  for (let i = distribution.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [distribution[i], distribution[j]] = [distribution[j], distribution[i]];
+  }
 
-  positions.forEach(({ x, z }) => {
-    const currentIndex = nftIndex;
-    const url = getRoomXNftUrl(nftIndex);
-    nftIndex = (nftIndex % ROOMX_TEXTURE_COUNT) + 1;
+  const loader = new THREE.TextureLoader();
+
+  positions.forEach(({ x, z }, index) => {
+    const nftId = distribution[index] || 1; // Fallback to 1 if somehow out of range
+    const url = getRoomXNftUrl(nftId);
+    const currentIndex = nftId;
 
     const tileGeometry = new THREE.CylinderGeometry(
       tileRadius,
@@ -829,8 +893,9 @@ function initSphereControlsGUI() {
     });
   }}, 'reset').name('Reset to Defaults');
 
-  // Hide GUI initially
-  guiContainer.style.display = 'none';
+  // Show GUI by default for easy access
+  guiContainer.style.display = 'block';
+  guiVisible = true;
 }
 
 /**
@@ -978,16 +1043,21 @@ function applyTextureToPlatform(platformMesh, texture, index) {
   sideTexture.wrapS = THREE.RepeatWrapping;
   sideTexture.wrapT = THREE.RepeatWrapping;
 
-  // Top/bottom texture: center and scale to avoid distortion
+  // Top texture: Planar projection (UVs already fixed in geometry)
   const topTexture = texture.clone();
   topTexture.colorSpace = THREE.SRGBColorSpace;
-  topTexture.center.set(0.5, 0.5);
-  topTexture.repeat.set(0.85, 0.85);
-  topTexture.offset.set(0.075, 0.075);
   topTexture.wrapS = THREE.ClampToEdgeWrapping;
   topTexture.wrapT = THREE.ClampToEdgeWrapping;
   topTexture.anisotropy = 8;
   topTexture.needsUpdate = true;
+
+  // Bottom texture: Same as top (mirror match)
+  const bottomTexture = texture.clone();
+  bottomTexture.colorSpace = THREE.SRGBColorSpace;
+  bottomTexture.wrapS = THREE.ClampToEdgeWrapping;
+  bottomTexture.wrapT = THREE.ClampToEdgeWrapping;
+  bottomTexture.anisotropy = 8;
+  bottomTexture.needsUpdate = true;
 
   // Materials
   const nftSideMaterial = new THREE.MeshStandardMaterial({
@@ -1006,7 +1076,12 @@ function applyTextureToPlatform(platformMesh, texture, index) {
     transparent: false
   });
 
-  const nftBottomMaterial = nftTopMaterial.clone();
+  const nftBottomMaterial = new THREE.MeshBasicMaterial({
+    map: bottomTexture,
+    side: THREE.DoubleSide,
+    toneMapped: false,
+    transparent: false
+  });
 
   if (Array.isArray(platformMesh.material)) {
     platformMesh.material[0] = nftSideMaterial;
