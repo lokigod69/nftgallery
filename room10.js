@@ -484,11 +484,11 @@ function createHexagonalNFTGrid() {
   const tileHeight = 0.12;
   const gridRings = 4; // Compact honeycomb
   const nftTiles = [];
-  const MAX_NFT_COUNT = 64;
 
   const hexToWorld = (q, r) => {
-    const x = tileRadius * Math.sqrt(3) * (q + r / 2);
-    const z = tileRadius * 1.5 * r;
+    // Flat-top aligned hex coordinate conversion
+    const x = tileRadius * 1.5 * q;
+    const z = tileRadius * Math.sqrt(3) * (r + q / 2);
     return { x, z };
   };
 
@@ -500,20 +500,18 @@ function createHexagonalNFTGrid() {
       const { x, z } = hexToWorld(q, r);
       const dist = Math.sqrt(x * x + z * z);
       if (dist > STARTING_PLATFORM_RADIUS - tileRadius * 1.6) continue;
-      if (Math.abs(x) < 0.1 && Math.abs(z) < 0.1) continue; // leave spawn space
-      positions.push({ q, r });
+      if (Math.abs(x) < 0.1 && Math.abs(z) < 0.1) continue; // keep spawn area clear
+      positions.push({ x, z });
     }
   }
 
-  const trimmedPositions = positions.slice(0, MAX_NFT_COUNT);
   const loader = new THREE.TextureLoader();
   let nftIndex = 1;
 
-  trimmedPositions.forEach(({ q, r }) => {
-    const { x, z } = hexToWorld(q, r);
+  positions.forEach(({ x, z }) => {
     const currentIndex = nftIndex;
     const url = getRoomXNftUrl(nftIndex);
-    nftIndex++;
+    nftIndex = (nftIndex % ROOMX_TEXTURE_COUNT) + 1;
 
     const tileGeometry = new THREE.CylinderGeometry(
       tileRadius,
@@ -521,6 +519,7 @@ function createHexagonalNFTGrid() {
       tileHeight,
       6
     );
+    tileGeometry.rotateY(Math.PI / 6); // Align flat sides
 
     const placeholderMaterial = new THREE.MeshStandardMaterial({
       color: 0x232630,
@@ -534,7 +533,6 @@ function createHexagonalNFTGrid() {
 
     const tile = new THREE.Mesh(tileGeometry, placeholderMaterial);
     tile.position.set(x, platformY + tileHeight * 0.5, z);
-    // No random rotation - lock alignment
     tile.userData.nftIndex = currentIndex;
     scene.add(tile);
     nftTiles.push(tile);
@@ -942,61 +940,53 @@ function loadRoomXTextures() {
 }
 
 function applyTextureToPlatform(platformMesh, texture, index) {
-  // Prepare texture settings for consistent quality across all faces
+  // Prepare texture settings
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = 8;
 
-  // Side texture: Wrapped
+  // Side texture uses wrapped repeat for subtle edge coloration
   const sideTexture = texture;
   sideTexture.wrapS = THREE.RepeatWrapping;
   sideTexture.wrapT = THREE.RepeatWrapping;
 
-  // Top texture: Planar Projection to fix stretching
-  // We'll handle mapping in geometry UVs or by cloning and centering
+  // Top/bottom texture: center and scale to avoid distortion
   const topTexture = texture.clone();
   topTexture.colorSpace = THREE.SRGBColorSpace;
-  // Center and scale to fit hexagon without stretch
   topTexture.center.set(0.5, 0.5);
-  topTexture.repeat.set(0.8, 0.8); // Zoom in slightly to cover corners
-  topTexture.offset.set(0.1, 0.1); // Re-center after repeat change
+  topTexture.repeat.set(0.85, 0.85);
+  topTexture.offset.set(0.075, 0.075);
   topTexture.wrapS = THREE.ClampToEdgeWrapping;
   topTexture.wrapT = THREE.ClampToEdgeWrapping;
   topTexture.anisotropy = 8;
   topTexture.needsUpdate = true;
 
-  // Create NFT material for sides - darker/metallic frame look
+  // Materials
   const nftSideMaterial = new THREE.MeshStandardMaterial({
     map: sideTexture,
-    color: 0x888888,         // Dim sides slightly
-    metalness: 0.3,
-    roughness: 0.7,
+    color: 0x1d1f2c,
+    metalness: 0.35,
+    roughness: 0.75,
     emissive: 0x000000,
     transparent: false,
   });
 
-  // Create NFT material for top - Bright, correct colors
-  const nftTopMaterial = new THREE.MeshStandardMaterial({
+  const nftTopMaterial = new THREE.MeshBasicMaterial({
     map: topTexture,
-    color: 0xffffff,         // Pure white for correct color
-    metalness: 0.0,          // Non-metallic to avoid darkening
-    roughness: 0.8,          // High roughness to diffuse light evenly
-    emissive: 0xffffff,      // Add emissive to self-illuminate (fix darkness)
-    emissiveMap: topTexture, // Use texture as emissive map
-    emissiveIntensity: 0.4,  // Adjust brightness (0.4 = natural glow)
-    transparent: false,
+    side: THREE.DoubleSide,
+    toneMapped: false,
+    transparent: false
   });
 
-  // Apply NFT texture to both sides AND top
-  // CylinderGeometry UVs will wrap texture around sides naturally
-  // Result: artwork extends over edges like a wrapped canvas
+  const nftBottomMaterial = nftTopMaterial.clone();
+
   if (Array.isArray(platformMesh.material)) {
-    platformMesh.material[0] = nftSideMaterial;  // Sides now show artwork
-    platformMesh.material[1] = nftTopMaterial;   // Top shows artwork
+    platformMesh.material[0] = nftSideMaterial;
+    platformMesh.material[1] = nftTopMaterial;
+    platformMesh.material[2] = nftBottomMaterial;
     platformMesh.material[0].needsUpdate = true;
     platformMesh.material[1].needsUpdate = true;
-    // Bottom (index 2) keeps original material - not visible to player
+    platformMesh.material[2].needsUpdate = true;
   } else {
-    // Fallback: replace entire material (should not happen with new setup)
     console.warn('Platform material is not an array, replacing entire material');
     platformMesh.material = nftTopMaterial;
     platformMesh.material.needsUpdate = true;
