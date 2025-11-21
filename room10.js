@@ -188,7 +188,8 @@ function createHollowSphere() {
 /**
  * Modify CylinderGeometry UVs to create "wrapped canvas" effect
  * - Top face: unchanged (shows full NFT artwork)
- * - Side faces: sample from outer edge of texture (like canvas edge wrap)
+ * - Side faces: sample from both edges of texture (like canvas edge wrap)
+ *   This creates a natural wrap-around effect without stretching
  *
  * CylinderGeometry UV layout (radialSegments=6):
  * - Vertices are organized as groups for top cap, sides, bottom cap
@@ -215,20 +216,43 @@ function applyCanvasWrapUVs(geometry) {
   const sideUVStart = topCapVertices * 2; // Each vertex has 2 UV components (U, V)
   const sideUVEnd = sideUVStart + (sideVertices * 2);
 
-  // Modify side face UVs to sample from edge strip (U: 0.85 - 1.0)
-  const edgeStart = 0.85;
-  const edgeEnd = 1.0;
-  const edgeWidth = edgeEnd - edgeStart;
+  // Edge strip width (sample from both left and right edges for seamless wrap)
+  const edgeWidth = 0.12; // 12% of texture width from each edge (reduced to prevent stretching)
+  const leftEdgeEnd = edgeWidth; // 0.0 to 0.12
+  const rightEdgeStart = 1.0 - edgeWidth; // 0.88 to 1.0
 
   for (let i = sideUVStart; i < sideUVEnd; i += 2) {
-    const originalU = uvArray[i];
-    // Remap U from [0, 1] to [0.85, 1.0] for edge strip sampling
-    uvArray[i] = edgeStart + (originalU * edgeWidth);
-    // V coordinate (uvArray[i + 1]) stays unchanged
+    let originalU = uvArray[i];
+    
+    // Normalize U to [0, 1] range (handle any edge cases)
+    originalU = Math.max(0, Math.min(1, originalU));
+    
+    // Map U coordinate to create seamless edge wrap
+    // Strategy: Sample from edges proportionally as we go around the cylinder
+    // This creates a natural canvas wrap effect without stretching
+    
+    let mappedU;
+    
+    // For each face, map U from [0, 1] to edge regions
+    // Use smooth interpolation to avoid stretching
+    if (originalU < 0.5) {
+      // First half of face: sample from left edge
+      // Map [0, 0.5] → [0.0, leftEdgeEnd] smoothly
+      const t = originalU / 0.5; // Normalize to [0, 1]
+      mappedU = t * leftEdgeEnd;
+    } else {
+      // Second half of face: sample from right edge  
+      // Map [0.5, 1.0] → [rightEdgeStart, 1.0] smoothly
+      const t = (originalU - 0.5) / 0.5; // Normalize to [0, 1]
+      mappedU = rightEdgeStart + (t * edgeWidth);
+    }
+    
+    // Clamp to valid range
+    uvArray[i] = Math.max(0, Math.min(1, mappedU));
+    // V coordinate (uvArray[i + 1]) stays unchanged for vertical sampling
   }
 
   uvAttribute.needsUpdate = true;
-  // Canvas wrap UVs applied (no log to avoid spam - 28 platforms)
 }
 
 // ----------------------------------------------------------------------
@@ -741,11 +765,27 @@ function waitForGUI() {
 setTimeout(waitForGUI, 100);
 
 // Keyboard shortcut: Ctrl+Shift+Q to toggle GUI (Q instead of A to avoid movement conflict)
+// Use keydown event with proper key code checking
+let ctrlPressed = false;
+let shiftPressed = false;
+
 document.addEventListener('keydown', (event) => {
-  if (event.ctrlKey && event.shiftKey && event.key === 'Q') {
+  // Track modifier keys
+  if (event.key === 'Control' || event.ctrlKey) ctrlPressed = true;
+  if (event.key === 'Shift' || event.shiftKey) shiftPressed = true;
+  
+  // Check for Ctrl+Shift+Q combination
+  if ((event.ctrlKey || ctrlPressed) && (event.shiftKey || shiftPressed) && 
+      (event.key === 'Q' || event.key === 'q' || event.code === 'KeyQ')) {
     event.preventDefault();
+    event.stopPropagation();
     toggleSphereGUI();
   }
+});
+
+document.addEventListener('keyup', (event) => {
+  if (event.key === 'Control') ctrlPressed = false;
+  if (event.key === 'Shift') shiftPressed = false;
 });
 
 // Set spawn position on starting platform
@@ -794,8 +834,10 @@ function loadRoomXTextures() {
 
 function applyTextureToPlatform(platformMesh, texture, index) {
   // Prepare texture settings for consistent quality across all faces
-  texture.encoding = THREE.sRGBEncoding;
-  texture.wrapS = THREE.ClampToEdgeWrapping;
+  texture.colorSpace = THREE.SRGBColorSpace;
+  // Use RepeatWrapping for sides to allow proper edge sampling
+  // ClampToEdge for top to prevent edge bleeding
+  texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.ClampToEdgeWrapping;
   texture.anisotropy = 8;
 
