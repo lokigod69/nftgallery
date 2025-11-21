@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Ray Tracing Simulation</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #111; font-family: 'Segoe UI', sans-serif; }
+        canvas { display: block; }
+        
+        #ui-container {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 300px;
+            z-index: 10;
+        }
+
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+            pointer-events: none;
+            transition: opacity 0.5s;
+        }
+
+        .label {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: rgba(255, 255, 255, 0.5);
+            pointer-events: none;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loading">LOADING ENVIRONMENT MAP...</div>
+    <div id="ui-container"></div>
+    <div class="label">Left Click: Rotate | Right Click: Pan | Scroll: Zoom</div>
+
+    <!-- Import Maps Polyfill -->
+    <script async src="https://unpkg.com/es-module-shims@1.8.0/dist/es-module-shims.js"></script>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+        import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+
+        // --- SCENE SETUP ---
+        const scene = new THREE.Scene();
+        
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 0, 8); // Start facing the object
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        // Important for realism: High Dynamic Range handling
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.0;
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.body.appendChild(renderer.domElement);
+
+        // --- CONTROLS ---
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.minDistance = 3;
+        controls.maxDistance = 20;
+
+        // --- OBJECTS ---
+        
+        // 1. The Sphere (The Ray Traced Object)
+        const geometry = new THREE.SphereGeometry(1.5, 64, 64);
+        
+        // MeshPhysicalMaterial is the key to PBR (Physically Based Rendering)
+        const material = new THREE.MeshPhysicalMaterial({
+            color: 0xffffff,
+            metalness: 1.0,
+            roughness: 0.0,   // 0 = Perfect mirror
+            ior: 1.5,         // Index of Refraction
+            transmission: 0,  // Not glass
+            thickness: 0,
+            clearcoat: 1.0,   // Automotive paint style layer
+            clearcoatRoughness: 0.0,
+            envMapIntensity: 1.0
+        });
+
+        const sphere = new THREE.Mesh(geometry, material);
+        sphere.castShadow = true;
+        sphere.receiveShadow = true;
+        scene.add(sphere);
+
+        // --- LIGHTING & ENVIRONMENT (The "Street View") ---
+
+        // We use an HDRI (High Dynamic Range Image) from Polyhaven.
+        // This acts as the light source and the reflection map.
+        const hdriUrl = 'https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/shanghai_bund_1k.hdr'; 
+
+        const loader = new RGBELoader();
+        loader.load(hdriUrl, function(texture) {
+            texture.mapping = THREE.EquirectangularReflectionMapping;
+            
+            scene.background = texture;
+            scene.environment = texture;
+
+            // Hide loader
+            const loadingEl = document.getElementById('loading');
+            loadingEl.style.opacity = 0;
+            setTimeout(() => loadingEl.remove(), 500);
+
+        }, undefined, function(err) {
+            console.error('An error occurred loading the HDRI');
+        });
+
+        // Add a subtle directional light just for shadow casting (HDRI handles reflections/ambient)
+        const sunLight = new THREE.DirectionalLight(0xffffff, 1);
+        sunLight.position.set(5, 10, 7);
+        sunLight.castShadow = true;
+        sunLight.shadow.mapSize.width = 2048;
+        sunLight.shadow.mapSize.height = 2048;
+        sunLight.shadow.bias = -0.0001;
+        scene.add(sunLight);
+
+        // --- GUI CONFIGURATION ---
+        const gui = new GUI({ container: document.getElementById('ui-container') });
+        const params = {
+            color: 0xffffff,
+            metalness: 1.0,
+            roughness: 0.0,
+            clearcoat: 1.0,
+            clearcoatRoughness: 0.0,
+            envMapIntensity: 1.0,
+            exposure: 1.0,
+            rotateEnv: false,
+            autoRotateSpeed: 0.2
+        };
+
+        const matFolder = gui.addFolder('Material Properties');
+        matFolder.addColor(params, 'color').onChange(val => material.color.setHex(val));
+        matFolder.add(params, 'metalness', 0, 1).name('Metalness').onChange(val => material.metalness = val);
+        matFolder.add(params, 'roughness', 0, 1).name('Roughness').onChange(val => material.roughness = val);
+        matFolder.add(params, 'clearcoat', 0, 1).name('Clearcoat').onChange(val => material.clearcoat = val);
+        matFolder.add(params, 'clearcoatRoughness', 0, 1).name('Coat Roughness').onChange(val => material.clearcoatRoughness = val);
+        matFolder.add(params, 'envMapIntensity', 0, 3).name('Reflection Intensity').onChange(val => material.envMapIntensity = val);
+        matFolder.open();
+
+        const envFolder = gui.addFolder('Environment');
+        envFolder.add(params, 'exposure', 0, 3).name('Exposure').onChange(val => renderer.toneMappingExposure = val);
+        envFolder.add(params, 'rotateEnv').name('Rotate Background');
+        envFolder.add(params, 'autoRotateSpeed', 0, 2).name('Rotation Speed');
+        envFolder.open();
+
+        // --- ANIMATION LOOP ---
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const time = clock.getElapsedTime();
+
+            // Levitation Effect
+            sphere.position.y = Math.sin(time * 1.5) * 0.2;
+
+            // Background Rotation logic
+            if(params.rotateEnv && scene.background) {
+                // We rotate the scene background and environment by updating rotation offset
+                // Three.js doesn't natively rotate env maps easily without matrix manipulation, 
+                // so we rotate the mesh or camera container to simulate relative movement, 
+                // OR technically usually we rotate the Skybox. 
+                // For simplicity in this specific "Street View" context, we will rotate the sphere slightly 
+                // relative to camera or rotate the sphere geometry to show reflection changes.
+                
+                // However, the best visual for "Rotating Scene" is actually rotating the Object 
+                // if the camera is static, or orbiting the camera. 
+                // Let's rely on OrbitControls for manual movement, 
+                // and use this parameter to auto-orbit the camera.
+                controls.autoRotate = true;
+                controls.autoRotateSpeed = params.autoRotateSpeed * 10;
+            } else {
+                controls.autoRotate = false;
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // --- RESIZE HANDLER ---
+        window.addEventListener('resize', onWindowResize, false);
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        animate();
+    </script>
+</body>
+</html>

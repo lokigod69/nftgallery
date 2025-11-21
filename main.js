@@ -72,9 +72,8 @@ const prevPosition = new THREE.Vector3();  // Track previous position for collis
 // Jump function (shared by keyboard and mobile joystick tap)
 function triggerJump() {
   if (!isJumping) {
-    console.log('[R1] Jump triggered');
     isJumping = true;
-    jumpVelocity = 8; // initial jump velocity
+    jumpVelocity = 8;
   }
 }
 
@@ -429,73 +428,29 @@ const mobileControls = initMobileControls({
   onInteract: (raycaster) => {
     // Guard: Don't process interactions when viewer is already open
     if (nftViewer && nftViewer.isOpen && nftViewer.isOpen()) {
-      console.log('[R1 mobile] onInteract called but viewer is open, ignoring');
       return;
     }
-
-    console.log('[R1 interact] mobile tap, performing raycast');
 
     // Mobile tap interaction - find NFT under center crosshair
     const intersects = raycaster.intersectObjects(picturePlanes, false);
-
-    if (intersects.length === 0) {
-      console.log('[R1 interact] no picturePlanes hit');
-      return;
-    }
-
-    // Log full intersects list for debugging
-    console.log(
-      '[R1 interact] intersects:',
-      intersects.map((hit, i) => ({
-        i,
-        distance: hit.distance.toFixed(2),
-        name: hit.object.name || '(unnamed)',
-        isNFT: !!hit.object.userData?.isNFT,
-        userIndex: hit.object.userData?.index
-      }))
-    );
+    if (intersects.length === 0) return;
 
     const hit = intersects[0];
     const nft = hit.object;
 
     // Front-facing check: reject surfaces not facing the camera
-    let isFrontFacing = true;
     if (hit.face && nft && nft.matrixWorld) {
       const worldNormal = hit.face.normal.clone().transformDirection(nft.matrixWorld);
       const camToHit = hit.point.clone().sub(camera.position).normalize();
       const alignment = worldNormal.dot(camToHit.clone().multiplyScalar(-1));
-
-      console.log('[R1 interact] normal alignment', alignment.toFixed(3));
-
-      if (alignment < 0.5) {
-        isFrontFacing = false;
-      }
+      if (alignment < 0.5) return;
     }
 
-    if (!isFrontFacing) {
-      console.log('[R1 interact] rejected: surface not front-facing enough');
-      return;
-    }
-
-    console.log('[R1 interact]', {
-      distance: hit.distance.toFixed(2),
-      name: nft.name || '(unnamed)',
-      isNFT: !!nft.userData?.isNFT,
-      userIndex: nft.userData?.index
-    });
-
-    if (!nft.userData?.isNFT) {
-      console.log('[R1 interact] hit non-NFT picturePlane, ignoring');
-      return;
-    }
-
-    if (hit.distance > MAX_NFT_INTERACTION_DISTANCE) {
-      console.log('[R1 interact] rejected: too far (distance', hit.distance.toFixed(2), ')');
-      return;
-    }
+    // Validate NFT and distance
+    if (!nft.userData?.isNFT) return;
+    if (hit.distance > MAX_NFT_INTERACTION_DISTANCE) return;
 
     if (nftViewer) {
-      console.log('[R1 interact] accepted: opening NFT #', nft.userData.index);
       nftViewer.openByMesh(nft);
     }
   }
@@ -565,65 +520,24 @@ function handleNFTClick(event) {
 
   raycaster.setFromCamera(mouse, camera);
   const intersects = raycaster.intersectObjects(picturePlanes, false);
-
-  if (intersects.length === 0) {
-    console.log('[R1 interact] desktop click: no picturePlanes hit');
-    return;
-  }
-
-  // Log full intersects list for debugging
-  console.log(
-    '[R1 interact] desktop intersects:',
-    intersects.map((hit, i) => ({
-      i,
-      distance: hit.distance.toFixed(2),
-      name: hit.object.name || '(unnamed)',
-      isNFT: !!hit.object.userData?.isNFT,
-      userIndex: hit.object.userData?.index
-    }))
-  );
+  if (intersects.length === 0) return;
 
   const hit = intersects[0];
   const object = hit.object;
 
   // Front-facing check: reject surfaces not facing the camera
-  let isFrontFacing = true;
   if (hit.face && object && object.matrixWorld) {
     const worldNormal = hit.face.normal.clone().transformDirection(object.matrixWorld);
     const camToHit = hit.point.clone().sub(camera.position).normalize();
     const alignment = worldNormal.dot(camToHit.clone().multiplyScalar(-1));
-
-    console.log('[R1 interact] desktop normal alignment', alignment.toFixed(3));
-
-    if (alignment < 0.5) {
-      isFrontFacing = false;
-    }
+    if (alignment < 0.5) return;
   }
 
-  if (!isFrontFacing) {
-    console.log('[R1 interact] desktop rejected: surface not front-facing enough');
-    return;
-  }
-
-  console.log('[R1 interact] desktop click:', {
-    distance: hit.distance.toFixed(2),
-    name: object.name || '(unnamed)',
-    isNFT: !!object.userData?.isNFT,
-    userIndex: object.userData?.index
-  });
-
-  if (!object.userData?.isNFT) {
-    console.log('[R1 interact] hit non-NFT picturePlane, ignoring');
-    return;
-  }
-
-  if (hit.distance > MAX_NFT_INTERACTION_DISTANCE) {
-    console.log('[R1 interact] rejected: too far (distance', hit.distance.toFixed(2), ')');
-    return;
-  }
+  // Validate NFT and distance
+  if (!object.userData?.isNFT) return;
+  if (hit.distance > MAX_NFT_INTERACTION_DISTANCE) return;
 
   if (nftViewer) {
-    console.log('[R1 interact] accepted: opening NFT #', object.userData.index);
     nftViewer.openByMesh(object);
     event.preventDefault();
     event.stopPropagation();

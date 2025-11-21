@@ -221,22 +221,17 @@ export function initMobileControls(config) {
 
   // Reset all input state (call on viewer open/close to prevent stuck controls)
   function resetInput() {
-    // 1) Zero out movement flags
+    // Zero out movement flags
     window.moveForward = false;
     window.moveBackward = false;
     window.moveLeft = false;
     window.moveRight = false;
 
-    // 2) Zero out internal look state
+    // Zero out internal look state
     yaw = config.camera ? config.camera.rotation.y : 0;
     pitch = config.camera ? config.camera.rotation.x : 0;
     isAutoLeveling = false;
     lookStickDeflection = 0;
-
-    // 3) Update joystick internal state if they track current values
-    // The joysticks will reset their currentYaw/currentPitch on next 'start' event
-
-    console.log('[Mobile Controls] resetInput called - all input state zeroed');
   }
 
   // Return mobile controls instance
@@ -474,7 +469,6 @@ function createJoysticks(options) {
     const isTap = duration < TAP_MAX_DURATION && maxDistance < TAP_MAX_DISTANCE;
 
     if (isTap && onJump) {
-      console.log('[Mobile Controls] Jump tap detected (duration:', duration, 'ms, distance:', maxDistance, ')');
       onJump();
     }
   });
@@ -549,7 +543,6 @@ function createInteractionHandler(options) {
   function handleTouchStart(event) {
     // Only handle single touch
     if (event.touches.length !== 1) {
-      console.log('[Mobile Interaction] Multi-touch detected, ignoring');
       return;
     }
 
@@ -561,15 +554,11 @@ function createInteractionHandler(options) {
     const isLeftZone = (touchX < window.innerWidth * 0.25 && touchY > window.innerHeight * 0.65);
     const isRightZone = (touchX > window.innerWidth * 0.75 && touchY > window.innerHeight * 0.65);
 
-    console.log(`[Mobile Interaction] Touch at (${touchX}, ${touchY}) - Left zone: ${isLeftZone}, Right zone: ${isRightZone}`);
-
     if (isLeftZone || isRightZone) {
-      console.log('[Mobile Interaction] Touch in joystick zone, ignoring');
       return;
     }
 
     // Tap in center area - perform interaction
-    console.log('[Mobile Interaction] Center tap detected, performing raycast');
     performCenterRaycast();
   }
 
@@ -621,7 +610,6 @@ function setupOrientationWarning(rotateMessageElement) {
       el.style.visibility = 'hidden';
       el.style.opacity = '0';
       el.style.pointerEvents = 'none';
-      console.log('[Orientation] Viewer open, hiding rotate overlay');
       return;
     }
 

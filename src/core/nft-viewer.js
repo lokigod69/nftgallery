@@ -168,7 +168,6 @@ export function initUnifiedNFTViewer(config) {
       // Hide arrows in portrait
       leftArrow.style.display = 'none';
       rightArrow.style.display = 'none';
-      console.log('[Viewer] Portrait mode enabled - swipe to navigate');
     } else {
       viewerOverlay.classList.remove('portrait-mode');
       viewerOverlay.classList.add('landscape-mode');
@@ -208,7 +207,6 @@ export function initUnifiedNFTViewer(config) {
       el.style.opacity = '0';
       el.style.pointerEvents = 'none';
     });
-    console.log('[Viewer] Hard-hiding', elems.length, 'orientation warning element(s)');
   }
 
   // ----------------------------------------------------------------------
@@ -217,19 +215,15 @@ export function initUnifiedNFTViewer(config) {
 
   function goPrev() {
     if (nftList.length === 0) return;
-    const oldIndex = currentIndex;
     currentIndex--;
     if (currentIndex < 0) currentIndex = nftList.length - 1;
-    console.log('[Viewer] showPrevious from index', oldIndex, '->', currentIndex);
     showAtCurrentIndex();
   }
 
   function goNext() {
     if (nftList.length === 0) return;
-    const oldIndex = currentIndex;
     currentIndex++;
     if (currentIndex >= nftList.length) currentIndex = 0;
-    console.log('[Viewer] showNext from index', oldIndex, '->', currentIndex);
     showAtCurrentIndex();
   }
 
@@ -249,17 +243,15 @@ export function initUnifiedNFTViewer(config) {
     if (currentIndex < 0) currentIndex = 0;
     if (currentIndex >= nftList.length) currentIndex = nftList.length - 1;
 
-    console.log('[Viewer] openByIndex called with index', idx, '-> showing index', currentIndex, 'of', nftList.length);
     showAtCurrentIndex();
     viewerOverlay.style.display = 'flex';
     isViewerOpen = true;
     controls.unlock();
-    updateOrientation(); // Ensure correct mode on open
+    updateOrientation();
 
     // Set global viewer-open flag (disables orientation warning)
     document.body.classList.add('nft-viewer-open');
     window.__NFT_VIEWER_OPEN = true;
-    console.log('[Viewer] open, __NFT_VIEWER_OPEN = true');
 
     // Hard-hide orientation warning and trigger check
     hideOrientationWarningHard();
@@ -272,19 +264,16 @@ export function initUnifiedNFTViewer(config) {
     nftList = getNFTList();
     const idx = nftList.findIndex(nft => nft.mesh === mesh);
     if (idx !== -1) {
-      console.log('[Viewer] openByMesh found mesh at index', idx, '(userData.index:', mesh.userData?.index, ')');
       openByIndex(idx);
     } else {
       // Fallback: try to match by userData.index
       const userDataIndex = mesh.userData?.index;
-      console.log('[Viewer] openByMesh mesh not found directly, trying fallback with userData.index', userDataIndex);
       if (userDataIndex !== undefined) {
         const fallbackIdx = nftList.findIndex(nft => nft.mesh.userData?.index === userDataIndex);
         if (fallbackIdx !== -1) {
-          console.log('[Viewer] openByMesh fallback found match at index', fallbackIdx);
           openByIndex(fallbackIdx);
         } else {
-          console.error('[Viewer] openByMesh failed - no match found for userData.index', userDataIndex);
+          console.error('[Viewer] openByMesh failed - mesh not found in NFT list');
         }
       }
     }
@@ -298,9 +287,8 @@ export function initUnifiedNFTViewer(config) {
     // Clear global viewer-open flag (re-enables orientation warning)
     document.body.classList.remove('nft-viewer-open');
     window.__NFT_VIEWER_OPEN = false;
-    console.log('[Viewer] close, __NFT_VIEWER_OPEN = false');
 
-    // Trigger orientation check to show warning if needed (let checkOrientation decide)
+    // Trigger orientation check to show warning if needed
     window.dispatchEvent(new Event('resize'));
 
     onClose();
@@ -314,14 +302,12 @@ export function initUnifiedNFTViewer(config) {
   leftArrow.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log('[Viewer] Left arrow clicked, showing previous NFT from index', currentIndex);
     goPrev();
   });
 
   rightArrow.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log('[Viewer] Right arrow clicked, showing next NFT from index', currentIndex);
     goNext();
   });
 
@@ -329,7 +315,6 @@ export function initUnifiedNFTViewer(config) {
   closeButton.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log('[Viewer] Close button clicked');
     close();
   });
 
@@ -389,19 +374,12 @@ export function initUnifiedNFTViewer(config) {
     const dy = t.clientY - touchStartY;
     const duration = performance.now() - touchStartTime;
 
-    // Only treat as swipe if:
-    // - Duration within threshold
-    // - Mostly horizontal
-    // - Significant distance
+    // Only treat as swipe if within duration, mostly horizontal, and significant distance
     if (duration < SWIPE_MAX_DURATION && Math.abs(dx) > SWIPE_MIN_DISTANCE && Math.abs(dx) > Math.abs(dy)) {
       if (dx < 0) {
-        // Swipe left → next
-        console.log('[Viewer] Swipe left detected, showing next');
-        goNext();
+        goNext();  // Swipe left → next
       } else {
-        // Swipe right → prev
-        console.log('[Viewer] Swipe right detected, showing previous');
-        goPrev();
+        goPrev();  // Swipe right → prev
       }
     }
 

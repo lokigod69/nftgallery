@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
+import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 import { createLinkedPortal, animateLinkedPortal } from './src/core/portal-utils.js';
 import { getRoomXNftUrl } from './src/core/asset-utils.js';
 
@@ -32,6 +33,13 @@ const PLATFORM_COUNT = 28;           // Number of platforms in the ascent
 const PLATFORM_SIZE = 2.5;           // Platform width/depth
 const SPIRAL_ROTATIONS = 3.5;        // Number of full rotations around sphere
 const VERTICAL_CLIMB_HEIGHT = SPHERE_RADIUS * 1.6; // Total vertical distance to climb
+
+// ----------------------------------------------------------------------
+// Sphere Chain Parameters
+// ----------------------------------------------------------------------
+const SPHERE_CHAIN_RADIUS = 1.2;     // Sphere radius (room-scale, platforms are 2.5)
+const SPHERE_CHAIN_COUNT = Math.ceil(PLATFORM_COUNT / 2); // One sphere per two platforms = 14 spheres
+const HDRI_URL = 'https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/shanghai_bund_1k.hdr';
 
 // ----------------------------------------------------------------------
 // Movement State - SIMPLIFIED
@@ -433,12 +441,268 @@ function createStartingPlatform() {
 }
 
 // ----------------------------------------------------------------------
+// Sphere Chain System
+// ----------------------------------------------------------------------
+let sphereChain = [];
+let sphereChainData = []; // Store sphere data for collision detection
+let hdriEnvironment = null;
+
+/**
+ * Create chain of reflective spheres along center axis
+ * One sphere for every two platforms, positioned between platform pairs
+ * @param {number} startY - Starting Y position of platforms
+ * @param {number} endY - Ending Y position of platforms
+ */
+function createSphereChain(startY, endY) {
+  const platformHeightRange = endY - startY;
+  const sphereSpacing = platformHeightRange / PLATFORM_COUNT;
+
+  // Create default material for spheres (will be updated by GUI)
+  const defaultMaterial = new THREE.MeshPhysicalMaterial({
+    color: 0xffffff,
+    metalness: 1.0,
+    roughness: 0.0,
+    ior: 1.5,
+    transmission: 0,
+    thickness: 0,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.0,
+    envMapIntensity: 1.0
+  });
+
+  // Create sphere geometry (reuse for performance)
+  const sphereGeometry = new THREE.SphereGeometry(SPHERE_CHAIN_RADIUS, 64, 64);
+
+  for (let i = 0; i < SPHERE_CHAIN_COUNT; i++) {
+    // Position between platform pairs: after platform (i*2) and before (i*2+1)
+    const platformIndex = i * 2;
+    const yPosition = startY + (platformIndex + 1) * sphereSpacing;
+
+    // Create sphere mesh
+    const material = defaultMaterial.clone(); // Clone for individual control
+    const sphere = new THREE.Mesh(sphereGeometry, material);
+    sphere.position.set(0, yPosition, 0); // Center axis (x=0, z=0)
+    sphere.castShadow = true;
+    sphere.receiveShadow = true;
+
+    scene.add(sphere);
+    sphereChain.push(sphere);
+
+    // Store sphere data for collision detection
+    sphereChainData.push({
+      position: new THREE.Vector3(0, yPosition, 0),
+      radius: SPHERE_CHAIN_RADIUS,
+      mesh: sphere,
+      index: i
+    });
+  }
+
+  return { spheres: sphereChain, data: sphereChainData };
+}
+
+/**
+ * Load HDRI environment map for sphere reflections
+ */
+function loadHDRIEnvironment() {
+  const loader = new RGBELoader();
+  loader.load(
+    HDRI_URL,
+    (texture) => {
+      texture.mapping = THREE.EquirectangularReflectionMapping;
+      scene.environment = texture;
+      hdriEnvironment = texture;
+
+      // Update all sphere materials with environment map
+      sphereChain.forEach(sphere => {
+        if (sphere.material) {
+          sphere.material.envMap = texture;
+          sphere.material.needsUpdate = true;
+        }
+      });
+
+      console.log('Room X: HDRI environment map loaded');
+    },
+    undefined,
+    (err) => {
+      console.warn('Room X: Failed to load HDRI environment map', err);
+    }
+  );
+}
+
+// ----------------------------------------------------------------------
 // Create Scene Elements
 // ----------------------------------------------------------------------
 const { sphere, stars } = createHollowSphere();
 const startingPlatform = createStartingPlatform();
 const { platforms, platformMeshes } = generatePlatforms();
 const topPortal = createTopPortal();
+
+// Calculate platform Y range for sphere positioning
+const startingPlatformTop = -SPHERE_RADIUS + 8 + 0.5;
+const platformStartY = startingPlatformTop + 2.5;
+const platformEndY = platformStartY + VERTICAL_CLIMB_HEIGHT;
+
+// Create sphere chain
+const sphereChainResult = createSphereChain(platformStartY, platformEndY);
+sphereChain = sphereChainResult.spheres;
+sphereChainData = sphereChainResult.data;
+
+// Load HDRI environment for sphere reflections
+loadHDRIEnvironment();
+
+// ----------------------------------------------------------------------
+// Sphere Controls GUI
+// ----------------------------------------------------------------------
+let sphereGUI = null;
+let guiVisible = false;
+let sphereParams = {
+  color: 0xffffff,
+  metalness: 1.0,
+  roughness: 0.0,
+  clearcoat: 1.0,
+  clearcoatRoughness: 0.0,
+  envMapIntensity: 1.0,
+  levitationSpeed: 1.5,
+  levitationAmplitude: 0.2,
+  rotationSpeed: 0.2,
+  applyToAll: true
+};
+
+/**
+ * Initialize GUI controls for sphere material properties
+ */
+function initSphereControlsGUI() {
+  const guiContainer = document.getElementById('sphere-controls-ui');
+  if (!guiContainer) {
+    console.warn('Room X: GUI container not found');
+    return;
+  }
+
+  // Check if GUI library is loaded (lil-gui exposes as global GUI)
+  if (typeof GUI === 'undefined' && typeof window.GUI === 'undefined') {
+    console.warn('Room X: lil-gui library not loaded. GUI controls unavailable.');
+    return;
+  }
+
+  const GUI_Class = typeof GUI !== 'undefined' ? GUI : window.GUI;
+  sphereGUI = new GUI_Class({ container: guiContainer, title: 'Sphere Controls' });
+
+  const matFolder = sphereGUI.addFolder('Material Properties');
+  matFolder.addColor(sphereParams, 'color').name('Color').onChange(val => {
+    updateSphereMaterials({ color: val });
+  });
+  matFolder.add(sphereParams, 'metalness', 0, 1).name('Metalness').onChange(val => {
+    updateSphereMaterials({ metalness: val });
+  });
+  matFolder.add(sphereParams, 'roughness', 0, 1).name('Roughness').onChange(val => {
+    updateSphereMaterials({ roughness: val });
+  });
+  matFolder.add(sphereParams, 'clearcoat', 0, 1).name('Clearcoat').onChange(val => {
+    updateSphereMaterials({ clearcoat: val });
+  });
+  matFolder.add(sphereParams, 'clearcoatRoughness', 0, 1).name('Coat Roughness').onChange(val => {
+    updateSphereMaterials({ clearcoatRoughness: val });
+  });
+  matFolder.add(sphereParams, 'envMapIntensity', 0, 3).name('Reflection Intensity').onChange(val => {
+    updateSphereMaterials({ envMapIntensity: val });
+  });
+  matFolder.open();
+
+  const animFolder = sphereGUI.addFolder('Animation');
+  animFolder.add(sphereParams, 'levitationSpeed', 0, 3).name('Levitation Speed');
+  animFolder.add(sphereParams, 'levitationAmplitude', 0, 1).name('Levitation Amplitude');
+  animFolder.add(sphereParams, 'rotationSpeed', 0, 2).name('Rotation Speed');
+  animFolder.open();
+
+  const globalFolder = sphereGUI.addFolder('Global');
+  globalFolder.add(sphereParams, 'applyToAll').name('Apply to All Spheres');
+  globalFolder.add({ reset: () => {
+    sphereParams.color = 0xffffff;
+    sphereParams.metalness = 1.0;
+    sphereParams.roughness = 0.0;
+    sphereParams.clearcoat = 1.0;
+    sphereParams.clearcoatRoughness = 0.0;
+    sphereParams.envMapIntensity = 1.0;
+    sphereParams.levitationSpeed = 1.5;
+    sphereParams.levitationAmplitude = 0.2;
+    sphereParams.rotationSpeed = 0.2;
+    sphereGUI.updateDisplay();
+    updateSphereMaterials({
+      color: sphereParams.color,
+      metalness: sphereParams.metalness,
+      roughness: sphereParams.roughness,
+      clearcoat: sphereParams.clearcoat,
+      clearcoatRoughness: sphereParams.clearcoatRoughness,
+      envMapIntensity: sphereParams.envMapIntensity
+    });
+  }}, 'reset').name('Reset to Defaults');
+
+  // Hide GUI initially
+  guiContainer.style.display = 'none';
+}
+
+/**
+ * Update sphere materials based on GUI parameters
+ */
+function updateSphereMaterials(updates) {
+  const targetSpheres = sphereParams.applyToAll ? sphereChain : (sphereChain.length > 0 ? [sphereChain[0]] : []);
+  
+  targetSpheres.forEach(sphere => {
+    if (sphere.material) {
+      if (updates.color !== undefined) {
+        sphere.material.color.setHex(updates.color);
+      }
+      if (updates.metalness !== undefined) {
+        sphere.material.metalness = updates.metalness;
+      }
+      if (updates.roughness !== undefined) {
+        sphere.material.roughness = updates.roughness;
+      }
+      if (updates.clearcoat !== undefined) {
+        sphere.material.clearcoat = updates.clearcoat;
+      }
+      if (updates.clearcoatRoughness !== undefined) {
+        sphere.material.clearcoatRoughness = updates.clearcoatRoughness;
+      }
+      if (updates.envMapIntensity !== undefined) {
+        sphere.material.envMapIntensity = updates.envMapIntensity;
+      }
+      sphere.material.needsUpdate = true;
+    }
+  });
+}
+
+/**
+ * Toggle GUI visibility
+ */
+function toggleSphereGUI() {
+  const guiContainer = document.getElementById('sphere-controls-ui');
+  if (!guiContainer) return;
+
+  guiVisible = !guiVisible;
+  guiContainer.style.display = guiVisible ? 'block' : 'none';
+}
+
+// Initialize GUI after DOM and library are ready
+function waitForGUI() {
+  if (typeof GUI !== 'undefined' || typeof window.GUI !== 'undefined') {
+    initSphereControlsGUI();
+  } else {
+    // Retry after a short delay if library not yet loaded
+    setTimeout(waitForGUI, 100);
+  }
+}
+
+// Start checking for GUI library availability
+setTimeout(waitForGUI, 100);
+
+// Keyboard shortcut: Ctrl+Shift+A to toggle GUI
+document.addEventListener('keydown', (event) => {
+  if (event.ctrlKey && event.shiftKey && event.key === 'A') {
+    event.preventDefault();
+    toggleSphereGUI();
+  }
+});
 
 // Set spawn position on starting platform
 controls.getObject().position.set(0, startingPlatform.y + PLAYER_HEIGHT, 0);
@@ -575,6 +839,32 @@ function checkPlatformCollision(position) {
 }
 
 // ----------------------------------------------------------------------
+// Sphere Collision Detection (Solid Spheres)
+// ----------------------------------------------------------------------
+function checkSphereCollision(position, radius = 0.5) {
+  for (const sphereData of sphereChainData) {
+    const dx = position.x - sphereData.position.x;
+    const dy = position.y - sphereData.position.y;
+    const dz = position.z - sphereData.position.z;
+    const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    const combinedRadius = sphereData.radius + radius;
+
+    if (distance < combinedRadius) {
+      // Collision detected - push player away from sphere
+      const pushDirection = new THREE.Vector3(dx, dy, dz).normalize();
+      const pushDistance = combinedRadius - distance + 0.1; // Small buffer
+      return {
+        collision: true,
+        pushDirection: pushDirection,
+        pushDistance: pushDistance,
+        sphere: sphereData
+      };
+    }
+  }
+  return { collision: false };
+}
+
+// ----------------------------------------------------------------------
 // Movement Controls
 // ----------------------------------------------------------------------
 function onKeyDown(event) {
@@ -667,6 +957,21 @@ function animate() {
     // 3. Integrate vertical velocity
     playerPos.y += velocity.y * delta;
 
+    // 3.5. Check sphere collisions (solid spheres push player away)
+    const sphereCollision = checkSphereCollision(playerPos, 0.5);
+    if (sphereCollision.collision) {
+      // Push player away from sphere
+      const pushVector = sphereCollision.pushDirection.clone().multiplyScalar(sphereCollision.pushDistance);
+      playerPos.add(pushVector);
+      
+      // If moving toward sphere, reverse velocity component
+      const velocityTowardSphere = velocity.dot(sphereCollision.pushDirection);
+      if (velocityTowardSphere < 0) {
+        const bounceVector = sphereCollision.pushDirection.clone().multiplyScalar(-velocityTowardSphere * 1.5);
+        velocity.add(bounceVector);
+      }
+    }
+
     // 4. Check grounding against all platforms (simple snap-to-surface)
     let grounded = false;
 
@@ -727,6 +1032,23 @@ function animate() {
     if (platform.material.emissiveIntensity > 0.3) {
       platform.material.emissiveIntensity -= delta * 0.5;
     }
+  });
+
+  // Animate spheres - levitation effect
+  sphereChain.forEach((sphere, index) => {
+    // Get original base Y position (stored in sphere userData)
+    if (sphere.userData.baseY === undefined) {
+      sphere.userData.baseY = sphereChainData[index].position.y;
+    }
+    const baseY = sphere.userData.baseY;
+    
+    const levitationOffset = Math.sin(time * sphereParams.levitationSpeed + index * 0.3) * sphereParams.levitationAmplitude;
+    sphere.position.y = baseY + levitationOffset;
+    // Update collision data position
+    sphereChainData[index].position.y = sphere.position.y;
+    
+    // Rotation based on GUI parameter
+    sphere.rotation.y += delta * sphereParams.rotationSpeed;
   });
 
   // Animate portal
