@@ -252,7 +252,10 @@ function generatePlatforms() {
   const platformMeshes = [];
 
   // Shared planar hex geometry for NFT top/bottom surfaces
-  const hexTopGeometry = new THREE.CircleGeometry(PLATFORM_SIZE, 6);
+  const hexRadius = PLATFORM_SIZE * 1.02; // Slightly larger than cylinder to cover rim
+  const hexTopGeometry = new THREE.CircleGeometry(hexRadius, 6);
+  // Nudge orientation so hex edges line up nicely with cylinder sides
+  hexTopGeometry.rotateZ(Math.PI / 6);
 
   // Starting platform is at (-SPHERE_RADIUS + 8), top surface at +0.5 = -61.5
   // First floating platform should be ABOVE that, not below!
@@ -344,33 +347,22 @@ function generatePlatforms() {
     // Slight random rotation for organic feel
     platform.rotation.y = Math.random() * Math.PI * 2;
 
-    // Separate top hex mesh for clean, planar NFT display
+    // Separate hex mesh for clean, planar NFT display (double-sided)
     const topMaterial = new THREE.MeshBasicMaterial({
       color: 0xffffff,
-      side: THREE.DoubleSide,
+      side: THREE.DoubleSide,   // visible from above and below
       toneMapped: false,
       transparent: false
     });
-    const topMesh = new THREE.Mesh(hexTopGeometry, topMaterial);
-    topMesh.position.set(0, 0.2 + 0.001, 0); // just above cylinder top to avoid z-fighting
-    topMesh.rotation.x = -Math.PI / 2;       // face upward (+Y)
-    platform.add(topMesh);
+    const nftMesh = new THREE.Mesh(hexTopGeometry, topMaterial);
+    // Slightly above cylinder top to avoid z-fighting
+    nftMesh.position.set(0, 0.2 + 0.01, 0);
+    // Rotate so plane faces up (+Y); double-sided covers bottom view as well
+    nftMesh.rotation.x = Math.PI / 2;
+    platform.add(nftMesh);
 
-    // Mirror bottom hex mesh so artwork matches from below
-    const bottomMaterial = new THREE.MeshBasicMaterial({
-      color: 0xffffff,
-      side: THREE.DoubleSide,
-      toneMapped: false,
-      transparent: false
-    });
-    const bottomMesh = new THREE.Mesh(hexTopGeometry, bottomMaterial);
-    bottomMesh.position.set(0, -0.2 - 0.001, 0); // just below cylinder bottom
-    bottomMesh.rotation.x = Math.PI / 2;         // face downward (-Y)
-    platform.add(bottomMesh);
-
-    // Store references so textures can be applied later
-    platform.userData.topMesh = topMesh;
-    platform.userData.bottomMesh = bottomMesh;
+    // Store reference so textures can be applied later
+    platform.userData.nftMesh = nftMesh;
 
     scene.add(platform);
     platformMeshes.push(platform);
@@ -1011,21 +1003,13 @@ function applyTextureToPlatform(platformMesh, texture, index) {
   sideTexture.wrapS = THREE.RepeatWrapping;
   sideTexture.wrapT = THREE.RepeatWrapping;
 
-  // Top texture: planar projection on separate hex mesh
+  // Texture for planar hex mesh (top/bottom via DoubleSide)
   const topTexture = texture.clone();
   topTexture.colorSpace = THREE.SRGBColorSpace;
   topTexture.wrapS = THREE.ClampToEdgeWrapping;
   topTexture.wrapT = THREE.ClampToEdgeWrapping;
   topTexture.anisotropy = 8;
   topTexture.needsUpdate = true;
-
-  // Bottom texture: same as top (mirror match) on its own mesh
-  const bottomTexture = texture.clone();
-  bottomTexture.colorSpace = THREE.SRGBColorSpace;
-  bottomTexture.wrapS = THREE.ClampToEdgeWrapping;
-  bottomTexture.wrapT = THREE.ClampToEdgeWrapping;
-  bottomTexture.anisotropy = 8;
-  bottomTexture.needsUpdate = true;
 
   // Materials
   const nftSideMaterial = new THREE.MeshStandardMaterial({
@@ -1044,33 +1028,18 @@ function applyTextureToPlatform(platformMesh, texture, index) {
     transparent: false
   });
 
-  const nftBottomMaterial = new THREE.MeshBasicMaterial({
-    map: bottomTexture,
-    side: THREE.DoubleSide,
-    toneMapped: false,
-    transparent: false
-  });
-
-  // Apply side material to cylinder
+  // Apply side material to cylinder (frame)
   platformMesh.material = nftSideMaterial;
   platformMesh.material.needsUpdate = true;
 
-  // Apply top/bottom materials to dedicated meshes
-  const topMesh = platformMesh.userData.topMesh;
-  const bottomMesh = platformMesh.userData.bottomMesh;
+  // Apply NFT material to dedicated hex mesh (visible from both sides)
+  const nftMesh = platformMesh.userData.nftMesh;
 
-  if (topMesh) {
-    topMesh.material = nftTopMaterial;
-    topMesh.material.needsUpdate = true;
+  if (nftMesh) {
+    nftMesh.material = nftTopMaterial;
+    nftMesh.material.needsUpdate = true;
   } else {
-    console.warn('Room X: Missing topMesh for platform index', index);
-  }
-
-  if (bottomMesh) {
-    bottomMesh.material = nftBottomMaterial;
-    bottomMesh.material.needsUpdate = true;
-  } else {
-    console.warn('Room X: Missing bottomMesh for platform index', index);
+    console.warn('Room X: Missing nftMesh for platform index', index);
   }
 }
 
