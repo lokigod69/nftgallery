@@ -60,6 +60,11 @@ const hiveTileMeshes = [];
 const hiveTileData = [];
 
 // ----------------------------------------------------------------------
+// NFT Texture Constants (declared early for use in functions)
+// ----------------------------------------------------------------------
+const ROOMX_TEXTURE_COUNT = 50; // Maximum number of NFT images available
+
+// ----------------------------------------------------------------------
 // Scene Setup
 // ----------------------------------------------------------------------
 const scene = new THREE.Scene();
@@ -928,7 +933,6 @@ canJump = true; // Start grounded
 // ----------------------------------------------------------------------
 // NFT Texture Loading for Room X Platforms
 // ----------------------------------------------------------------------
-const ROOMX_TEXTURE_COUNT = 50; // Maximum number of NFT images available
 const roomXTextures = [];
 
 function loadRoomXTextures() {
