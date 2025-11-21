@@ -34,6 +34,7 @@ const PLATFORM_SIZE = 2.5;           // Platform width/depth
 const SPIRAL_ROTATIONS = 3.5;        // Number of full rotations around sphere
 const VERTICAL_CLIMB_HEIGHT = SPHERE_RADIUS * 1.6; // Total vertical distance to climb
 const STARTING_PLATFORM_RADIUS = 50; // Shared radius for ground hive platform
+const HIVE_TILE_RADIUS = 1.35;
 
 // ----------------------------------------------------------------------
 // Sphere Chain Parameters
@@ -65,8 +66,9 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
 // Important for HDR environment maps and realistic reflections
+renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.0;
+renderer.toneMappingExposure = 1.25;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
@@ -100,11 +102,11 @@ window.addEventListener('resize', () => {
 // ----------------------------------------------------------------------
 // Lighting - Epic atmospheric lighting
 // ----------------------------------------------------------------------
-const ambientLight = new THREE.AmbientLight(0x2244aa, 0.4);
+const ambientLight = new THREE.AmbientLight(0x3357d6, 0.65);
 scene.add(ambientLight);
 
 // Dramatic directional lights from above
-const topLight = new THREE.DirectionalLight(0x6699ff, 0.6);
+const topLight = new THREE.DirectionalLight(0x8ab2ff, 0.85);
 topLight.position.set(0, SPHERE_RADIUS, 0);
 scene.add(topLight);
 
@@ -122,7 +124,7 @@ spawnLight.position.set(0, -SPHERE_RADIUS + 10, 0);
 scene.add(spawnLight);
 
 // Point light at top (portal area)
-const goalLight = new THREE.PointLight(0xffaa66, 1.5, 40);
+const goalLight = new THREE.PointLight(0xffbb88, 1.9, 50);
 goalLight.position.set(0, SPHERE_RADIUS - 15, 0);
 scene.add(goalLight);
 
@@ -478,7 +480,7 @@ function createStartingPlatform() {
  */
 function createHexagonalNFTGrid() {
   const platformY = -SPHERE_RADIUS + 8 + 0.5; // Top surface of platform
-  const tileRadius = 1.35;
+  const tileRadius = HIVE_TILE_RADIUS;
   const tileHeight = 0.12;
   const gridRings = 4; // Compact honeycomb
   const nftTiles = [];
@@ -536,26 +538,45 @@ function createHexagonalNFTGrid() {
     tile.userData.nftIndex = currentIndex;
     scene.add(tile);
     nftTiles.push(tile);
+    hiveTileMeshes.push(tile);
+    hiveTileData.push({
+      position: new THREE.Vector3(x, platformY),
+      radius: tileRadius,
+      topY: platformY + tileHeight,
+      mesh: tile
+    });
 
     loader.load(
       url,
       (loadedTexture) => {
         loadedTexture.colorSpace = THREE.SRGBColorSpace;
-        loadedTexture.wrapS = THREE.ClampToEdgeWrapping;
-        loadedTexture.wrapT = THREE.ClampToEdgeWrapping;
-        loadedTexture.minFilter = THREE.LinearFilter;
-        loadedTexture.magFilter = THREE.LinearFilter;
-        loadedTexture.anisotropy = 2;
+
+        // Downscale to ultra-low resolution for pixelated preview
+        const pixelSize = 24;
+        const buffer = document.createElement('canvas');
+        buffer.width = pixelSize;
+        buffer.height = pixelSize;
+        const ctx = buffer.getContext('2d');
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(loadedTexture.image, 0, 0, pixelSize, pixelSize);
+
+        const pixelTexture = new THREE.CanvasTexture(buffer);
+        pixelTexture.colorSpace = THREE.SRGBColorSpace;
+        pixelTexture.wrapS = THREE.ClampToEdgeWrapping;
+        pixelTexture.wrapT = THREE.ClampToEdgeWrapping;
+        pixelTexture.minFilter = THREE.NearestFilter;
+        pixelTexture.magFilter = THREE.NearestFilter;
+        pixelTexture.anisotropy = 1;
 
         const blurredMaterial = new THREE.MeshStandardMaterial({
-          map: loadedTexture,
+          map: pixelTexture,
           color: 0xffffff,
-          metalness: 0.05,
-          roughness: 0.95,
+          metalness: 0.02,
+          roughness: 0.98,
           transparent: true,
-          opacity: 0.5,
+          opacity: 0.52,
           emissive: 0x141c28,
-          emissiveIntensity: 0.35,
+          emissiveIntensity: 0.45,
           depthWrite: false,
           side: THREE.DoubleSide
         });
@@ -691,6 +712,8 @@ function loadHDRIEnvironment() {
 // ----------------------------------------------------------------------
 const { sphere, stars } = createHollowSphere();
 const startingPlatform = createStartingPlatform();
+const hiveTileMeshes = [];
+const hiveTileData = [];
 const nftGridTiles = createHexagonalNFTGrid(); // Create hexagonal NFT grid on starting platform
 const hiveLight = new THREE.PointLight(0x5674ff, 1.15, 85, 2);
 hiveLight.position.set(0, startingPlatform.y + 12, 0);
@@ -920,16 +943,23 @@ function loadRoomXTextures() {
 function applyTextureToPlatform(platformMesh, texture, index) {
   // Prepare texture settings for consistent quality across all faces
   texture.colorSpace = THREE.SRGBColorSpace;
-  // Use RepeatWrapping for sides to allow proper edge sampling
-  // ClampToEdge for top to prevent edge bleeding
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.wrapT = THREE.ClampToEdgeWrapping;
   texture.anisotropy = 8;
+
+  const sideTexture = texture;
+  sideTexture.wrapS = THREE.RepeatWrapping;
+  sideTexture.wrapT = THREE.RepeatWrapping;
+
+  const topTexture = texture.clone();
+  topTexture.colorSpace = THREE.SRGBColorSpace;
+  topTexture.wrapS = THREE.ClampToEdgeWrapping;
+  topTexture.wrapT = THREE.ClampToEdgeWrapping;
+  topTexture.anisotropy = 8;
+  topTexture.needsUpdate = true;
 
   // Create NFT material for sides - artwork wraps over edges like gallery canvas
   // NO tint, NO emissive, NO transparency - artwork extends naturally
   const nftSideMaterial = new THREE.MeshStandardMaterial({
-    map: texture,
+    map: sideTexture,
     color: 0xffffff,         // Pure white - no color tinting
     metalness: 0.1,
     roughness: 0.6,
@@ -938,12 +968,12 @@ function applyTextureToPlatform(platformMesh, texture, index) {
     transparent: false,
   });
 
-  // Create NFT material for top - same texture, same clean appearance
+  // Create NFT material for top - original art, no stretching
   const nftTopMaterial = new THREE.MeshStandardMaterial({
-    map: texture,
+    map: topTexture,
     color: 0xffffff,         // Pure white - no color tinting
-    metalness: 0.1,
-    roughness: 0.6,
+    metalness: 0.05,
+    roughness: 0.55,
     emissive: 0x000000,      // No emissive bleed
     emissiveIntensity: 0,
     transparent: false,
@@ -987,6 +1017,24 @@ function checkPlatformCollision(position) {
         mesh: startingPlatform.platform,
         index: -1 // Special index for starting platform
       };
+    }
+  }
+
+  // Check hive tiles on starting platform
+  for (const hiveTile of hiveTileData) {
+    const hx = position.x - hiveTile.position.x;
+    const hz = position.z - hiveTile.position.z;
+    const hDist = Math.sqrt(hx * hx + hz * hz);
+    if (hDist < hiveTile.radius) {
+      const vDist = position.y - hiveTile.topY;
+      if (vDist >= -0.3 && vDist <= 0.5) {
+        return {
+          position: new THREE.Vector3(hiveTile.position.x, hiveTile.topY, hiveTile.position.z),
+          radius: hiveTile.radius,
+          mesh: hiveTile.mesh,
+          index: -2 // identifier for ground hive
+        };
+      }
     }
   }
 
