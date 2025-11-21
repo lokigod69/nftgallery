@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
+import { PMREMGenerator } from 'three/examples/jsm/utils/PMREMGenerator.js';
 import { createLinkedPortal, animateLinkedPortal } from './src/core/portal-utils.js';
 import { getRoomXNftUrl } from './src/core/asset-utils.js';
 
@@ -62,6 +63,12 @@ const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerH
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+// Important for HDR environment maps and realistic reflections
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 
 const controls = new PointerLockControls(camera, document.body);
@@ -458,16 +465,18 @@ function createSphereChain(startY, endY) {
   const sphereSpacing = platformHeightRange / PLATFORM_COUNT;
 
   // Create default material for spheres (will be updated by GUI)
+  // Perfect mirror settings: metalness 1.0, roughness 0.0
   const defaultMaterial = new THREE.MeshPhysicalMaterial({
     color: 0xffffff,
-    metalness: 1.0,
-    roughness: 0.0,
+    metalness: 1.0,        // Fully metallic = mirror
+    roughness: 0.0,        // 0 = perfect mirror, 1 = matte
     ior: 1.5,
     transmission: 0,
     thickness: 0,
     clearcoat: 1.0,
     clearcoatRoughness: 0.0,
-    envMapIntensity: 1.0
+    envMapIntensity: 1.0,
+    envMap: null           // Will be set when HDRI loads
   });
 
   // Create sphere geometry (reuse for performance)
@@ -502,6 +511,8 @@ function createSphereChain(startY, endY) {
 
 /**
  * Load HDRI environment map for sphere reflections
+ * This creates a mirror-like reflection environment
+ * Uses PMREMGenerator for optimal PBR reflection quality
  */
 function loadHDRIEnvironment() {
   const loader = new RGBELoader();
@@ -509,22 +520,48 @@ function loadHDRIEnvironment() {
     HDRI_URL,
     (texture) => {
       texture.mapping = THREE.EquirectangularReflectionMapping;
-      scene.environment = texture;
-      hdriEnvironment = texture;
+      
+      // Use PMREMGenerator to convert HDRI to optimized environment map for PBR
+      // This provides much better reflection quality than using the HDRI directly
+      const pmremGenerator = new PMREMGenerator(renderer);
+      pmremGenerator.compileEquirectangularShader();
+      
+      const envMap = pmremGenerator.fromEquirectangular(texture).texture;
+      
+      // Set as scene environment - this is crucial for reflections
+      scene.environment = envMap;
+      hdriEnvironment = envMap;
 
       // Update all sphere materials with environment map
+      // Ensure they have proper mirror-like settings
       sphereChain.forEach(sphere => {
         if (sphere.material) {
-          sphere.material.envMap = texture;
+          sphere.material.envMap = envMap;
+          sphere.material.metalness = 1.0; // Fully metallic for mirror
+          sphere.material.roughness = 0.0; // Perfect mirror (0 = mirror, 1 = matte)
+          sphere.material.envMapIntensity = 1.0;
           sphere.material.needsUpdate = true;
         }
       });
 
-      console.log('Room X: HDRI environment map loaded');
+      // Clean up
+      pmremGenerator.dispose();
+      texture.dispose(); // Original HDRI no longer needed
+
+      console.log('Room X: HDRI environment map loaded and processed - spheres now have mirror reflections');
     },
     undefined,
     (err) => {
       console.warn('Room X: Failed to load HDRI environment map', err);
+      // Fallback: try to use scene environment if available
+      if (scene.environment) {
+        sphereChain.forEach(sphere => {
+          if (sphere.material) {
+            sphere.material.envMap = scene.environment;
+            sphere.material.needsUpdate = true;
+          }
+        });
+      }
     }
   );
 }
@@ -547,7 +584,8 @@ const sphereChainResult = createSphereChain(platformStartY, platformEndY);
 sphereChain = sphereChainResult.spheres;
 sphereChainData = sphereChainResult.data;
 
-// Load HDRI environment for sphere reflections
+// Load HDRI environment for sphere reflections (mirror-like reflections)
+// This must be called AFTER spheres are created so materials can be updated
 loadHDRIEnvironment();
 
 // ----------------------------------------------------------------------
@@ -643,12 +681,18 @@ function initSphereControlsGUI() {
 
 /**
  * Update sphere materials based on GUI parameters
+ * Ensures environment map is always preserved for reflections
  */
 function updateSphereMaterials(updates) {
   const targetSpheres = sphereParams.applyToAll ? sphereChain : (sphereChain.length > 0 ? [sphereChain[0]] : []);
   
   targetSpheres.forEach(sphere => {
     if (sphere.material) {
+      // Always ensure envMap is set (from scene.environment or hdriEnvironment)
+      if (!sphere.material.envMap && (scene.environment || hdriEnvironment)) {
+        sphere.material.envMap = scene.environment || hdriEnvironment;
+      }
+      
       if (updates.color !== undefined) {
         sphere.material.color.setHex(updates.color);
       }
@@ -696,9 +740,9 @@ function waitForGUI() {
 // Start checking for GUI library availability
 setTimeout(waitForGUI, 100);
 
-// Keyboard shortcut: Ctrl+Shift+A to toggle GUI
+// Keyboard shortcut: Ctrl+Shift+Q to toggle GUI (Q instead of A to avoid movement conflict)
 document.addEventListener('keydown', (event) => {
-  if (event.ctrlKey && event.shiftKey && event.key === 'A') {
+  if (event.ctrlKey && event.shiftKey && event.key === 'Q') {
     event.preventDefault();
     toggleSphereGUI();
   }
