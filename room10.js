@@ -54,6 +54,12 @@ let canJump = false; // Simple grounding flag
 const velocity = new THREE.Vector3(); // Persistent velocity vector
 
 // ----------------------------------------------------------------------
+// Hive Tile Arrays (declared early for use in createHexagonalNFTGrid)
+// ----------------------------------------------------------------------
+const hiveTileMeshes = [];
+const hiveTileData = [];
+
+// ----------------------------------------------------------------------
 // Scene Setup
 // ----------------------------------------------------------------------
 const scene = new THREE.Scene();
@@ -66,7 +72,7 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
 // Important for HDR environment maps and realistic reflections
-renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.25;
 renderer.shadowMap.enabled = true;
@@ -710,8 +716,6 @@ function loadHDRIEnvironment() {
 // ----------------------------------------------------------------------
 const { sphere, stars } = createHollowSphere();
 const startingPlatform = createStartingPlatform();
-const hiveTileMeshes = [];
-const hiveTileData = [];
 const nftGridTiles = createHexagonalNFTGrid(); // Create hexagonal NFT grid on starting platform
 const hiveLight = new THREE.PointLight(0x5674ff, 1.15, 85, 2);
 hiveLight.position.set(0, startingPlatform.y + 12, 0);
@@ -866,10 +870,14 @@ function updateSphereMaterials(updates) {
  */
 function toggleSphereGUI() {
   const guiContainer = document.getElementById('sphere-controls-ui');
-  if (!guiContainer) return;
+  if (!guiContainer) {
+    console.warn('Room X: GUI container not found');
+    return;
+  }
 
   guiVisible = !guiVisible;
   guiContainer.style.display = guiVisible ? 'block' : 'none';
+  console.log(`Room X: Sphere controls GUI ${guiVisible ? 'shown' : 'hidden'}`);
 }
 
 // Initialize GUI after DOM and library are ready
@@ -886,13 +894,30 @@ function waitForGUI() {
 setTimeout(waitForGUI, 100);
 
 // Keyboard shortcut: Ctrl+Shift+Q to toggle GUI (Q instead of A to avoid movement conflict)
+// Use capture phase to ensure it fires before other handlers
 document.addEventListener('keydown', (event) => {
-  if (event.ctrlKey && event.shiftKey && event.code === 'KeyQ') {
+  // Check for Ctrl+Shift+Q combination
+  if (event.ctrlKey && event.shiftKey && (event.key === 'Q' || event.key === 'q' || event.code === 'KeyQ')) {
     event.preventDefault();
     event.stopPropagation();
+    event.stopImmediatePropagation();
+    
+    // Ensure GUI is initialized before toggling
+    if (!sphereGUI) {
+      console.log('Room X: GUI not yet initialized, attempting to initialize...');
+      const guiContainer = document.getElementById('sphere-controls-ui');
+      if (guiContainer && (typeof GUI !== 'undefined' || typeof window.GUI !== 'undefined')) {
+        initSphereControlsGUI();
+      } else {
+        console.warn('Room X: Cannot initialize GUI - container or library missing');
+        return;
+      }
+    }
+    
     toggleSphereGUI();
+    console.log('Room X: Sphere controls GUI toggled');
   }
-});
+}, true); // Use capture phase
 
 // Set spawn position on safe tile (Ring 1) instead of hole
 // Move forward to the first tile in front of center
@@ -1084,6 +1109,11 @@ function checkSphereCollision(position, radius = 0.5) {
 // Movement Controls
 // ----------------------------------------------------------------------
 function onKeyDown(event) {
+  // Skip movement if GUI shortcut is pressed
+  if (event.ctrlKey && event.shiftKey && (event.key === 'Q' || event.key === 'q' || event.code === 'KeyQ')) {
+    return;
+  }
+  
   switch (event.code) {
     case 'ArrowUp':
     case 'KeyW':
