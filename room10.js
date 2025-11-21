@@ -33,6 +33,7 @@ const PLATFORM_COUNT = 28;           // Number of platforms in the ascent
 const PLATFORM_SIZE = 2.5;           // Platform width/depth
 const SPIRAL_ROTATIONS = 3.5;        // Number of full rotations around sphere
 const VERTICAL_CLIMB_HEIGHT = SPHERE_RADIUS * 1.6; // Total vertical distance to climb
+const STARTING_PLATFORM_RADIUS = 50; // Shared radius for ground hive platform
 
 // ----------------------------------------------------------------------
 // Sphere Chain Parameters
@@ -433,7 +434,7 @@ function createTopPortal() {
 // Create Starting Platform (Hexagonal Floor with NFT Grid)
 // ----------------------------------------------------------------------
 function createStartingPlatform() {
-  const platformRadius = 50; // Large hexagonal platform
+  const platformRadius = STARTING_PLATFORM_RADIUS; // Large hexagonal platform
   const platformY = -SPHERE_RADIUS + 8; // 8 units from bottom of sphere
 
   // Create hexagonal platform (6 segments = hexagon)
@@ -477,103 +478,89 @@ function createStartingPlatform() {
  */
 function createHexagonalNFTGrid() {
   const platformY = -SPHERE_RADIUS + 8 + 0.5; // Top surface of platform
-  const tileSize = 2.5; // Size of each NFT tile
-  const tileSpacing = 3.0; // Spacing between tiles
-  const gridRadius = 7; // Number of rings in hexagonal grid
+  const tileRadius = 1.35;
+  const tileHeight = 0.12;
+  const gridRings = 4; // Compact honeycomb
   const nftTiles = [];
-  const MAX_NFT_COUNT = 50; // Maximum NFTs to load for grid
+  const MAX_NFT_COUNT = 64;
 
-  // Calculate hexagonal grid positions
-  // Hexagonal coordinates: q (column), r (row)
+  const hexToWorld = (q, r) => {
+    const x = tileRadius * Math.sqrt(3) * (q + r / 2);
+    const z = tileRadius * 1.5 * r;
+    return { x, z };
+  };
+
   const positions = [];
-  
-  for (let q = -gridRadius; q <= gridRadius; q++) {
-    const r1 = Math.max(-gridRadius, -q - gridRadius);
-    const r2 = Math.min(gridRadius, -q + gridRadius);
+  for (let q = -gridRings; q <= gridRings; q++) {
+    const r1 = Math.max(-gridRings, -q - gridRings);
+    const r2 = Math.min(gridRings, -q + gridRings);
     for (let r = r1; r <= r2; r++) {
+      const { x, z } = hexToWorld(q, r);
+      const dist = Math.sqrt(x * x + z * z);
+      if (dist > STARTING_PLATFORM_RADIUS - tileRadius * 1.6) continue;
+      if (Math.abs(x) < 0.1 && Math.abs(z) < 0.1) continue; // leave spawn space
       positions.push({ q, r });
     }
   }
 
-  // Convert hexagonal coordinates to world positions
-  const hexToWorld = (q, r) => {
-    const x = tileSpacing * (Math.sqrt(3) * q + Math.sqrt(3) / 2 * r);
-    const z = tileSpacing * (3 / 2 * r);
-    return { x, z };
-  };
-
-  // Filter out center position and limit to max NFTs
-  const validPositions = positions.filter(({ q, r }) => {
-    const { x, z } = hexToWorld(q, r);
-    return !(Math.abs(x) < 0.1 && Math.abs(z) < 0.1); // Skip center
-  }).slice(0, MAX_NFT_COUNT);
-
-  // Load all NFT textures and create tiles
+  const trimmedPositions = positions.slice(0, MAX_NFT_COUNT);
   const loader = new THREE.TextureLoader();
   let nftIndex = 1;
 
-  validPositions.forEach(({ q, r }, arrayIndex) => {
+  trimmedPositions.forEach(({ q, r }) => {
     const { x, z } = hexToWorld(q, r);
+    const currentIndex = nftIndex;
     const url = getRoomXNftUrl(nftIndex);
-    const currentIndex = nftIndex - 1; // Store for texture callback
     nftIndex++;
 
-    // Create hexagonal tile geometry first
     const tileGeometry = new THREE.CylinderGeometry(
-      tileSize * 0.8,
-      tileSize * 0.8,
-      0.1,
-      6 // Hexagon
+      tileRadius,
+      tileRadius,
+      tileHeight,
+      6
     );
 
-    // Placeholder material (will be replaced when texture loads)
     const placeholderMaterial = new THREE.MeshStandardMaterial({
-      color: 0x333333,
+      color: 0x232630,
       transparent: true,
-      opacity: 0.3,
-      metalness: 0.1,
-      roughness: 0.9
+      opacity: 0.25,
+      metalness: 0.05,
+      roughness: 0.95,
+      depthWrite: false,
+      side: THREE.DoubleSide
     });
 
     const tile = new THREE.Mesh(tileGeometry, placeholderMaterial);
-    tile.position.set(x, platformY + 0.05, z); // Slightly above platform
-    tile.rotation.y = Math.random() * Math.PI * 2; // Random rotation
-    tile.userData.nftIndex = currentIndex; // Store index for texture callback
-    
+    tile.position.set(x, platformY + tileHeight * 0.5, z);
+    tile.rotation.y = Math.random() * Math.PI * 2;
+    tile.userData.nftIndex = currentIndex;
     scene.add(tile);
     nftTiles.push(tile);
 
-    // Load texture and apply when ready
     loader.load(
       url,
       (loadedTexture) => {
-        // Configure texture for blur effect
         loadedTexture.colorSpace = THREE.SRGBColorSpace;
         loadedTexture.wrapS = THREE.ClampToEdgeWrapping;
         loadedTexture.wrapT = THREE.ClampToEdgeWrapping;
-        loadedTexture.anisotropy = 1; // Low anisotropy for blur effect
-        loadedTexture.minFilter = THREE.LinearFilter; // Use linear filtering for softer look
+        loadedTexture.minFilter = THREE.LinearFilter;
         loadedTexture.magFilter = THREE.LinearFilter;
-        
-        // Create blurred material with opacity and slight glow
-        // The blur effect is achieved through:
-        // 1. Low opacity (semi-transparent)
-        // 2. Linear filtering (softer edges)
-        // 3. Slight emissive glow for visibility
+        loadedTexture.anisotropy = 2;
+
         const blurredMaterial = new THREE.MeshStandardMaterial({
           map: loadedTexture,
           color: 0xffffff,
           metalness: 0.05,
-          roughness: 0.9,
+          roughness: 0.95,
           transparent: true,
-          opacity: 0.35, // Semi-transparent for blurry effect
-          emissive: 0x222222, // Slight glow to maintain visibility
-          emissiveIntensity: 0.3,
-          side: THREE.DoubleSide // Show on both sides
+          opacity: 0.5,
+          emissive: 0x141c28,
+          emissiveIntensity: 0.35,
+          depthWrite: false,
+          side: THREE.DoubleSide
         });
 
-        // Find tile by stored index and apply material
-        const targetTile = nftTiles.find(t => t.userData.nftIndex === currentIndex);
+        const targetTile = nftTiles.find((t) => t.userData.nftIndex === currentIndex);
         if (targetTile) {
           targetTile.material = blurredMaterial;
           targetTile.material.needsUpdate = true;
@@ -705,6 +692,9 @@ function loadHDRIEnvironment() {
 const { sphere, stars } = createHollowSphere();
 const startingPlatform = createStartingPlatform();
 const nftGridTiles = createHexagonalNFTGrid(); // Create hexagonal NFT grid on starting platform
+const hiveLight = new THREE.PointLight(0x5674ff, 1.15, 85, 2);
+hiveLight.position.set(0, startingPlatform.y + 12, 0);
+scene.add(hiveLight);
 const { platforms, platformMeshes } = generatePlatforms();
 const topPortal = createTopPortal();
 
@@ -875,27 +865,12 @@ function waitForGUI() {
 setTimeout(waitForGUI, 100);
 
 // Keyboard shortcut: Ctrl+Shift+Q to toggle GUI (Q instead of A to avoid movement conflict)
-// Use keydown event with proper key code checking
-let ctrlPressed = false;
-let shiftPressed = false;
-
 document.addEventListener('keydown', (event) => {
-  // Track modifier keys
-  if (event.key === 'Control' || event.ctrlKey) ctrlPressed = true;
-  if (event.key === 'Shift' || event.shiftKey) shiftPressed = true;
-  
-  // Check for Ctrl+Shift+Q combination
-  if ((event.ctrlKey || ctrlPressed) && (event.shiftKey || shiftPressed) && 
-      (event.key === 'Q' || event.key === 'q' || event.code === 'KeyQ')) {
+  if (event.ctrlKey && event.shiftKey && event.code === 'KeyQ') {
     event.preventDefault();
     event.stopPropagation();
     toggleSphereGUI();
   }
-});
-
-document.addEventListener('keyup', (event) => {
-  if (event.key === 'Control') ctrlPressed = false;
-  if (event.key === 'Shift') shiftPressed = false;
 });
 
 // Set spawn position on starting platform
