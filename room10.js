@@ -60,6 +60,10 @@ const hiveTileMeshes = [];
 const hiveTileData = [];
 
 // ----------------------------------------------------------------------
+// Last safe grounded position (for respawn)
+// ----------------------------------------------------------------------
+const lastSafePosition = new THREE.Vector3(0, 0, 0);
+// ----------------------------------------------------------------------
 // NFT Texture Constants (declared early for use in functions)
 // ----------------------------------------------------------------------
 const ROOMX_TEXTURE_COUNT = 50; // Maximum number of NFT images available
@@ -253,7 +257,7 @@ function generatePlatforms() {
 
   // Shared planar hex geometry for NFT top/bottom surfaces
   // Slightly smaller than cylinder so NFT print sits just inside the hex frame
-  const hexRadius = PLATFORM_SIZE * 0.995;
+  const hexRadius = PLATFORM_SIZE * 0.985;
   const hexTopGeometry = new THREE.CircleGeometry(hexRadius, 6);
   // Nudge orientation so hex edges line up nicely with cylinder sides
   hexTopGeometry.rotateZ(Math.PI / 6);
@@ -955,6 +959,7 @@ document.addEventListener('keydown', (event) => {
 controls.getObject().position.set(0, startingPlatform.y + PLAYER_HEIGHT, HIVE_TILE_RADIUS * 1.75);
 velocity.set(0, 0, 0); // Start with zero velocity
 canJump = true; // Start grounded
+lastSafePosition.copy(controls.getObject().position);
 
 // ----------------------------------------------------------------------
 // NFT Texture Loading for Room X Platforms
@@ -1247,18 +1252,40 @@ function animate() {
     // 4. Check grounding against all platforms (simple snap-to-surface)
     let grounded = false;
 
-    // Check starting platform
+    // Check starting platform (large circular disc)
     const dx = playerPos.x;
     const dz = playerPos.z;
     const horizDist = Math.sqrt(dx * dx + dz * dz);
 
-    if (horizDist < startingPlatform.radius) {
+    if (horizDist < startingPlatform.radius + 0.5) {
       const vertDiff = playerPos.y - (startingPlatform.y + PLAYER_HEIGHT);
       if (vertDiff >= -GROUND_TOLERANCE && vertDiff <= GROUND_TOLERANCE && velocity.y <= 0) {
         playerPos.y = startingPlatform.y + PLAYER_HEIGHT;
         velocity.y = 0;
         canJump = true;
         grounded = true;
+        lastSafePosition.copy(playerPos);
+      }
+    }
+
+    // Check hive tiles on starting platform (pixelated ground) if not already grounded
+    if (!grounded) {
+      for (const hiveTile of hiveTileData) {
+        const hdx = playerPos.x - hiveTile.position.x;
+        const hdz = playerPos.z - hiveTile.position.z;
+        const hDist = Math.sqrt(hdx * hdx + hdz * hdz);
+
+        if (hDist < hiveTile.radius + 0.1) {
+          const hVertDiff = playerPos.y - (hiveTile.topY + PLAYER_HEIGHT);
+          if (hVertDiff >= -GROUND_TOLERANCE && hVertDiff <= GROUND_TOLERANCE && velocity.y <= 0) {
+            playerPos.y = hiveTile.topY + PLAYER_HEIGHT;
+            velocity.y = 0;
+            canJump = true;
+            grounded = true;
+            lastSafePosition.copy(playerPos);
+            break;
+          }
+        }
       }
     }
 
@@ -1276,6 +1303,7 @@ function animate() {
             velocity.y = 0;
             canJump = true;
             grounded = true;
+            lastSafePosition.copy(playerPos);
 
             // Visual feedback - pulse platform
             if (platform.mesh.material.emissiveIntensity !== undefined) {
@@ -1289,7 +1317,11 @@ function animate() {
 
     // 5. Death plane - ONE simple check, far below
     if (playerPos.y < DEATH_PLANE_Y) {
-      playerPos.set(0, startingPlatform.y + PLAYER_HEIGHT, 0);
+      if (lastSafePosition.y !== 0 || lastSafePosition.x !== 0 || lastSafePosition.z !== 0) {
+        playerPos.copy(lastSafePosition);
+      } else {
+        playerPos.set(0, startingPlatform.y + PLAYER_HEIGHT, 0);
+      }
       velocity.set(0, 0, 0);
       canJump = true;
     }
