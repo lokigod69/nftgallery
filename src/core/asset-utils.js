@@ -256,3 +256,29 @@ export function getRoomXNftUrl(platformNumber) {
 export function getRoomCNftUrl(nftNumber) {
   return getNftUrl(nftNumber);
 }
+
+/**
+ * Get texture URL for Room9 NFT assets (Archive Spiral)
+ *
+ * @param {number} nftNumber - NFT number (56-71, 16 total)
+ * @returns {string} Full URL to Room9 NFT
+ *
+ * @example
+ * getRoom9NftUrl(56) → '/assets/nft56.webp'
+ */
+export function getRoom9NftUrl(nftNumber) {
+  return getNftUrl(nftNumber);
+}
+
+/**
+ * Get texture URL for Room8 NFT assets (Ancient Ascension Shaft)
+ *
+ * @param {number} nftNumber - NFT number (72-103, 32 total)
+ * @returns {string} Full URL to Room8 NFT
+ *
+ * @example
+ * getRoom8NftUrl(72) → '/assets/nft72.webp'
+ */
+export function getRoom8NftUrl(nftNumber) {
+  return getNftUrl(nftNumber);
+}

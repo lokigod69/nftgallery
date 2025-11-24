@@ -956,7 +956,7 @@ document.addEventListener('keydown', (event) => {
 
 // Set spawn position on safe tile (Ring 1) instead of hole
 // Move forward to the first tile in front of center
-controls.getObject().position.set(0, startingPlatform.y + PLAYER_HEIGHT, HIVE_TILE_RADIUS * 1.75);
+controls.getObject().position.set(0, startingPlatform.y + PLAYER_HEIGHT, 0); // Centered spawn (Solution 1: Avoids hive tile conflict)
 velocity.set(0, 0, 0); // Start with zero velocity
 canJump = true; // Start grounded
 lastSafePosition.copy(controls.getObject().position);
@@ -1249,68 +1249,80 @@ function animate() {
       }
     }
 
-    // 4. Check grounding against all platforms (simple snap-to-surface)
+    // 4. Unified Grounding System (Prioritized)
+    // Checks ALL potential surfaces and snaps to the closest valid one
     let grounded = false;
+    const potentialGrounds = [];
 
-    // Check starting platform (large circular disc)
+    // A. Collect Main Platform candidate
     const dx = playerPos.x;
     const dz = playerPos.z;
     const horizDist = Math.sqrt(dx * dx + dz * dz);
-
     if (horizDist < startingPlatform.radius + 0.5) {
-      const vertDiff = playerPos.y - (startingPlatform.y + PLAYER_HEIGHT);
-      if (vertDiff >= -GROUND_TOLERANCE && vertDiff <= GROUND_TOLERANCE && velocity.y <= 0) {
-        playerPos.y = startingPlatform.y + PLAYER_HEIGHT;
+      potentialGrounds.push({
+        targetY: startingPlatform.y + PLAYER_HEIGHT,
+        type: 'main'
+      });
+    }
+
+    // B. Collect Hive Tile candidates
+    for (const hiveTile of hiveTileData) {
+      const hdx = playerPos.x - hiveTile.position.x;
+      const hdz = playerPos.z - hiveTile.position.z;
+      const hDist = Math.sqrt(hdx * hdx + hdz * hdz);
+      
+      if (hDist < hiveTile.radius + 0.1) {
+        potentialGrounds.push({
+          targetY: hiveTile.topY + PLAYER_HEIGHT,
+          type: 'hive'
+        });
+      }
+    }
+
+    // C. Collect Floating Platform candidates
+    for (const platform of platforms) {
+      const pdx = playerPos.x - platform.position.x;
+      const pdz = playerPos.z - platform.position.z;
+      const pHorizDist = Math.sqrt(pdx * pdx + pdz * pdz);
+
+      if (pHorizDist < platform.radius) {
+        potentialGrounds.push({
+          targetY: platform.position.y + PLAYER_HEIGHT,
+          type: 'platform',
+          mesh: platform.mesh
+        });
+      }
+    }
+
+    // D. Evaluate Candidates
+    if (potentialGrounds.length > 0 && velocity.y <= 0) {
+      // Find surface with smallest vertical difference
+      let bestCandidate = null;
+      let minDiff = Infinity;
+
+      for (const candidate of potentialGrounds) {
+        const diff = playerPos.y - candidate.targetY;
+        // Only consider surfaces we are close to (within tolerance)
+        // Note: Increased tolerance slightly for smoother transitions
+        if (Math.abs(diff) <= GROUND_TOLERANCE + 0.1) {
+          if (Math.abs(diff) < minDiff) {
+            minDiff = Math.abs(diff);
+            bestCandidate = candidate;
+          }
+        }
+      }
+
+      // Apply grounding if we found a valid surface
+      if (bestCandidate) {
+        playerPos.y = bestCandidate.targetY;
         velocity.y = 0;
         canJump = true;
         grounded = true;
         lastSafePosition.copy(playerPos);
-      }
-    }
 
-    // Check hive tiles on starting platform (pixelated ground) if not already grounded
-    if (!grounded) {
-      for (const hiveTile of hiveTileData) {
-        const hdx = playerPos.x - hiveTile.position.x;
-        const hdz = playerPos.z - hiveTile.position.z;
-        const hDist = Math.sqrt(hdx * hdx + hdz * hdz);
-
-        if (hDist < hiveTile.radius + 0.1) {
-          const hVertDiff = playerPos.y - (hiveTile.topY + PLAYER_HEIGHT);
-          if (hVertDiff >= -GROUND_TOLERANCE && hVertDiff <= GROUND_TOLERANCE && velocity.y <= 0) {
-            playerPos.y = hiveTile.topY + PLAYER_HEIGHT;
-            velocity.y = 0;
-            canJump = true;
-            grounded = true;
-            lastSafePosition.copy(playerPos);
-            break;
-          }
-        }
-      }
-    }
-
-    // Check floating platforms (only if not already grounded)
-    if (!grounded) {
-      for (const platform of platforms) {
-        const pdx = playerPos.x - platform.position.x;
-        const pdz = playerPos.z - platform.position.z;
-        const pHorizDist = Math.sqrt(pdx * pdx + pdz * pdz);
-
-        if (pHorizDist < platform.radius) {
-          const pVertDiff = playerPos.y - (platform.position.y + PLAYER_HEIGHT);
-          if (pVertDiff >= -GROUND_TOLERANCE && pVertDiff <= GROUND_TOLERANCE && velocity.y <= 0) {
-            playerPos.y = platform.position.y + PLAYER_HEIGHT;
-            velocity.y = 0;
-            canJump = true;
-            grounded = true;
-            lastSafePosition.copy(playerPos);
-
-            // Visual feedback - pulse platform
-            if (platform.mesh.material.emissiveIntensity !== undefined) {
-              platform.mesh.material.emissiveIntensity = 0.6;
-            }
-            break;
-          }
+        // Visual feedback for floating platforms
+        if (bestCandidate.type === 'platform' && bestCandidate.mesh && bestCandidate.mesh.material.emissiveIntensity !== undefined) {
+           bestCandidate.mesh.material.emissiveIntensity = 0.6;
         }
       }
     }

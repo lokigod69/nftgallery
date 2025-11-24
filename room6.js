@@ -3,24 +3,332 @@ import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockCont
 import { createLinkedPortal, animateLinkedPortal, createMultiPortalChecker } from './src/core/portal-utils.js';
 import { MOVEMENT_CONFIG } from './src/core/movement-config.js';
 
+// ══════════════════════════════════════════════════════════════════════════
+// Lava Monolith Artifacts - Ritual Shards Below Tiles
+// ══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Procedural rock texture
+ */
+function createRockTexture() {
+  const size = 256; // Reduced from 512 for performance
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = '#222';
+  ctx.fillRect(0, 0, size, size);
+
+  // Noise
+  for (let i = 0; i < 30000; i++) {
+    ctx.fillStyle = Math.random() > 0.5 ? '#000' : '#444';
+    ctx.globalAlpha = 0.1;
+    const x = Math.random() * size;
+    const y = Math.random() * size;
+    ctx.fillRect(x, y, 2, 2);
+  }
+
+  // Scratches
+  ctx.strokeStyle = '#000';
+  ctx.globalAlpha = 0.3;
+  for (let i = 0; i < 25; i++) {
+    ctx.beginPath();
+    ctx.moveTo(Math.random() * size, Math.random() * size);
+    ctx.lineTo(Math.random() * size, Math.random() * size);
+    ctx.stroke();
+  }
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  return tex;
+}
+
+/**
+ * Procedural glowing rune texture
+ */
+function createRuneTexture() {
+  const size = 512; // Reduced from 1024
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+
+  // Black background
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(0, 0, size, size);
+
+  // The zigzag sigil
+  ctx.strokeStyle = '#ff3300';
+  ctx.lineWidth = 20;
+  ctx.lineCap = 'square';
+  ctx.lineJoin = 'miter';
+  ctx.shadowColor = '#ff5500';
+  ctx.shadowBlur = 10;
+
+  const cx = size / 2;
+  const cy = size / 2;
+
+  ctx.beginPath();
+  // Zigzag pattern
+  ctx.moveTo(cx - 50, cy - 100);
+  ctx.lineTo(cx + 50, cy - 50);
+  ctx.lineTo(cx - 50, cy);
+  ctx.lineTo(cx + 40, cy + 50);
+  ctx.lineTo(cx - 40, cy + 100);
+  ctx.moveTo(cx, cy + 75);
+  ctx.lineTo(cx, cy + 200);
+  ctx.stroke();
+
+  // Inner bright core
+  ctx.strokeStyle = '#ffaa00';
+  ctx.lineWidth = 8;
+  ctx.shadowBlur = 3;
+  ctx.stroke();
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = THREE.ClampToEdgeWrapping;
+  tex.wrapT = THREE.ClampToEdgeWrapping;
+  return tex;
+}
+
+/**
+ * Small magma floor patch for under monolith
+ */
+function createMagmaPatchTexture() {
+  const size = 256;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+
+  // Dark crust base
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, 0, size, size);
+
+  // Cut holes for glowing magma
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.lineWidth = 4;
+  ctx.lineCap = 'round';
+
+  for (let i = 0; i < 20; i++) {
+    ctx.beginPath();
+    let x = Math.random() * size;
+    let y = Math.random() * size;
+    ctx.moveTo(x, y);
+    for (let j = 0; j < 3; j++) {
+      x += (Math.random() - 0.5) * 80;
+      y += (Math.random() - 0.5) * 80;
+      ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  ctx.globalCompositeOperation = 'source-over';
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  return tex;
+}
+
+// Singleton shared assets
+const monolithAssets = {
+  rockTexture: null,
+  runeTexture: null,
+  magmaTexture: null,
+  rockMaterial: null,
+  chainMaterial: null,
+  magmaMaterial: null
+};
+
+/**
+ * Initialize shared monolith materials
+ */
+function initMonolithMaterials() {
+  if (monolithAssets.rockMaterial) return;
+
+  monolithAssets.rockTexture = createRockTexture();
+  monolithAssets.runeTexture = createRuneTexture();
+  monolithAssets.magmaTexture = createMagmaPatchTexture();
+
+  monolithAssets.rockMaterial = new THREE.MeshStandardMaterial({
+    color: 0x333333,
+    map: monolithAssets.rockTexture,
+    roughnessMap: monolithAssets.rockTexture,
+    roughness: 0.9,
+    metalness: 0.2,
+    bumpMap: monolithAssets.rockTexture,
+    bumpScale: 0.1,
+    emissiveMap: monolithAssets.runeTexture,
+    emissive: 0xff4400,
+    emissiveIntensity: 2.5 // Reduced from prototype's 3.0 (no bloom in Room 6)
+  });
+
+  monolithAssets.chainMaterial = new THREE.MeshStandardMaterial({
+    color: 0x111111,
+    metalness: 0.8,
+    roughness: 0.6
+  });
+
+  monolithAssets.magmaMaterial = new THREE.MeshStandardMaterial({
+    color: 0x000000,
+    roughness: 0.9,
+    emissiveMap: monolithAssets.magmaTexture,
+    emissive: 0xff3300,
+    emissiveIntensity: 1.8 // Match Room 6's lava intensity
+  });
+}
+
+/**
+ * Create a single lava monolith artifact
+ * Returns: { group, lights } for animation
+ */
+function createLavaMonolith() {
+  const cfg = ROOM6_CONFIG;
+  const monolithGroup = new THREE.Group();
+  const scale = cfg.monolithScale;
+
+  // 1. Monolith shard (stretched dodecahedron)
+  const monoGeo = new THREE.DodecahedronGeometry(1.5 * scale, 0);
+  const posAttr = monoGeo.attributes.position;
+
+  // Distort vertices for chiseled look
+  for (let i = 0; i < posAttr.count; i++) {
+    const y = posAttr.getY(i);
+    posAttr.setY(i, y * 2.5); // Stretch in Y
+    posAttr.setX(i, posAttr.getX(i) + (Math.random() - 0.5) * 0.2);
+    posAttr.setZ(i, posAttr.getZ(i) + (Math.random() - 0.5) * 0.2);
+  }
+  monoGeo.computeVertexNormals();
+
+  const monolith = new THREE.Mesh(monoGeo, monolithAssets.rockMaterial);
+  monolith.position.y = 1.5 * scale;
+  monolithGroup.add(monolith);
+
+  // 2. Chains (simplified - fewer links for performance)
+  const chainCurve = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(-1.2 * scale, 1.8 * scale, 0.8 * scale),
+    new THREE.Vector3(0, 1.5 * scale, 1.3 * scale),
+    new THREE.Vector3(1.2 * scale, 1.2 * scale, 0.5 * scale),
+    new THREE.Vector3(0.5 * scale, 1.0 * scale, -1.2 * scale),
+    new THREE.Vector3(-1.0 * scale, 0.8 * scale, -0.8 * scale),
+    new THREE.Vector3(-1.0 * scale, 0.3 * scale, 0.5 * scale)
+  ]);
+
+  const linkGeo = new THREE.TorusGeometry(0.12 * scale, 0.04 * scale, 4, 8);
+  const points = chainCurve.getPoints(30); // Reduced from 60
+
+  for (let i = 0; i < points.length - 1; i++) {
+    const link = new THREE.Mesh(linkGeo, monolithAssets.chainMaterial);
+    const pos = points[i];
+    const nextPos = points[i + 1];
+
+    link.position.copy(pos);
+    link.lookAt(nextPos);
+
+    if (i % 2 === 0) {
+      link.rotateZ(Math.PI / 2);
+    }
+
+    monolithGroup.add(link);
+  }
+
+  // 3. Small local lava patch (disc under monolith)
+  const patchGeo = new THREE.CircleGeometry(1.5 * scale, 16);
+  patchGeo.rotateX(-Math.PI / 2);
+  const lavaPatch = new THREE.Mesh(patchGeo, monolithAssets.magmaMaterial);
+  lavaPatch.position.y = 0.05; // Slightly above base to avoid z-fighting
+  monolithGroup.add(lavaPatch);
+
+  // 4. Local lights (subtle, not overpowering)
+  const runeLight = new THREE.PointLight(0xff3300, 1.0, 4);
+  runeLight.position.set(0, 1.5 * scale, 1 * scale);
+  monolithGroup.add(runeLight);
+
+  const lavaLight = new THREE.PointLight(0xff6600, 0.8, 5);
+  lavaLight.position.set(0, -0.5, 0);
+  monolithGroup.add(lavaLight);
+
+  return { group: monolithGroup, lights: [runeLight, lavaLight] };
+}
+
+/**
+ * Place monoliths under selected tiles
+ * Returns: Array of { group, lights, baseY } for animation
+ */
+function placeMonolithsUnderTiles(tileData) {
+  const cfg = ROOM6_CONFIG;
+  if (!cfg.enableMonoliths) return [];
+
+  initMonolithMaterials();
+
+  const monoliths = [];
+
+  cfg.monolithTileIndices.forEach(tileIndex => {
+    if (tileIndex >= tileData.length) return; // Safety check
+
+    const tilePos = tileData[tileIndex].position;
+
+    const { group, lights } = createLavaMonolith();
+
+    // Position under tile in lava pit
+    group.position.set(
+      tilePos.x,
+      cfg.monolithYOffset,
+      tilePos.z
+    );
+
+    // Random rotation for variety
+    group.rotation.y = Math.random() * Math.PI * 2;
+
+    scene.add(group);
+
+    monoliths.push({
+      group,
+      lights,
+      baseY: cfg.monolithYOffset
+    });
+  });
+
+  console.log(`✓ Placed ${monoliths.length} lava monolith artifacts under tiles`);
+  return monoliths;
+}
+
 // ----------------------------------------------------------------------
 // Room 6: "Lava Corridor" - Platforming Challenge
 // ----------------------------------------------------------------------
 
-// ROOM 6 CURRENT STATE (inspection before lava rework)
-// - Scene background: 0xffffff (WHITE) - causing bright atmosphere
-// - Floor: y = -0.5, lava grid texture (dark base + red grid), positioned at z = -50 (corridor center)
-// - Ceiling: y = 10, color 0x050507 (dark), has emissive bands
-// - Spawn: (0, 2.5, -5) - near front wall (z=0)
-// - Exit portal: (0, 2.5, -98) - near back wall (z=-100)
-// - Tiles: 16 tiles, start z = -10, step z = +5.5
-//   → First tile at z = -10
-//   → Last tile at z = -10 + (15 * 5.5) = 72.5
-//   → PROBLEM: Tiles go toward POSITIVE Z (away from portal at z=-98)
-// - Tiles: Side material 0x111111, emissive 0x441111 (very dark), top 0x000000 (black)
-//   → Tiles barely visible against dark floor
-// - Death/reset logic: Present in animate() loop, uses isOnSafeTile() check
-// - Movement: Uses controls.getObject().position (correct)
+// ═══════════════════════════════════════════════════════════════════════
+// INVESTIGATION SUMMARY (Lava Platforming Rework)
+// ═══════════════════════════════════════════════════════════════════════
+//
+// ROOT CAUSE: Why lava death never triggers
+// - Jump physics (lines 506-514) clamps player.position.y back to eyeHeight (2.5)
+//   whenever Y drops below it, preventing any fall
+// - Lava trigger check is y < 1.0, but player Y never goes below 2.5
+// - Result: Lava death condition was unreachable dead code
+//
+// ORIGINAL LAYOUT:
+// - Lava floor mesh: y = -0.5
+// - Tiles base: y = 0.0
+// - Player eyeHeight: y = 2.5
+// - Lava trigger: y < 1.0 (never reached)
+//
+// NEW LAYOUT (Deep Pit Design):
+// - Lava floor mesh: y = -8.0 (deep glowing pit)
+// - Tiles base: y = 0.2 (raised platforms)
+// - Player spawn: y = 2.7 (standing on first tile)
+// - Fall death: y ≤ -7.5 (approaching lava surface)
+// - Fall mechanic: Player falls when not on safe tile, creating "drop into pit" feeling
+//
+// NFT ASSETS:
+// - Using /assets/Room6/1.webp through 31.webp (31 NFT images)
+// - Replacing 13 video textures for better performance
+// - Wall-mounted planes, alternating sides like original videos
+//
+// ═══════════════════════════════════════════════════════════════════════
 
 // Basic parameters
 const corridorLength = 100;
@@ -31,8 +339,9 @@ const gravity = -30;
 
 // Lava & platform configuration
 const ROOM6_CONFIG = {
-  lavaFloorY: -0.5,                 // Actual floor mesh height
-  lavaTriggerY: 1.0,                // If player drops below this, trigger death check
+  lavaFloorY: -8.0,                 // Deep pit - actual floor mesh height
+  lavaTriggerY: -7.5,               // Death trigger when approaching lava surface
+  tileBaseY: 0.2,                   // Raised platforms above the pit
   respawnPosition: new THREE.Vector3(0, eyeHeight, -8), // Will be updated to first tile
 
   // Hex tile settings
@@ -45,7 +354,16 @@ const ROOM6_CONFIG = {
   scatterX: 1.6,                    // Zigzag horizontally for interest
   tileSafeRadius: 1.5,              // Slightly bigger than tile for forgiveness
   tileFloatAmplitude: 0.05,         // Subtle hover animation
-  tileFloatSpeed: 1.0
+  tileFloatSpeed: 1.0,
+  
+  // Lava Monolith Artifacts (under-tile ritual shards)
+  enableMonoliths: true,
+  monolithCount: 5,                 // Sparse placement for atmosphere
+  monolithTileIndices: [2, 5, 8, 11, 13], // Which tiles to place under
+  monolithYOffset: -5.5,            // Position in pit (between lava -8.0 and tiles 0.2)
+  monolithScale: 0.6,               // Scaled to fit under single tile
+  monolithHoverAmplitude: 0.15,     // Subtle float animation
+  monolithHoverSpeed: 0.4           // Slow sinusoidal motion
 };
 
 let moveForward = false;
@@ -54,7 +372,8 @@ let moveLeft = false;
 let moveRight = false;
 let isJumping = false;
 let jumpVelocity = 0;
-let videosStarted = false;
+let isFalling = false;            // Track if player is falling into lava
+let fallVelocity = 0;             // Vertical velocity when falling
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0a0a0f); // Dark background, no blinding white
@@ -247,45 +566,32 @@ for (let z = -15; z >= -90; z -= 15) {
   addWallTorch(9.5, torchY, z, 'left');   // Right wall
 }
 
-// Load videos
-const videoFiles = [
-  'Amy1.mp4','Angel1.mp4','Anna1.mp4','April1.mp4','Cara1.mp4','Claire1.mp4','Cynthia2.mp4','Dasha1.mp4','Devon2.mp4','Huong1.mp4','Lucy1.mp4','Ruby1.mp4','Sarah1.mp4'
-];
+// ----------------------------------------------------------------------
+// NFT Wall Art - Room 6 Collection
+// ----------------------------------------------------------------------
+// Using static NFT images from /assets/Room6/ instead of videos
+// 14 NFTs displayed (matching tile count), alternating walls like original videos
 
-const videoPlanes = [];
-const spacing = corridorLength / (videoFiles.length + 1);
-videoFiles.forEach((file, index) => {
-  const video = document.createElement('video');
-  video.src = `/assets/${file}`; // FIXED: Changed from /videos/ to /assets/
-  video.loop = true;
-  video.muted = true;
-  video.autoplay = true;
-  video.playsInline = true;
-  video.style.display = 'none';
-  document.body.appendChild(video);
+const nftPlanes = [];
+const textureLoader = new THREE.TextureLoader();
+const nftCount = 14; // Display 14 of the 31 available NFTs
+const nftSpacing = corridorLength / (nftCount + 1);
 
-  const texture = new THREE.VideoTexture(video);
+for (let i = 0; i < nftCount; i++) {
+  const nftIndex = i + 1; // Use NFTs 1-14
+  const texture = textureLoader.load(`/assets/Room6/${nftIndex}.webp`);
   const material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide });
-  const plane = new THREE.Mesh(new THREE.PlaneGeometry(4, 4), material);
-  const z = -spacing * (index + 1);
-  const side = index % 2 === 0 ? -1 : 1;
+  const plane = new THREE.Mesh(new THREE.PlaneGeometry(3.5, 3.5), material);
+  
+  const z = -nftSpacing * (i + 1);
+  const side = i % 2 === 0 ? -1 : 1; // Alternate left/right
+  
   plane.position.set(side * (corridorWidth / 2 - 0.1), eyeHeight + 0.5, z);
   plane.rotation.y = side === 1 ? -Math.PI / 2 : Math.PI / 2;
+  
   scene.add(plane);
-  videoPlanes.push(plane);
-});
-
-// Start all videos on first user interaction
-document.addEventListener('click', () => {
-  if (!videosStarted) {
-    document.querySelectorAll('video').forEach(v => {
-      if (v.paused) {
-        v.play().catch(() => {});
-      }
-    });
-    videosStarted = true;
-  }
-}, { once: true });
+  nftPlanes.push(plane);
+}
 
 // ----------------------------------------------------------------------
 // Hex Tile Platforms - Safe spots above lava
@@ -331,13 +637,16 @@ function createHexTiles() {
     if (phase === 1) x += cfg.scatterX;
     if (phase === 2) x -= cfg.scatterX;
 
-    const baseY = 0.0;
+    const baseY = cfg.tileBaseY;
 
     tile.position.set(x, baseY, z);
     tile.rotation.y = Math.random() * Math.PI * 2; // Random rotation for organic feel
 
     scene.add(tile);
     hexTiles.push(tile);
+    
+    // Store tile data for monolith placement
+    tileData.push({ position: new THREE.Vector3(x, baseY, z), index: i });
 
     // Store center for collision detection (x, z in 2D)
     tileCenters.push(new THREE.Vector2(x, z));
@@ -345,14 +654,21 @@ function createHexTiles() {
 
   const firstZ = cfg.tileStartZ;
   const lastZ = cfg.tileStartZ + (cfg.tileCount - 1) * cfg.tileStepZ;
-  console.log(`✓ Room 6: Created ${cfg.tileCount} hex tiles`);
-  console.log(`  First tile: z = ${firstZ}`);
+  console.log(`✓ Created ${cfg.tileCount} hex tiles. Player should stand on first tile at ${cfg.tileStartZ}`);
   console.log(`  Last tile:  z = ${lastZ}`);
   console.log(`  Spawn: z = -5, Portal: z = -98`);
   console.log(`  Direction: ${cfg.tileStepZ > 0 ? 'POSITIVE (WRONG!)' : 'NEGATIVE (toward portal) ✓'}`);
+
+  return hexTiles;
 }
 
+// Store tile data for monolith placement
+const tileData = [];
+
 createHexTiles();
+
+// Place lava monoliths under selected tiles
+const lavaMonoliths = placeMonolithsUnderTiles(tileData);
 
 // Set spawn position to first tile center
 if (tileCenters.length > 0) {
@@ -398,6 +714,8 @@ function respawnPlayer() {
   velocity.set(0, 0, 0);
   jumpVelocity = 0;
   isJumping = false;
+  isFalling = false;
+  fallVelocity = 0;
   console.log('💀 Lava death! Respawning at start...');
 }
 
@@ -493,7 +811,7 @@ function animate() {
 
   // Hover animation for hex tiles
   hexTiles.forEach((tile, index) => {
-    const baseY = 0.0;
+    const baseY = ROOM6_CONFIG.tileBaseY;
     const phase = index * 0.3;
     const amplitude = ROOM6_CONFIG.tileFloatAmplitude;
     const speed = ROOM6_CONFIG.tileFloatSpeed;
@@ -502,15 +820,52 @@ function animate() {
 
   if (controls.isLocked) {
     const player = controls.getObject();
+    const onTile = isOnSafeTile(player.position);
 
-    // Jump physics
+    // Vertical physics - platform vs falling
     if (isJumping) {
+      // Jump arc
       player.position.y += jumpVelocity * delta;
       jumpVelocity += gravity * delta;
-      if (player.position.y <= eyeHeight) {
+      
+      // Land on tile if we're on one
+      if (onTile && player.position.y <= eyeHeight) {
         player.position.y = eyeHeight;
         isJumping = false;
         jumpVelocity = 0;
+        isFalling = false;
+        fallVelocity = 0;
+      }
+      // Start falling if we've descended and not on a tile
+      else if (!onTile && player.position.y <= eyeHeight) {
+        isJumping = false;
+        isFalling = true;
+        fallVelocity = jumpVelocity; // Maintain downward velocity
+      }
+    } else if (isFalling) {
+      // Free fall into lava pit
+      player.position.y += fallVelocity * delta;
+      fallVelocity += gravity * delta * 0.8; // Slightly reduced gravity for fall feeling
+      
+      // Check if we've fallen onto a tile (mid-fall)
+      if (onTile && player.position.y <= eyeHeight) {
+        player.position.y = eyeHeight;
+        isFalling = false;
+        fallVelocity = 0;
+      }
+    } else {
+      // Ground state - are we standing on a tile?
+      if (onTile) {
+        // Standing on platform - maintain height
+        if (player.position.y < eyeHeight) {
+          player.position.y = eyeHeight;
+        }
+      } else {
+        // Not on a tile and not jumping - start falling!
+        if (player.position.y > ROOM6_CONFIG.lavaTriggerY + 0.5) {
+          isFalling = true;
+          fallVelocity = 0;
+        }
       }
     }
 
@@ -538,14 +893,34 @@ function animate() {
     player.position.x = Math.max(-halfWidth, Math.min(halfWidth, player.position.x));
     player.position.z = Math.max(minZ, Math.min(maxZ, player.position.z));
 
-    // Lava death detection - trigger when falling below threshold
-    if (player.position.y < ROOM6_CONFIG.lavaTriggerY && !isOnSafeTile(player.position)) {
+    // Lava death detection - player has fallen into the lava pit
+    // This triggers when Y reaches near the lava floor surface
+    if (player.position.y <= ROOM6_CONFIG.lavaTriggerY) {
       respawnPlayer();
-      console.log('ROOM 6: lava death triggered');
     }
 
     // Check portal proximity
     checkPortalProximity();
+  }
+
+  // Animate lava monoliths (hover + light flicker)
+  if (lavaMonoliths.length > 0) {
+    lavaMonoliths.forEach((monolith, index) => {
+      const cfg = ROOM6_CONFIG;
+      
+      // Subtle hover animation
+      const phase = index * 0.7; // Unique phase per monolith
+      const hoverY = cfg.monolithYOffset + Math.sin(time * cfg.monolithHoverSpeed + phase) * cfg.monolithHoverAmplitude;
+      monolith.group.position.y = hoverY;
+      
+      // Slow rotation
+      monolith.group.rotation.y += delta * 0.05;
+      monolith.group.rotation.z = Math.cos(time * 0.15 + phase) * 0.02; // Tiny wobble
+      
+      // Light flicker
+      monolith.lights[0].intensity = 1.0 + Math.sin(time * 15 + index) * 0.2; // Rune light
+      monolith.lights[1].intensity = 0.8 + Math.cos(time * 10 + index * 0.5) * 0.15; // Lava light
+    });
   }
 
   // Animate portals
