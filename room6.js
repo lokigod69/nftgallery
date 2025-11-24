@@ -355,11 +355,11 @@ const ROOM6_CONFIG = {
   respawnPosition: new THREE.Vector3(0, eyeHeight, -8), // Fixed starting position - never changes
 
   // Hex tile settings
-  tileCount: 14,                    // 14 tiles to reach portal
+  tileCount: 14,                    // 14 tiles with increased spacing
   tileRadius: 1.3,
   tileHeight: 0.4,
   tileStartZ: -8,                   // First tile just in front of spawn
-  tileStepZ: -3.5,                  // Easier jump distance
+  tileStepZ: -5.0,                  // Increased spacing - can't skip tiles
   baseX: 0,                         // Straight line center (no zigzag)
   tileSafeRadius: 1.5,              // Slightly bigger than tile for forgiveness
   tileFloatAmplitude: 0.05,         // Subtle hover animation
@@ -369,7 +369,7 @@ const ROOM6_CONFIG = {
   horizontalFloatEnabled: true,     // Enable horizontal movement
   horizontalFloatAmplitude: 6.9,    // 69% of distance to wall (corridorWidth/2 = 10)
   horizontalFloatSpeed: 0.8,        // Speed of horizontal movement
-  horizontalFloatPattern: [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0], // 1=moving, 0=stationary
+  horizontalFloatPattern: [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1], // 1=moving, 0=stationary (first tile stationary)
   
   // Lava Monolith Artifacts (side wall ritual shards)
   enableMonoliths: true,
@@ -703,26 +703,29 @@ createHexTiles();
 // Place lava monoliths on tunnel sides between NFTs
 const lavaMonoliths = placeMonolithsOnWalls();
 
-// Initialize player at fixed starting position (not first tile)
-// Player spawns at room entrance, then must jump to first tile
-camera.position.copy(ROOM6_CONFIG.respawnPosition);
-controls.getObject().position.copy(ROOM6_CONFIG.respawnPosition);
+// Initialize player on first tile (stationary platform)
+camera.position.set(0, eyeHeight, ROOM6_CONFIG.tileStartZ);
+controls.getObject().position.set(0, eyeHeight, ROOM6_CONFIG.tileStartZ);
 
-console.log(`✓ Spawn set to fixed starting position at (0, ${eyeHeight}, -8)`);
-console.log(`✓ First tile is at ${ROOM6_CONFIG.tileStartZ} - player must jump to reach it`);
+console.log(`✓ Spawn set to first tile at (0, ${eyeHeight}, ${ROOM6_CONFIG.tileStartZ})`);
+console.log(`✓ First tile is stationary - player spawns directly on it`);
 
 // ----------------------------------------------------------------------
-// Safe Tile Detection - Check if player is above a tile
+// Safe Tile Detection - Check if player is above a tile (supports moving tiles)
 // ----------------------------------------------------------------------
 function isOnSafeTile(position) {
   const px = position.x;
   const pz = position.z;
   const safeRadiusSq = ROOM6_CONFIG.tileSafeRadius * ROOM6_CONFIG.tileSafeRadius;
 
-  for (let i = 0; i < tileCenters.length; i++) {
-    const c = tileCenters[i];
-    const dx = px - c.x;
-    const dz = pz - c.y; // Vector2 uses (x, y) for (x, z) in 3D
+  // Check against actual tile positions (including moving tiles)
+  for (let i = 0; i < hexTiles.length; i++) {
+    const tile = hexTiles[i];
+    const tileX = tile.position.x; // Current X position (includes horizontal movement)
+    const tileZ = tile.position.z; // Current Z position
+    
+    const dx = px - tileX;
+    const dz = pz - tileZ;
     if (dx * dx + dz * dz < safeRadiusSq) {
       return true;
     }
@@ -834,13 +837,28 @@ function animate() {
   const delta = clock.getDelta();
   const time = performance.now() * 0.001;
 
-  // Hover animation for hex tiles
+  // Animate tiles FIRST - this updates positions before player physics
   hexTiles.forEach((tile, index) => {
-    const baseY = ROOM6_CONFIG.tileBaseY;
-    const phase = index * 0.3;
-    const amplitude = ROOM6_CONFIG.tileFloatAmplitude;
-    const speed = ROOM6_CONFIG.tileFloatSpeed;
-    tile.position.y = baseY + Math.sin(time * speed + phase) * amplitude;
+    const cfg = ROOM6_CONFIG;
+    
+    // Store current position before updating for platform movement calculation
+    if (!tile.userData.lastPosition) {
+      tile.userData.lastPosition = new THREE.Vector3(tile.position.x, tile.position.y, tile.position.z);
+    } else {
+      // Update lastPosition for next frame's movement calculation
+      tile.userData.lastPosition.copy(tile.position);
+    }
+    
+    // Vertical hover animation (all tiles)
+    const verticalPhase = index * 0.3;
+    const hoverY = cfg.tileBaseY + Math.sin(time * cfg.tileFloatSpeed + verticalPhase) * cfg.tileFloatAmplitude;
+    tile.position.y = hoverY;
+    
+    // Horizontal floating animation (selected tiles only)
+    if (tile.userData.isHorizontalFloating && cfg.horizontalFloatEnabled) {
+      const horizontalOffset = Math.sin(time * cfg.horizontalFloatSpeed + tile.userData.horizontalPhase) * cfg.horizontalFloatAmplitude;
+      tile.position.x = tile.userData.baseX + horizontalOffset;
+    }
   });
 
   if (controls.isLocked) {
@@ -885,6 +903,37 @@ function animate() {
         if (player.position.y < eyeHeight) {
           player.position.y = eyeHeight;
         }
+        
+        // Move with platform if standing on a moving tile
+        for (let i = 0; i < hexTiles.length; i++) {
+          const tile = hexTiles[i];
+          const tileX = tile.position.x;
+          const tileZ = tile.position.z;
+          
+          const dx = player.position.x - tileX;
+          const dz = player.position.z - tileZ;
+          const distSq = dx * dx + dz * dz;
+          
+          // If player is on this tile, move with it
+          if (distSq < ROOM6_CONFIG.tileSafeRadius * ROOM6_CONFIG.tileSafeRadius) {
+            // Store last tile position for movement calculation
+            if (!tile.userData.lastPosition) {
+              tile.userData.lastPosition = new THREE.Vector3(tileX, tile.position.y, tileZ);
+            }
+            
+            // Calculate platform movement delta
+            const deltaX = tileX - tile.userData.lastPosition.x;
+            const deltaZ = tileZ - tile.userData.lastPosition.z;
+            
+            // Move player with platform
+            player.position.x += deltaX;
+            player.position.z += deltaZ;
+            
+            // Update last position
+            tile.userData.lastPosition.set(tileX, tile.position.y, tileZ);
+            break;
+          }
+        }
       } else {
         // Not on a tile and not jumping - start falling!
         if (player.position.y > ROOM6_CONFIG.lavaTriggerY + 0.5) {
@@ -928,21 +977,7 @@ function animate() {
     checkPortalProximity();
   }
 
-  // Animate tiles - vertical hover + horizontal floating
-  hexTiles.forEach((tile, index) => {
-    const cfg = ROOM6_CONFIG;
-    
-    // Vertical hover animation (all tiles)
-    const verticalPhase = index * 0.3;
-    const hoverY = cfg.tileBaseY + Math.sin(time * cfg.tileFloatSpeed + verticalPhase) * cfg.tileFloatAmplitude;
-    tile.position.y = hoverY;
-    
-    // Horizontal floating animation (selected tiles only)
-    if (tile.userData.isHorizontalFloating && cfg.horizontalFloatEnabled) {
-      const horizontalOffset = Math.sin(time * cfg.horizontalFloatSpeed + tile.userData.horizontalPhase) * cfg.horizontalFloatAmplitude;
-      tile.position.x = tile.userData.baseX + horizontalOffset;
-    }
-  });
+  // Tile animation already handled above (moved before player physics)
 
   // Animate lava monoliths (hover + light flicker)
   if (lavaMonoliths.length > 0) {
