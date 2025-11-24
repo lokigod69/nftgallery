@@ -255,33 +255,43 @@ function createLavaMonolith() {
 }
 
 /**
- * Place monoliths under selected tiles
+ * Place monoliths on tunnel sides between NFTs
  * Returns: Array of { group, lights, baseY } for animation
  */
-function placeMonolithsUnderTiles(tileData) {
+function placeMonolithsOnWalls() {
   const cfg = ROOM6_CONFIG;
   if (!cfg.enableMonoliths) return [];
 
   initMonolithMaterials();
 
   const monoliths = [];
+  const nftSpacing = corridorLength / (14 + 1); // 14 NFTs displayed
 
-  cfg.monolithTileIndices.forEach(tileIndex => {
-    if (tileIndex >= tileData.length) return; // Safety check
-
-    const tilePos = tileData[tileIndex].position;
+  cfg.monolithWallIndices.forEach((nftIndex, i) => {
+    // Calculate position between NFTs on walls
+    const z = -nftSpacing * (nftIndex + 1); // Match NFT Z positions
+    const side = nftIndex % 2 === 0 ? -1 : 1; // Alternate left/right like NFTs
+    
+    // Position on tunnel sides, slightly back from walls
+    const x = side * (corridorWidth / 2 - cfg.monolithSideOffset);
 
     const { group, lights } = createLavaMonolith();
 
-    // Position under tile in lava pit
+    // Position on tunnel side in lava pit
     group.position.set(
-      tilePos.x,
+      x,
       cfg.monolithYOffset,
-      tilePos.z
+      z
     );
 
-    // Random rotation for variety
-    group.rotation.y = Math.random() * Math.PI * 2;
+    // Rotate to face inward (toward tunnel center)
+    if (side === -1) {
+      // Left wall - face right (0 radians)
+      group.rotation.y = 0;
+    } else {
+      // Right wall - face left (PI radians)
+      group.rotation.y = Math.PI;
+    }
 
     scene.add(group);
 
@@ -292,7 +302,7 @@ function placeMonolithsUnderTiles(tileData) {
     });
   });
 
-  console.log(`✓ Placed ${monoliths.length} lava monolith artifacts under tiles`);
+  console.log(`✓ Placed ${monoliths.length} lava monolith artifacts on tunnel sides`);
   return monoliths;
 }
 
@@ -342,7 +352,7 @@ const ROOM6_CONFIG = {
   lavaFloorY: -8.0,                 // Deep pit - actual floor mesh height
   lavaTriggerY: -7.5,               // Death trigger when approaching lava surface
   tileBaseY: 0.2,                   // Raised platforms above the pit
-  respawnPosition: new THREE.Vector3(0, eyeHeight, -8), // Will be updated to first tile
+  respawnPosition: new THREE.Vector3(0, eyeHeight, -8), // Fixed starting position - never changes
 
   // Hex tile settings
   tileCount: 14,                    // 14 tiles to reach portal
@@ -350,20 +360,26 @@ const ROOM6_CONFIG = {
   tileHeight: 0.4,
   tileStartZ: -8,                   // First tile just in front of spawn
   tileStepZ: -3.5,                  // Easier jump distance
-  baseX: 0,
-  scatterX: 1.6,                    // Zigzag horizontally for interest
+  baseX: 0,                         // Straight line center (no zigzag)
   tileSafeRadius: 1.5,              // Slightly bigger than tile for forgiveness
   tileFloatAmplitude: 0.05,         // Subtle hover animation
   tileFloatSpeed: 1.0,
   
-  // Lava Monolith Artifacts (under-tile ritual shards)
+  // Horizontal floating tiles configuration
+  horizontalFloatEnabled: true,     // Enable horizontal movement
+  horizontalFloatAmplitude: 6.9,    // 69% of distance to wall (corridorWidth/2 = 10)
+  horizontalFloatSpeed: 0.8,        // Speed of horizontal movement
+  horizontalFloatPattern: [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0], // 1=moving, 0=stationary
+  
+  // Lava Monolith Artifacts (side wall ritual shards)
   enableMonoliths: true,
   monolithCount: 5,                 // Sparse placement for atmosphere
-  monolithTileIndices: [2, 5, 8, 11, 13], // Which tiles to place under
+  monolithWallIndices: [1, 3, 5, 7, 9], // Which NFT wall positions to place between
   monolithYOffset: -5.5,            // Position in pit (between lava -8.0 and tiles 0.2)
-  monolithScale: 0.6,               // Scaled to fit under single tile
+  monolithScale: 0.6,               // Scaled to fit in side spaces
   monolithHoverAmplitude: 0.15,     // Subtle float animation
-  monolithHoverSpeed: 0.4           // Slow sinusoidal motion
+  monolithHoverSpeed: 0.4,          // Slow sinusoidal motion
+  monolithSideOffset: 8.0           // Distance from center to tunnel sides
 };
 
 let moveForward = false;
@@ -383,7 +399,7 @@ camera.position.set(0, eyeHeight, -5);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.outputColorSpace = THREE.SRGBColorSpace; // Use proper color space
 document.body.appendChild(renderer.domElement);
 
 const controls = new PointerLockControls(camera, document.body);
@@ -403,9 +419,8 @@ controls.addEventListener('unlock', () => {
   if (overlay) overlay.style.display = 'block';
 });
 
-const light = new THREE.HemisphereLight(0xffffff, 0x444444, 1.0);
-light.position.set(0, 20, 0);
-scene.add(light);
+// Note: HemisphereLight removed to prevent color influence on NFTs
+// NFTs use MeshBasicMaterial with toneMapped: false for original colors
 
 // ----------------------------------------------------------------------
 // Lava Floor - "Laser Lava" Grid
@@ -579,8 +594,21 @@ const nftSpacing = corridorLength / (nftCount + 1);
 
 for (let i = 0; i < nftCount; i++) {
   const nftIndex = i + 1; // Use NFTs 1-14
-  const texture = textureLoader.load(`/assets/Room6/${nftIndex}.webp`);
-  const material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide });
+  const texture = textureLoader.load(
+    `/assets/Room6/${nftIndex}.webp`,
+    // onLoad callback to ensure proper color space
+    (loadedTexture) => {
+      loadedTexture.colorSpace = THREE.SRGBColorSpace; // Ensure correct color space
+    }
+  );
+  const material = new THREE.MeshBasicMaterial({ 
+    map: texture, 
+    side: THREE.DoubleSide,
+    // Ensure NFTs are completely unlit and display original colors
+    transparent: false,
+    alphaTest: 0,
+    toneMapped: false // Disable tone mapping to preserve original colors
+  });
   const plane = new THREE.Mesh(new THREE.PlaneGeometry(3.5, 3.5), material);
   
   const z = -nftSpacing * (i + 1);
@@ -628,18 +656,23 @@ function createHexTiles() {
     // Apply materials: [sides, top, bottom]
     const tile = new THREE.Mesh(geom, [sideMat, topMat.clone(), sideMat]);
 
-    // Position along corridor with 3-phase zigzag pattern
+    // Position along corridor in straight line
     const z = cfg.tileStartZ + i * cfg.tileStepZ;
 
-    // Simple deterministic zigzag: 0 → +scatter → -scatter → repeat
-    let x = cfg.baseX;
-    const phase = i % 3;
-    if (phase === 1) x += cfg.scatterX;
-    if (phase === 2) x -= cfg.scatterX;
-
+    // Straight line positioning (no zigzag)
+    const x = cfg.baseX; // Always center X = 0
     const baseY = cfg.tileBaseY;
 
     tile.position.set(x, baseY, z);
+    
+    // Store horizontal movement data
+    const isHorizontalFloating = cfg.horizontalFloatPattern[i] === 1;
+    tile.userData = {
+      baseX: x,
+      isHorizontalFloating: isHorizontalFloating,
+      horizontalPhase: i * 0.5 // Unique phase for each floating tile
+    };
+    
     tile.rotation.y = Math.random() * Math.PI * 2; // Random rotation for organic feel
 
     scene.add(tile);
@@ -667,24 +700,16 @@ const tileData = [];
 
 createHexTiles();
 
-// Place lava monoliths under selected tiles
-const lavaMonoliths = placeMonolithsUnderTiles(tileData);
+// Place lava monoliths on tunnel sides between NFTs
+const lavaMonoliths = placeMonolithsOnWalls();
 
-// Set spawn position to first tile center
-if (tileCenters.length > 0) {
-  const firstTileCenter = tileCenters[0];
-  ROOM6_CONFIG.respawnPosition.set(
-    firstTileCenter.x,
-    eyeHeight,
-    firstTileCenter.y
-  );
+// Initialize player at fixed starting position (not first tile)
+// Player spawns at room entrance, then must jump to first tile
+camera.position.copy(ROOM6_CONFIG.respawnPosition);
+controls.getObject().position.copy(ROOM6_CONFIG.respawnPosition);
 
-  // Initialize player at first tile
-  camera.position.copy(ROOM6_CONFIG.respawnPosition);
-  controls.getObject().position.copy(ROOM6_CONFIG.respawnPosition);
-
-  console.log(`✓ Spawn set to first tile at (${firstTileCenter.x.toFixed(1)}, ${eyeHeight}, ${firstTileCenter.y.toFixed(1)})`);
-}
+console.log(`✓ Spawn set to fixed starting position at (0, ${eyeHeight}, -8)`);
+console.log(`✓ First tile is at ${ROOM6_CONFIG.tileStartZ} - player must jump to reach it`);
 
 // ----------------------------------------------------------------------
 // Safe Tile Detection - Check if player is above a tile
@@ -902,6 +927,22 @@ function animate() {
     // Check portal proximity
     checkPortalProximity();
   }
+
+  // Animate tiles - vertical hover + horizontal floating
+  hexTiles.forEach((tile, index) => {
+    const cfg = ROOM6_CONFIG;
+    
+    // Vertical hover animation (all tiles)
+    const verticalPhase = index * 0.3;
+    const hoverY = cfg.tileBaseY + Math.sin(time * cfg.tileFloatSpeed + verticalPhase) * cfg.tileFloatAmplitude;
+    tile.position.y = hoverY;
+    
+    // Horizontal floating animation (selected tiles only)
+    if (tile.userData.isHorizontalFloating && cfg.horizontalFloatEnabled) {
+      const horizontalOffset = Math.sin(time * cfg.horizontalFloatSpeed + tile.userData.horizontalPhase) * cfg.horizontalFloatAmplitude;
+      tile.position.x = tile.userData.baseX + horizontalOffset;
+    }
+  });
 
   // Animate lava monoliths (hover + light flicker)
   if (lavaMonoliths.length > 0) {
