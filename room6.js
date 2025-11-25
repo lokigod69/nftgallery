@@ -355,7 +355,7 @@ const ROOM6_CONFIG = {
   respawnPosition: new THREE.Vector3(0, eyeHeight, -8), // Fixed starting position - never changes
 
   // Hex tile settings
-  tileCount: 14,                    // 14 tiles with increased spacing
+  tileCount: 15,                    // 15 tiles including final platform before portal
   tileRadius: 1.3,
   tileHeight: 0.4,
   tileStartZ: -8,                   // First tile just in front of spawn
@@ -369,7 +369,7 @@ const ROOM6_CONFIG = {
   horizontalFloatEnabled: true,     // Enable horizontal movement
   horizontalFloatAmplitude: 6.9,    // 69% of distance to wall (corridorWidth/2 = 10)
   horizontalFloatSpeed: 0.8,        // Speed of horizontal movement
-  horizontalFloatPattern: [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1], // 1=moving, 0=stationary (first tile stationary)
+  horizontalFloatPattern: [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0], // 1=moving, 0=stationary (final tile stationary)
   
   // Lava Monolith Artifacts (side wall ritual shards)
   enableMonoliths: true,
@@ -766,7 +766,13 @@ function onKeyDown(event) {
       moveRight = true;
       break;
     case 'Space':
-      if (!isJumping) { jumpVelocity = 10; isJumping = true; }
+      // Only jump if on solid ground (not jumping, not falling, on a tile)
+      const player = controls.getObject();
+      const onTile = isOnSafeTile(player.position);
+      if (!isJumping && !isFalling && onTile) { 
+        jumpVelocity = 10; 
+        isJumping = true; 
+      }
       break;
   }
 }
