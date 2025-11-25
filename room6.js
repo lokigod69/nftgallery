@@ -426,49 +426,159 @@ controls.addEventListener('unlock', () => {
 // NFTs use MeshBasicMaterial with toneMapped: false for original colors
 
 // ----------------------------------------------------------------------
-// Lava Floor - "Laser Lava" Grid
+// Lava Floor - Cracked Lava Texture
 // ----------------------------------------------------------------------
-function createLavaFloor() {
-  const floorGeo = new THREE.PlaneGeometry(corridorWidth, corridorLength);
 
-  // Create procedural grid texture for lava
+/**
+ * Procedural cracked lava texture - dark crust with glowing magma veins
+ */
+function createLavaTexture() {
+  const size = 1024;
   const canvas = document.createElement('canvas');
-  canvas.width = 512;
-  canvas.height = 512;
+  canvas.width = size;
+  canvas.height = size;
   const ctx = canvas.getContext('2d');
 
-  // Dark base
-  ctx.fillStyle = '#050509';
-  ctx.fillRect(0, 0, 512, 512);
+  // 1. Magma Base (Bright Orange/Yellow underneath)
+  ctx.fillStyle = '#ffaa00';
+  ctx.fillRect(0, 0, size, size);
 
-  // Red grid lines - brighter and less dense
-  ctx.strokeStyle = '#880000';
-  ctx.lineWidth = 3;
-  const gridSize = 48; // Larger grid = less dense
-  for (let i = 0; i <= 512; i += gridSize) {
+  // 2. Crust Layer (Dark Rock) - We will cut holes in this
+  ctx.fillStyle = '#050505'; // Almost black
+  ctx.fillRect(0, 0, size, size);
+
+  // 3. Cut Cracks (Erase the crust to reveal magma)
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  // Function to draw a jagged crack line
+  const drawCrack = (x, y, length, width) => {
+    ctx.lineWidth = width;
     ctx.beginPath();
-    ctx.moveTo(i, 0);
-    ctx.lineTo(i, 512);
+    ctx.moveTo(x, y);
+    let cx = x;
+    let cy = y;
+    for (let i = 0; i < length; i++) {
+      cx += (Math.random() - 0.5) * 20;
+      cy += (Math.random() - 0.5) * 20;
+      ctx.lineTo(cx, cy);
+    }
     ctx.stroke();
+  };
 
+  // Draw many small cracks
+  for (let i = 0; i < 150; i++) {
+    drawCrack(
+      Math.random() * size,
+      Math.random() * size,
+      30,
+      3 + Math.random() * 5
+    );
+  }
+
+  // Big primary veins
+  for (let i = 0; i < 10; i++) {
+    drawCrack(
+      Math.random() * size,
+      Math.random() * size,
+      100,
+      10 + Math.random() * 10
+    );
+  }
+
+  // Reset composite operation
+  ctx.globalCompositeOperation = 'source-over';
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(4, 4); // Tile the pattern
+  return tex;
+}
+
+/**
+ * Procedural rock texture for cave ceiling and stalactites
+ */
+function createCaveRockTexture() {
+  const size = 512;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+
+  // Dark grey base
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(0, 0, size, size);
+
+  // Add noise for rough texture
+  for (let i = 0; i < 40000; i++) {
+    ctx.fillStyle = Math.random() > 0.5 ? '#000' : '#2a2a2a';
+    ctx.globalAlpha = 0.15;
+    ctx.fillRect(Math.random() * size, Math.random() * size, 2, 2);
+  }
+
+  // Add scratches and cracks
+  ctx.strokeStyle = '#0a0a0a';
+  ctx.globalAlpha = 0.4;
+  for (let i = 0; i < 30; i++) {
+    ctx.lineWidth = 1 + Math.random() * 2;
     ctx.beginPath();
-    ctx.moveTo(0, i);
-    ctx.lineTo(512, i);
+    ctx.moveTo(Math.random() * size, Math.random() * size);
+    ctx.lineTo(Math.random() * size, Math.random() * size);
     ctx.stroke();
   }
 
-  const gridTexture = new THREE.CanvasTexture(canvas);
-  gridTexture.wrapS = THREE.RepeatWrapping;
-  gridTexture.wrapT = THREE.RepeatWrapping;
-  gridTexture.repeat.set(6, 24); // Make pattern larger (less frequent)
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  return tex;
+}
+
+/**
+ * Create a single stalactite mesh with organic distortion
+ */
+function createStalactiteMesh(height, width, material) {
+  const geo = new THREE.ConeGeometry(width, height, 12, 12, true);
+  geo.translate(0, -height / 2, 0); // Pivot at top so it hangs down
+
+  // Vertex distortion for organic, jagged look
+  const pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const y = pos.getY(i);
+    const x = pos.getX(i);
+    const z = pos.getZ(i);
+
+    // More distortion at the base (top of cone), less at the tip
+    const distortionAmount = Math.abs(y / height) * 0.6;
+
+    pos.setX(i, x + (Math.random() - 0.5) * width * distortionAmount);
+    pos.setZ(i, z + (Math.random() - 0.5) * width * distortionAmount);
+
+    // Slight random vertical variation for roughness
+    pos.setY(i, y + (Math.random() - 0.5) * 0.2);
+  }
+
+  geo.computeVertexNormals();
+  return new THREE.Mesh(geo, material);
+}
+
+function createLavaFloor() {
+  const floorGeo = new THREE.PlaneGeometry(corridorWidth, corridorLength, 256, 256);
+
+  // Generate cracked lava texture
+  const lavaTex = createLavaTexture();
 
   const floorMat = new THREE.MeshStandardMaterial({
-    color: 0x050509,
-    emissive: 0x440000, // Deeper red
-    emissiveMap: gridTexture,
-    emissiveIntensity: 0.9, // Brighter than before
-    roughness: 0.9,
-    metalness: 0.1
+    color: 0x000000,          // The crust is black
+    roughness: 0.8,
+    emissiveMap: lavaTex,     // The cracks glow
+    emissive: 0xff3300,       // Glow color tint (bright red-orange)
+    emissiveIntensity: 2.5,   // Strong glow for dramatic effect
+    bumpMap: lavaTex,         // Cracks appear lower
+    bumpScale: 0.5,
+    displacementMap: lavaTex, // Actual geometry deformation
+    displacementScale: 1.0    // Height of displacement (reduced from 1.5 for subtlety)
   });
 
   const floor = new THREE.Mesh(floorGeo, floorMat);
@@ -481,8 +591,18 @@ function createLavaFloor() {
 
 const floor = createLavaFloor();
 
-// Walls
-const wallMat = new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 0.7, roughness: 0.1 });
+// Generate shared textures ONCE for reuse (performance optimization)
+const sharedRockTexture = createCaveRockTexture();
+
+// Walls - Cave rock texture
+const wallMat = new THREE.MeshStandardMaterial({
+  color: 0x2a2a2a,       // Dark grey rock
+  map: sharedRockTexture,
+  roughness: 0.9,        // Rough cave surface (not metallic)
+  metalness: 0.1,        // Low metallic (natural rock)
+  bumpMap: sharedRockTexture,
+  bumpScale: 0.25        // Subtle texture variation
+});
 const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(corridorLength, wallHeight), wallMat);
 leftWall.position.set(-corridorWidth / 2, wallHeight / 2, -corridorLength / 2);
 leftWall.rotation.y = Math.PI / 2;
@@ -505,10 +625,54 @@ backWall.rotation.y = 0;
 scene.add(backWall);
 
 // ----------------------------------------------------------------------
-// Ceiling - Dark with Subtle Emissive Bands
+// Ceiling - Cave Rock with Stalactites
 // ----------------------------------------------------------------------
+
+/**
+ * Add stalactites hanging from ceiling
+ * Positioned to avoid blocking player view and maintain clearance
+ */
+function addCeilingStalactites() {
+  const rockMat = new THREE.MeshStandardMaterial({
+    color: 0x2a2a2a,
+    map: sharedRockTexture,
+    roughness: 0.9,
+    bumpMap: sharedRockTexture,
+    bumpScale: 0.3
+  });
+
+  const stalactiteCount = 30; // Moderate density for cave feel
+  const minClearanceY = 4.0; // Player camera at y=2.5, need buffer
+
+  for (let i = 0; i < stalactiteCount; i++) {
+    // Vary stalactite sizes
+    const maxHeight = wallHeight - minClearanceY; // Max 6 units (10 - 4)
+    const height = 2.0 + Math.random() * (maxHeight - 2.0); // 2 to 6 units tall
+    const width = 0.4 + Math.random() * 1.0; // 0.4 to 1.4 units wide
+
+    const spike = createStalactiteMesh(height, width, rockMat);
+
+    // Position along tunnel - bias toward edges to keep center clear
+    const spreadX = corridorWidth * 0.35; // Keep away from center path
+    const x = (Math.random() - 0.5) * spreadX;
+
+    // Distribute along corridor length
+    const z = -Math.random() * corridorLength;
+
+    spike.position.set(x, wallHeight, z);
+
+    // Random slight rotation for organic feel
+    spike.rotation.x = (Math.random() - 0.5) * 0.2;
+    spike.rotation.z = (Math.random() - 0.5) * 0.2;
+
+    scene.add(spike);
+  }
+
+  console.log(`✓ Added ${stalactiteCount} ceiling stalactites (clearance maintained at y=${minClearanceY})`);
+}
+
 function createCeiling() {
-  // Main ceiling surface - very dark
+  // Main ceiling surface - textured cave rock
   const ceilingGeo = new THREE.CylinderGeometry(
     corridorWidth / 2,
     corridorWidth / 2,
@@ -516,10 +680,11 @@ function createCeiling() {
     32, 1, true, 0, Math.PI
   );
   const ceilingMat = new THREE.MeshStandardMaterial({
-    color: 0x050507,
-    emissive: 0x111111,
-    emissiveIntensity: 0.2,
-    roughness: 0.8,
+    color: 0x1a1a1a,        // Dark grey rock
+    map: sharedRockTexture,
+    roughness: 0.9,
+    bumpMap: sharedRockTexture,
+    bumpScale: 0.4,         // Pronounced texture for cave feel
     side: THREE.BackSide
   });
 
@@ -528,30 +693,124 @@ function createCeiling() {
   ceiling.rotation.z = Math.PI / 2;
   scene.add(ceiling);
 
-  // Add 3 emissive light bands along ceiling for depth
-  const bandMat = new THREE.MeshStandardMaterial({
-    color: 0x110000,
-    emissive: 0x330000,
-    emissiveIntensity: 0.3,
-    transparent: true,
-    opacity: 0.6
-  });
-
-  const bandPositions = [-30, -50, -70]; // Along corridor
-  bandPositions.forEach(z => {
-    const band = new THREE.Mesh(
-      new THREE.PlaneGeometry(corridorWidth * 0.6, 2),
-      bandMat
-    );
-    band.position.set(0, wallHeight - 0.1, z);
-    band.rotation.x = -Math.PI / 2;
-    scene.add(band);
-  });
+  // Add stalactites hanging from ceiling
+  addCeilingStalactites();
 
   return ceiling;
 }
 
 const ceiling = createCeiling();
+
+// ----------------------------------------------------------------------
+// Wall & Floor Cave Formations - Decorative stalactites and stalagmites
+// ----------------------------------------------------------------------
+
+/**
+ * Add stalactites on side walls (below NFT height to avoid blocking them)
+ */
+function addWallStalactites() {
+  const rockMat = new THREE.MeshStandardMaterial({
+    color: 0x2a2a2a,
+    map: sharedRockTexture,
+    roughness: 0.9,
+    bumpMap: sharedRockTexture,
+    bumpScale: 0.3
+  });
+
+  const count = 25; // Moderate density
+  const nftSpacing = corridorLength / 15; // Approximate NFT spacing
+
+  for (let i = 0; i < count; i++) {
+    const height = 1.2 + Math.random() * 2.5; // 1.2 to 3.7 units tall
+    const width = 0.3 + Math.random() * 0.7; // 0.3 to 1.0 units wide
+
+    const spike = createStalactiteMesh(height, width, rockMat);
+
+    // Position on tunnel sides
+    const side = Math.random() < 0.5 ? -1 : 1;
+    const x = side * (corridorWidth / 2 - 0.8); // Near walls (±9.2)
+
+    // Distribute along corridor, avoiding NFT zones
+    const z = -Math.random() * corridorLength;
+
+    // Position low on walls to avoid blocking NFTs (NFTs at y=3.0)
+    const y = 0.5 + Math.random() * 1.5; // y = 0.5 to 2.0 (well below NFTs)
+
+    spike.position.set(x, y, z);
+
+    // Angle stalactites toward wall for natural attachment
+    spike.rotation.z = side * ((Math.random() - 0.5) * 0.4 + 0.3);
+    spike.rotation.x = (Math.random() - 0.5) * 0.3;
+
+    scene.add(spike);
+  }
+
+  console.log(`✓ Added ${count} wall stalactites (positioned below NFT height)`);
+}
+
+/**
+ * Add stalagmites growing from floor edges (inverted stalactites)
+ */
+function addFloorStalagmites() {
+  const rockMat = new THREE.MeshStandardMaterial({
+    color: 0x1a1a1a, // Slightly darker for floor formations
+    map: sharedRockTexture,
+    roughness: 0.9,
+    bumpMap: sharedRockTexture,
+    bumpScale: 0.3,
+    emissive: 0x330000, // Slight red glow from lava reflection
+    emissiveIntensity: 0.2
+  });
+
+  const count = 20;
+
+  for (let i = 0; i < count; i++) {
+    const height = 1.0 + Math.random() * 3.0; // 1.0 to 4.0 units tall
+    const width = 0.4 + Math.random() * 0.9; // 0.4 to 1.3 units wide
+
+    // Create inverted cone (grows upward)
+    const geo = new THREE.ConeGeometry(width, height, 12, 12, true);
+    geo.translate(0, height / 2, 0); // Pivot at bottom so it grows up
+
+    // Apply same distortion as stalactites
+    const pos = geo.attributes.position;
+    for (let j = 0; j < pos.count; j++) {
+      const y = pos.getY(j);
+      const x = pos.getX(j);
+      const z = pos.getZ(j);
+
+      const distortionAmount = Math.abs(y / height) * 0.6;
+
+      pos.setX(j, x + (Math.random() - 0.5) * width * distortionAmount);
+      pos.setZ(j, z + (Math.random() - 0.5) * width * distortionAmount);
+      pos.setY(j, y + (Math.random() - 0.5) * 0.2);
+    }
+    geo.computeVertexNormals();
+
+    const stalagmite = new THREE.Mesh(geo, rockMat);
+
+    // Position at floor edges (keep center path clear)
+    const side = Math.random() < 0.5 ? -1 : 1;
+    const x = side * (6 + Math.random() * 3); // x = ±6 to ±9 (edges only)
+
+    const z = -Math.random() * corridorLength;
+
+    // Position on lava floor level
+    stalagmite.position.set(x, ROOM6_CONFIG.lavaFloorY, z);
+
+    // Random slight rotation
+    stalagmite.rotation.x = (Math.random() - 0.5) * 0.2;
+    stalagmite.rotation.z = (Math.random() - 0.5) * 0.2;
+
+    scene.add(stalagmite);
+  }
+
+  console.log(`✓ Added ${count} floor stalagmites at tunnel edges`);
+}
+
+// Add decorative cave formations
+addWallStalactites();
+addFloorStalagmites();
 
 // ----------------------------------------------------------------------
 // Wall Torches - Simple emissive lights for ambient lighting
