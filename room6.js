@@ -357,7 +357,7 @@ const ROOM6_CONFIG = {
   respawnPosition: new THREE.Vector3(0, eyeHeight, -8), // Fixed starting position - never changes
 
   // Hex tile settings
-  tileCount: 15,                    // 15 tiles including final platform before portal
+  tileCount: 20,                    // 20 tiles to reach portal
   tileRadius: 1.3,
   tileHeight: 0.4,
   tileStartZ: -8,                   // First tile just in front of spawn
@@ -366,12 +366,12 @@ const ROOM6_CONFIG = {
   tileSafeRadius: 1.35,             // Full coverage - includes entire hexagon plus small buffer
   tileFloatAmplitude: 0.05,         // Subtle hover animation
   tileFloatSpeed: 1.0,
-  
+
   // Horizontal floating tiles configuration
   horizontalFloatEnabled: true,     // Enable horizontal movement
   horizontalFloatAmplitude: 6.9,    // 69% of distance to wall (corridorWidth/2 = 10)
   horizontalFloatSpeed: 0.8,        // Speed of horizontal movement
-  horizontalFloatPattern: [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0], // 1=moving, 0=stationary (final tile stationary)
+  horizontalFloatPattern: [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0], // 1=moving, 0=stationary (final tile stationary)
   
   // Lava Monolith Artifacts (side wall ritual shards)
   enableMonoliths: true,
@@ -540,7 +540,6 @@ function createCaveRockTexture() {
  */
 function createStalactiteMesh(height, width, material) {
   const geo = new THREE.ConeGeometry(width, height, 12, 12, true);
-  geo.translate(0, -height / 2, 0); // Pivot at top so it hangs down
 
   // Vertex distortion for organic, jagged look
   const pos = geo.attributes.position;
@@ -560,7 +559,12 @@ function createStalactiteMesh(height, width, material) {
   }
 
   geo.computeVertexNormals();
-  return new THREE.Mesh(geo, material);
+
+  const mesh = new THREE.Mesh(geo, material);
+  // Flip stalactite upside down so tip points down
+  mesh.rotation.x = Math.PI;
+
+  return mesh;
 }
 
 function createLavaFloor() {
@@ -594,35 +598,66 @@ const floor = createLavaFloor();
 // Generate shared textures ONCE for reuse (performance optimization)
 const sharedRockTexture = createCaveRockTexture();
 
-// Walls - Cave rock texture
-const wallMat = new THREE.MeshStandardMaterial({
-  color: 0x2a2a2a,       // Dark grey rock
-  map: sharedRockTexture,
-  roughness: 0.9,        // Rough cave surface (not metallic)
-  metalness: 0.1,        // Low metallic (natural rock)
-  bumpMap: sharedRockTexture,
-  bumpScale: 0.25        // Subtle texture variation
+// Upper walls (NFT area) - Photographic gray for neutral backdrop
+const upperWallHeight = wallHeight; // From y=0 to y=10
+const upperWallMat = new THREE.MeshStandardMaterial({
+  color: 0x808080,       // Photographic middle gray (50% neutral)
+  roughness: 0.6,        // Slightly rough for natural look
+  metalness: 0.0         // No metallic reflection
 });
-const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(corridorLength, wallHeight), wallMat);
-leftWall.position.set(-corridorWidth / 2, wallHeight / 2, -corridorLength / 2);
-leftWall.rotation.y = Math.PI / 2;
-scene.add(leftWall);
 
-const rightWall = leftWall.clone();
-rightWall.position.set(corridorWidth / 2, wallHeight / 2, -corridorLength / 2);
-rightWall.rotation.y = -Math.PI / 2;
-scene.add(rightWall);
+const leftWallUpper = new THREE.Mesh(new THREE.PlaneGeometry(corridorLength, upperWallHeight), upperWallMat);
+leftWallUpper.position.set(-corridorWidth / 2, upperWallHeight / 2, -corridorLength / 2);
+leftWallUpper.rotation.y = Math.PI / 2;
+scene.add(leftWallUpper);
 
-// Front and back walls to fully enclose the corridor
-const frontWall = new THREE.Mesh(new THREE.PlaneGeometry(corridorWidth, wallHeight), wallMat);
-frontWall.position.set(0, wallHeight / 2, 0);
-frontWall.rotation.y = Math.PI;
-scene.add(frontWall);
+const rightWallUpper = leftWallUpper.clone();
+rightWallUpper.position.set(corridorWidth / 2, upperWallHeight / 2, -corridorLength / 2);
+rightWallUpper.rotation.y = -Math.PI / 2;
+scene.add(rightWallUpper);
 
-const backWall = frontWall.clone();
-backWall.position.set(0, wallHeight / 2, -corridorLength);
-backWall.rotation.y = 0;
-scene.add(backWall);
+// Lower walls (below tile level) - Black cave rock
+const lowerWallHeight = Math.abs(ROOM6_CONFIG.lavaFloorY); // From y=-8 to y=0 (8 units)
+const lowerWallMat = new THREE.MeshStandardMaterial({
+  color: 0x0a0a0a,       // Almost black
+  map: sharedRockTexture,
+  roughness: 0.9,
+  metalness: 0.1,
+  bumpMap: sharedRockTexture,
+  bumpScale: 0.3
+});
+
+const leftWallLower = new THREE.Mesh(new THREE.PlaneGeometry(corridorLength, lowerWallHeight), lowerWallMat);
+leftWallLower.position.set(-corridorWidth / 2, ROOM6_CONFIG.lavaFloorY + lowerWallHeight / 2, -corridorLength / 2);
+leftWallLower.rotation.y = Math.PI / 2;
+scene.add(leftWallLower);
+
+const rightWallLower = leftWallLower.clone();
+rightWallLower.position.set(corridorWidth / 2, ROOM6_CONFIG.lavaFloorY + lowerWallHeight / 2, -corridorLength / 2);
+rightWallLower.rotation.y = -Math.PI / 2;
+scene.add(rightWallLower);
+
+// Front and back walls (upper section - photographic gray)
+const frontWallUpper = new THREE.Mesh(new THREE.PlaneGeometry(corridorWidth, upperWallHeight), upperWallMat);
+frontWallUpper.position.set(0, upperWallHeight / 2, 0);
+frontWallUpper.rotation.y = Math.PI;
+scene.add(frontWallUpper);
+
+const backWallUpper = frontWallUpper.clone();
+backWallUpper.position.set(0, upperWallHeight / 2, -corridorLength);
+backWallUpper.rotation.y = 0;
+scene.add(backWallUpper);
+
+// Front and back walls (lower section - black)
+const frontWallLower = new THREE.Mesh(new THREE.PlaneGeometry(corridorWidth, lowerWallHeight), lowerWallMat);
+frontWallLower.position.set(0, ROOM6_CONFIG.lavaFloorY + lowerWallHeight / 2, 0);
+frontWallLower.rotation.y = Math.PI;
+scene.add(frontWallLower);
+
+const backWallLower = frontWallLower.clone();
+backWallLower.position.set(0, ROOM6_CONFIG.lavaFloorY + lowerWallHeight / 2, -corridorLength);
+backWallLower.rotation.y = 0;
+scene.add(backWallLower);
 
 // ----------------------------------------------------------------------
 // Ceiling - Cave Rock with Stalactites
