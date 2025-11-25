@@ -363,7 +363,7 @@ const ROOM6_CONFIG = {
   tileStartZ: -8,                   // First tile just in front of spawn
   tileStepZ: -6.0,                  // Further increased spacing - prevent glitch
   baseX: 0,                         // Straight line center (no zigzag)
-  tileSafeRadius: 1.25,             // Better coverage for hexagon pointy edges
+  tileSafeRadius: 1.35,             // Full coverage - includes entire hexagon plus small buffer
   tileFloatAmplitude: 0.05,         // Subtle hover animation
   tileFloatSpeed: 1.0,
   
@@ -741,13 +741,14 @@ function isOnSafeTile(position) {
 // ----------------------------------------------------------------------
 function respawnPlayer() {
   const player = controls.getObject();
-  player.position.copy(ROOM6_CONFIG.respawnPosition);
+  // Respawn on first tile (not at old spawn position)
+  player.position.set(0, eyeHeight, ROOM6_CONFIG.tileStartZ);
   velocity.set(0, 0, 0);
   jumpVelocity = 0;
   isJumping = false;
   isFalling = false;
   fallVelocity = 0;
-  console.log('💀 Lava death! Respawning at start...');
+  console.log('💀 Lava death! Respawning on first tile...');
 }
 
 function onKeyDown(event) {
