@@ -361,7 +361,7 @@ const ROOM6_CONFIG = {
   tileRadius: 1.3,
   tileHeight: 0.4,
   tileStartZ: -8,                   // First tile just in front of spawn
-  tileStepZ: -6.0,                  // Further increased spacing - prevent glitch
+  tileStepZ: -4.5,                  // Reduced spacing for easier jumping
   baseX: 0,                         // Straight line center (no zigzag)
   tileSafeRadius: 1.35,             // Full coverage - includes entire hexagon plus small buffer
   tileFloatAmplitude: 0.05,         // Subtle hover animation
@@ -629,31 +629,33 @@ scene.add(backWall);
 // ----------------------------------------------------------------------
 
 /**
- * Add stalactites hanging from ceiling
+ * Add stalactites hanging from ceiling with glow
  * Positioned to avoid blocking player view and maintain clearance
  */
 function addCeilingStalactites() {
   const rockMat = new THREE.MeshStandardMaterial({
-    color: 0x2a2a2a,
+    color: 0x1a1a1a,
     map: sharedRockTexture,
-    roughness: 0.9,
+    roughness: 0.8,
     bumpMap: sharedRockTexture,
-    bumpScale: 0.3
+    bumpScale: 0.3,
+    emissive: 0x331100,        // Warm glow from lava reflection
+    emissiveIntensity: 0.4     // Subtle glow
   });
 
-  const stalactiteCount = 30; // Moderate density for cave feel
-  const minClearanceY = 4.0; // Player camera at y=2.5, need buffer
+  const stalactiteCount = 15; // Reduced density for cleaner look
+  const minClearanceY = 5.0; // Increased buffer for better visibility
 
   for (let i = 0; i < stalactiteCount; i++) {
-    // Vary stalactite sizes
-    const maxHeight = wallHeight - minClearanceY; // Max 6 units (10 - 4)
-    const height = 2.0 + Math.random() * (maxHeight - 2.0); // 2 to 6 units tall
-    const width = 0.4 + Math.random() * 1.0; // 0.4 to 1.4 units wide
+    // Larger, more dramatic stalactites
+    const maxHeight = wallHeight - minClearanceY; // Max 5 units (10 - 5)
+    const height = 2.5 + Math.random() * (maxHeight - 2.5); // 2.5 to 5 units tall
+    const width = 0.6 + Math.random() * 0.8; // 0.6 to 1.4 units wide
 
     const spike = createStalactiteMesh(height, width, rockMat);
 
-    // Position along tunnel - bias toward edges to keep center clear
-    const spreadX = corridorWidth * 0.35; // Keep away from center path
+    // Position along tunnel edges only
+    const spreadX = corridorWidth * 0.4; // Push more toward edges
     const x = (Math.random() - 0.5) * spreadX;
 
     // Distribute along corridor length
@@ -662,17 +664,17 @@ function addCeilingStalactites() {
     spike.position.set(x, wallHeight, z);
 
     // Random slight rotation for organic feel
-    spike.rotation.x = (Math.random() - 0.5) * 0.2;
-    spike.rotation.z = (Math.random() - 0.5) * 0.2;
+    spike.rotation.x = (Math.random() - 0.5) * 0.15;
+    spike.rotation.z = (Math.random() - 0.5) * 0.15;
 
     scene.add(spike);
   }
 
-  console.log(`✓ Added ${stalactiteCount} ceiling stalactites (clearance maintained at y=${minClearanceY})`);
+  console.log(`✓ Added ${stalactiteCount} glowing ceiling stalactites (clearance maintained at y=${minClearanceY})`);
 }
 
 function createCeiling() {
-  // Main ceiling surface - textured cave rock
+  // Main ceiling surface - textured cave rock with warm glow
   const ceilingGeo = new THREE.CylinderGeometry(
     corridorWidth / 2,
     corridorWidth / 2,
@@ -680,11 +682,13 @@ function createCeiling() {
     32, 1, true, 0, Math.PI
   );
   const ceilingMat = new THREE.MeshStandardMaterial({
-    color: 0x1a1a1a,        // Dark grey rock
+    color: 0x2a1a0a,        // Warm dark brown (lava-lit cave)
     map: sharedRockTexture,
-    roughness: 0.9,
+    roughness: 0.8,
     bumpMap: sharedRockTexture,
-    bumpScale: 0.4,         // Pronounced texture for cave feel
+    bumpScale: 0.4,
+    emissive: 0x442200,     // Warm orange-red glow
+    emissiveIntensity: 0.3, // Subtle ambient glow
     side: THREE.BackSide
   });
 
