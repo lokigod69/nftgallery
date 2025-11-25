@@ -598,33 +598,56 @@ const floor = createLavaFloor();
 // Generate shared textures ONCE for reuse (performance optimization)
 const sharedRockTexture = createCaveRockTexture();
 
-// Upper walls (NFT area) - Photographic gray for neutral backdrop
-const upperWallHeight = wallHeight; // From y=0 to y=10
-const upperWallMat = new THREE.MeshStandardMaterial({
-  color: 0x808080,       // Photographic middle gray (50% neutral)
-  roughness: 0.6,        // Slightly rough for natural look
-  metalness: 0.0         // No metallic reflection
-});
+// Three-section wall system: Lower (lava flow) + Gap (NFTs) + Upper (ceiling)
+const nftAreaBottom = 1.0;  // NFTs start at y=1.0
+const nftAreaTop = 5.0;     // NFTs end at y=5.0
 
-const leftWallUpper = new THREE.Mesh(new THREE.PlaneGeometry(corridorLength, upperWallHeight), upperWallMat);
-leftWallUpper.position.set(-corridorWidth / 2, upperWallHeight / 2, -corridorLength / 2);
-leftWallUpper.rotation.y = Math.PI / 2;
-scene.add(leftWallUpper);
+// Lower walls (floor to NFT area) - Black with flowing lava effect
+const lowerWallHeight = nftAreaBottom - ROOM6_CONFIG.lavaFloorY; // From y=-8 to y=1.0 (9 units)
 
-const rightWallUpper = leftWallUpper.clone();
-rightWallUpper.position.set(corridorWidth / 2, upperWallHeight / 2, -corridorLength / 2);
-rightWallUpper.rotation.y = -Math.PI / 2;
-scene.add(rightWallUpper);
+// Create flowing lava texture for lower walls
+function createFlowingLavaTexture() {
+  const size = 512;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
 
-// Lower walls (below tile level) - Black cave rock
-const lowerWallHeight = Math.abs(ROOM6_CONFIG.lavaFloorY); // From y=-8 to y=0 (8 units)
+  // Dark base
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, 0, size, size);
+
+  // Vertical flowing lava streaks
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 20; i++) {
+    const x = Math.random() * size;
+    const gradient = ctx.createLinearGradient(0, 0, 0, size);
+    gradient.addColorStop(0, 'rgba(255, 100, 0, 0.3)');
+    gradient.addColorStop(0.5, 'rgba(255, 50, 0, 0.2)');
+    gradient.addColorStop(1, 'rgba(100, 0, 0, 0.1)');
+
+    ctx.fillStyle = gradient;
+    ctx.fillRect(x, 0, 3 + Math.random() * 5, size);
+  }
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  return tex;
+}
+
+const flowingLavaTex = createFlowingLavaTexture();
+
 const lowerWallMat = new THREE.MeshStandardMaterial({
-  color: 0x0a0a0a,       // Almost black
+  color: 0x0a0a0a,
   map: sharedRockTexture,
-  roughness: 0.9,
+  roughness: 0.8,
   metalness: 0.1,
   bumpMap: sharedRockTexture,
-  bumpScale: 0.3
+  bumpScale: 0.3,
+  emissiveMap: flowingLavaTex,
+  emissive: 0xff3300,
+  emissiveIntensity: 0.8
 });
 
 const leftWallLower = new THREE.Mesh(new THREE.PlaneGeometry(corridorLength, lowerWallHeight), lowerWallMat);
@@ -637,18 +660,28 @@ rightWallLower.position.set(corridorWidth / 2, ROOM6_CONFIG.lavaFloorY + lowerWa
 rightWallLower.rotation.y = -Math.PI / 2;
 scene.add(rightWallLower);
 
-// Front and back walls (upper section - photographic gray)
-const frontWallUpper = new THREE.Mesh(new THREE.PlaneGeometry(corridorWidth, upperWallHeight), upperWallMat);
-frontWallUpper.position.set(0, upperWallHeight / 2, 0);
-frontWallUpper.rotation.y = Math.PI;
-scene.add(frontWallUpper);
+// Upper walls (above NFT area to ceiling) - Dark rock
+const upperWallHeight = wallHeight - nftAreaTop; // From y=5.0 to y=10 (5 units)
+const upperWallMat = new THREE.MeshStandardMaterial({
+  color: 0x1a1a1a,
+  map: sharedRockTexture,
+  roughness: 0.9,
+  metalness: 0.1,
+  bumpMap: sharedRockTexture,
+  bumpScale: 0.3
+});
 
-const backWallUpper = frontWallUpper.clone();
-backWallUpper.position.set(0, upperWallHeight / 2, -corridorLength);
-backWallUpper.rotation.y = 0;
-scene.add(backWallUpper);
+const leftWallUpper = new THREE.Mesh(new THREE.PlaneGeometry(corridorLength, upperWallHeight), upperWallMat);
+leftWallUpper.position.set(-corridorWidth / 2, nftAreaTop + upperWallHeight / 2, -corridorLength / 2);
+leftWallUpper.rotation.y = Math.PI / 2;
+scene.add(leftWallUpper);
 
-// Front and back walls (lower section - black)
+const rightWallUpper = leftWallUpper.clone();
+rightWallUpper.position.set(corridorWidth / 2, nftAreaTop + upperWallHeight / 2, -corridorLength / 2);
+rightWallUpper.rotation.y = -Math.PI / 2;
+scene.add(rightWallUpper);
+
+// Front and back walls (lower section)
 const frontWallLower = new THREE.Mesh(new THREE.PlaneGeometry(corridorWidth, lowerWallHeight), lowerWallMat);
 frontWallLower.position.set(0, ROOM6_CONFIG.lavaFloorY + lowerWallHeight / 2, 0);
 frontWallLower.rotation.y = Math.PI;
@@ -658,6 +691,17 @@ const backWallLower = frontWallLower.clone();
 backWallLower.position.set(0, ROOM6_CONFIG.lavaFloorY + lowerWallHeight / 2, -corridorLength);
 backWallLower.rotation.y = 0;
 scene.add(backWallLower);
+
+// Front and back walls (upper section)
+const frontWallUpper = new THREE.Mesh(new THREE.PlaneGeometry(corridorWidth, upperWallHeight), upperWallMat);
+frontWallUpper.position.set(0, nftAreaTop + upperWallHeight / 2, 0);
+frontWallUpper.rotation.y = Math.PI;
+scene.add(frontWallUpper);
+
+const backWallUpper = frontWallUpper.clone();
+backWallUpper.position.set(0, nftAreaTop + upperWallHeight / 2, -corridorLength);
+backWallUpper.rotation.y = 0;
+scene.add(backWallUpper);
 
 // ----------------------------------------------------------------------
 // Ceiling - Cave Rock with Stalactites
@@ -698,9 +742,9 @@ function addCeilingStalactites() {
 
     spike.position.set(x, wallHeight, z);
 
-    // Random slight rotation for organic feel
-    spike.rotation.x = (Math.random() - 0.5) * 0.15;
-    spike.rotation.z = (Math.random() - 0.5) * 0.15;
+    // Random slight rotation for organic feel (ADD to existing flip, don't overwrite)
+    spike.rotation.x += (Math.random() - 0.5) * 0.15;
+    spike.rotation.z += (Math.random() - 0.5) * 0.15;
 
     scene.add(spike);
   }
