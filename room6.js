@@ -363,7 +363,7 @@ const ROOM6_CONFIG = {
   tileStartZ: -8,                   // First tile just in front of spawn
   tileStepZ: -6.0,                  // Further increased spacing - prevent glitch
   baseX: 0,                         // Straight line center (no zigzag)
-  tileSafeRadius: 1.1,              // Smaller than tile radius - strict collision
+  tileSafeRadius: 1.2,              // Slightly larger for reliable jumping, still smaller than tile
   tileFloatAmplitude: 0.05,         // Subtle hover animation
   tileFloatSpeed: 1.0,
   
@@ -880,8 +880,8 @@ function animate() {
       player.position.y += jumpVelocity * delta;
       jumpVelocity += gravity * delta;
       
-      // Land on tile if we're on one
-      if (onTile && player.position.y <= eyeHeight) {
+      // Land on tile if we're on one - require clean landing
+      if (onTile && player.position.y <= eyeHeight && jumpVelocity < 0) {
         player.position.y = eyeHeight;
         isJumping = false;
         jumpVelocity = 0;
