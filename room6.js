@@ -363,7 +363,7 @@ const ROOM6_CONFIG = {
   tileStartZ: -8,                   // First tile just in front of spawn
   tileStepZ: -6.0,                  // Further increased spacing - prevent glitch
   baseX: 0,                         // Straight line center (no zigzag)
-  tileSafeRadius: 1.2,              // Slightly larger for reliable jumping, still smaller than tile
+  tileSafeRadius: 1.25,             // Better coverage for hexagon pointy edges
   tileFloatAmplitude: 0.05,         // Subtle hover animation
   tileFloatSpeed: 1.0,
   
