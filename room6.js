@@ -892,7 +892,7 @@ function addFloorStalagmites() {
 }
 
 // Add decorative cave formations
-addWallStalactites();
+// Wall stalactites removed - they were obstructing view in middle area
 addFloorStalagmites();
 
 // ----------------------------------------------------------------------
@@ -1083,14 +1083,26 @@ function isOnSafeTile(position) {
 // ----------------------------------------------------------------------
 function respawnPlayer() {
   const player = controls.getObject();
-  // Respawn on first tile (not at old spawn position)
-  player.position.set(0, eyeHeight, ROOM6_CONFIG.tileStartZ);
+
+  // Reset player and camera position to first tile
+  const spawnPos = new THREE.Vector3(0, eyeHeight, ROOM6_CONFIG.tileStartZ);
+  player.position.copy(spawnPos);
+  camera.position.copy(spawnPos);
+
+  // Reset all movement and physics state
   velocity.set(0, 0, 0);
   jumpVelocity = 0;
   isJumping = false;
   isFalling = false;
   fallVelocity = 0;
-  console.log('💀 Lava death! Respawning on first tile...');
+
+  // Reset movement flags
+  moveForward = false;
+  moveBackward = false;
+  moveLeft = false;
+  moveRight = false;
+
+  console.log('💀 Lava death! Respawning on first tile at z=' + ROOM6_CONFIG.tileStartZ);
 }
 
 function onKeyDown(event) {
