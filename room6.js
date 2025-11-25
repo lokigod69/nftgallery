@@ -270,10 +270,12 @@ function placeMonolithsOnWalls() {
   cfg.monolithWallIndices.forEach((nftIndex, i) => {
     // Calculate position between NFTs on walls
     const z = -nftSpacing * (nftIndex + 1); // Match NFT Z positions
-    const side = nftIndex % 2 === 0 ? -1 : 1; // Alternate left/right like NFTs
     
-    // Position on tunnel sides, slightly back from walls
-    const x = side * (corridorWidth / 2 - cfg.monolithSideOffset);
+    // Force strict alternation regardless of NFT pattern
+    const side = i % 2 === 0 ? -1 : 1; // 0=left, 1=right, strict alternation
+    
+    // Position on tunnel sides, at the edges (corridorWidth/2 = 10)
+    const x = side * (corridorWidth / 2 - 1.0); // Much closer to walls
 
     const { group, lights } = createLavaMonolith();
 
@@ -361,7 +363,7 @@ const ROOM6_CONFIG = {
   tileStartZ: -8,                   // First tile just in front of spawn
   tileStepZ: -5.0,                  // Increased spacing - can't skip tiles
   baseX: 0,                         // Straight line center (no zigzag)
-  tileSafeRadius: 1.5,              // Slightly bigger than tile for forgiveness
+  tileSafeRadius: 1.3,              // Exact match to tile radius - no forgiveness
   tileFloatAmplitude: 0.05,         // Subtle hover animation
   tileFloatSpeed: 1.0,
   
@@ -375,6 +377,7 @@ const ROOM6_CONFIG = {
   enableMonoliths: true,
   monolithCount: 5,                 // Sparse placement for atmosphere
   monolithWallIndices: [1, 3, 5, 7, 9], // Which NFT wall positions to place between
+  monolithAlternatingSides: true,     // Force strict left/right alternation
   monolithYOffset: -5.5,            // Position in pit (between lava -8.0 and tiles 0.2)
   monolithScale: 0.6,               // Scaled to fit in side spaces
   monolithHoverAmplitude: 0.15,     // Subtle float animation
@@ -896,8 +899,9 @@ function animate() {
       player.position.y += fallVelocity * delta;
       fallVelocity += gravity * delta * 0.8; // Slightly reduced gravity for fall feeling
       
-      // Check if we've fallen onto a tile (mid-fall)
-      if (onTile && player.position.y <= eyeHeight) {
+      // Check if we've fallen onto a tile (mid-fall) - require direct landing
+      // Only allow landing if falling straight down onto tile center
+      if (onTile && player.position.y <= eyeHeight && fallVelocity < 0) {
         player.position.y = eyeHeight;
         isFalling = false;
         fallVelocity = 0;
@@ -941,11 +945,10 @@ function animate() {
           }
         }
       } else {
-        // Not on a tile and not jumping - start falling!
-        if (player.position.y > ROOM6_CONFIG.lavaTriggerY + 0.5) {
-          isFalling = true;
-          fallVelocity = 0;
-        }
+        // Not on a tile and not jumping - IMMEDIATELY start falling!
+        // No grace period - if you're not on a tile, you fall
+        isFalling = true;
+        fallVelocity = 0;
       }
     }
 
