@@ -833,6 +833,7 @@ function addWallStalactites() {
 
 /**
  * Add stalagmites growing from floor edges (inverted stalactites)
+ * Avoids NFT viewing zones to prevent visual obstruction
  */
 function addFloorStalagmites() {
   const rockMat = new THREE.MeshStandardMaterial({
@@ -845,11 +846,42 @@ function addFloorStalagmites() {
     emissiveIntensity: 0.2
   });
 
-  const count = 20;
+  // Calculate NFT Z positions to avoid
+  const nftZPositions = [];
+  const nftSpacing = corridorLength / (nftCount + 1);
+  for (let i = 0; i < nftCount; i++) {
+    nftZPositions.push(-nftSpacing * (i + 1));
+  }
 
-  for (let i = 0; i < count; i++) {
+  const count = 20;
+  const nftExclusionRadius = 5.0; // Don't place stalagmites within 5 units of NFT Z
+  let placed = 0;
+  let attempts = 0;
+  const maxAttempts = count * 5; // Allow multiple tries per stalagmite
+
+  while (placed < count && attempts < maxAttempts) {
+    attempts++;
+
     const height = 1.0 + Math.random() * 3.0; // 1.0 to 4.0 units tall
     const width = 0.4 + Math.random() * 0.9; // 0.4 to 1.3 units wide
+
+    // Position at floor edges (keep center path clear)
+    const side = Math.random() < 0.5 ? -1 : 1;
+    const x = side * (6 + Math.random() * 3); // x = ±6 to ±9 (edges only)
+
+    const z = -Math.random() * corridorLength;
+
+    // Check if this Z position is too close to any NFT
+    let tooCloseToNFT = false;
+    for (let nftZ of nftZPositions) {
+      if (Math.abs(z - nftZ) < nftExclusionRadius) {
+        tooCloseToNFT = true;
+        break;
+      }
+    }
+
+    // Skip if too close to NFT viewing zone
+    if (tooCloseToNFT) continue;
 
     // Create inverted cone (grows upward)
     const geo = new THREE.ConeGeometry(width, height, 12, 12, true);
@@ -872,12 +904,6 @@ function addFloorStalagmites() {
 
     const stalagmite = new THREE.Mesh(geo, rockMat);
 
-    // Position at floor edges (keep center path clear)
-    const side = Math.random() < 0.5 ? -1 : 1;
-    const x = side * (6 + Math.random() * 3); // x = ±6 to ±9 (edges only)
-
-    const z = -Math.random() * corridorLength;
-
     // Position on lava floor level
     stalagmite.position.set(x, ROOM6_CONFIG.lavaFloorY, z);
 
@@ -886,14 +912,72 @@ function addFloorStalagmites() {
     stalagmite.rotation.z = (Math.random() - 0.5) * 0.2;
 
     scene.add(stalagmite);
+    placed++;
   }
 
-  console.log(`✓ Added ${count} floor stalagmites at tunnel edges`);
+  console.log(`✓ Added ${placed} floor stalagmites at tunnel edges (avoided NFT zones)`);
+}
+
+/**
+ * Add a few black stalactites mounted on walls (horizontal protrusions)
+ * Positioned outside NFT viewing zone to avoid obstruction
+ */
+function addWallMountedStalactites() {
+  // Pure black material for wall stalactites
+  const blackRockMat = new THREE.MeshStandardMaterial({
+    color: 0x0a0a0a,
+    map: sharedRockTexture,
+    roughness: 0.95,
+    bumpMap: sharedRockTexture,
+    bumpScale: 0.2
+  });
+
+  const count = 7; // Only a few for subtle effect
+  const wallX = corridorWidth / 2 - 0.5; // Position on tunnel sides
+
+  for (let i = 0; i < count; i++) {
+    const height = 0.8 + Math.random() * 1.5; // 0.8 to 2.3 units long
+    const width = 0.3 + Math.random() * 0.5; // 0.3 to 0.8 units wide
+
+    const spike = createStalactiteMesh(height, width, blackRockMat);
+
+    // Alternate between left and right walls
+    const side = i % 2 === 0 ? -1 : 1;
+    const x = side * wallX;
+
+    // Distribute along corridor
+    const z = -10 - Math.random() * (corridorLength - 20); // Avoid very front/back
+
+    // Position in two zones: lower (above lava flow) or upper (below ceiling)
+    const isLowerZone = Math.random() < 0.5;
+    const y = isLowerZone
+      ? (-2.0 + Math.random() * 2.0)  // y = -2.0 to 0.0 (lower zone)
+      : (5.5 + Math.random() * 2.5);   // y = 5.5 to 8.0 (upper zone)
+
+    spike.position.set(x, y, z);
+
+    // Rotate to point horizontally into tunnel (perpendicular to wall)
+    if (side === -1) {
+      // Left wall - point right (toward +X)
+      spike.rotation.z = -Math.PI / 2; // Point tip to the right
+    } else {
+      // Right wall - point left (toward -X)
+      spike.rotation.z = Math.PI / 2; // Point tip to the left
+    }
+
+    // Add slight random variation for organic feel
+    spike.rotation.x += (Math.random() - 0.5) * 0.3;
+    spike.rotation.y += (Math.random() - 0.5) * 0.2;
+
+    scene.add(spike);
+  }
+
+  console.log(`✓ Added ${count} black wall-mounted stalactites (outside NFT zone)`);
 }
 
 // Add decorative cave formations
-// Wall stalactites removed - they were obstructing view in middle area
 addFloorStalagmites();
+addWallMountedStalactites();
 
 // ----------------------------------------------------------------------
 // Wall Torches - Simple emissive lights for ambient lighting
@@ -1049,7 +1133,9 @@ createHexTiles();
 const lavaMonoliths = placeMonolithsOnWalls();
 
 // Initialize player on first tile (stationary platform)
-camera.position.set(0, eyeHeight, ROOM6_CONFIG.tileStartZ);
+// Reset camera local position to (0, 0, 0) so it's centered in player object
+camera.position.set(0, 0, 0);
+// Set player world position to spawn point
 controls.getObject().position.set(0, eyeHeight, ROOM6_CONFIG.tileStartZ);
 
 console.log(`✓ Spawn set to first tile at (0, ${eyeHeight}, ${ROOM6_CONFIG.tileStartZ})`);
@@ -1084,10 +1170,12 @@ function isOnSafeTile(position) {
 function respawnPlayer() {
   const player = controls.getObject();
 
-  // Reset player and camera position to first tile
+  // Reset camera local position to (0, 0, 0) to clear any offset
+  camera.position.set(0, 0, 0);
+
+  // Reset player world position to spawn point
   const spawnPos = new THREE.Vector3(0, eyeHeight, ROOM6_CONFIG.tileStartZ);
   player.position.copy(spawnPos);
-  camera.position.copy(spawnPos);
 
   // Reset all movement and physics state
   velocity.set(0, 0, 0);
