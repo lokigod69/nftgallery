@@ -49,10 +49,12 @@ const ROOM8_CONFIG = {
   topRadius: 11,
   height: 50,
   
-  // Platforms
+  // Platforms (Spiral Design)
   platformCount: 7,
-  platformRadius: 3.5,
+  platformRadius: 1.8,          // Reduced from 3.5 for spiral layout
   platformHeight: 0.6,
+  platformRadialPosition: 6.0,  // Distance from shaft center (0,0)
+  platformAngularSpacing: 51.43, // Degrees between platforms (360°/7)
   
   // Player physics
   eyeHeight: 2.5,
@@ -98,10 +100,12 @@ let isFalling = false;
 let fallVelocity = 0;
 let currentPlatform = null;
 
-// Spawn on Platform 0 (static base platform at Y=2.0)
+// Spawn on Platform 0 (static base platform at angle 0°, radial position 6.0)
+// Platform 0 is at (0, 2.0, 6.0) in spiral layout
 const spawnY = 2.0 + ROOM8_CONFIG.platformHeight / 2 + eyeHeight;
+const spawnZ = ROOM8_CONFIG.platformRadialPosition; // Platform 0 at angle 0° (south)
 const { scene, camera, renderer, controls } = initScene({
-  spawnPosition: { x: 0, y: spawnY, z: 0 },
+  spawnPosition: { x: 0, y: spawnY, z: spawnZ },
   background: 0x1a140f,  // Dark warm brown
   fog: { color: 0x2a1f15, near: 15, far: 45 }  // Warm brown fog
 });
@@ -488,21 +492,72 @@ function createShaft() {
 // Platform System
 // ----------------------------------------------------------------------
 
-// Platform motion parameters (y = baseY + sin(t*speed + phase) * amplitude)
+// Platform motion parameters - SPIRAL DESIGN
+// Platforms arranged in helix pattern with synchronized phase alternation
+// When odd platforms peak, even platforms are at low point (and vice versa)
 const platformMotionParams = [
-  { baseY: 2.0,  amplitude: 0,    speed: 0,    phase: 0 },     // Platform 0: static spawn
-  { baseY: 8.0,  amplitude: 2.5,  speed: 0.7,  phase: 0 },     // Platform 1
-  { baseY: 14.0, amplitude: 3.0,  speed: 0.9,  phase: 1.5 },   // Platform 2
-  { baseY: 20.0, amplitude: 2.8,  speed: 0.85, phase: 3.0 },   // Platform 3
-  { baseY: 26.0, amplitude: 3.2,  speed: 0.95, phase: 4.8 },   // Platform 4
-  { baseY: 32.0, amplitude: 2.5,  speed: 0.75, phase: 2.2 },   // Platform 5
-  { baseY: 42.0, amplitude: 1.5,  speed: 0.6,  phase: 0.8 }    // Platform 6: exit platform
+  // Platform 0: Static spawn (South, 0°)
+  {
+    angle: 0,           // Degrees
+    baseY: 2.0,         // Static height
+    amplitude: 0,       // No motion
+    speed: 0,
+    phase: 0
+  },
+  // Platform 1: First moving platform (Southeast, 51.43°)
+  {
+    angle: 51.43,
+    baseY: 7.0,         // Range: 4.5 to 9.5
+    amplitude: 2.5,
+    speed: 1.0,
+    phase: 0            // In-phase (peaks at sin=1)
+  },
+  // Platform 2: Anti-phase to P1 (East, 102.86°)
+  {
+    angle: 102.86,
+    baseY: 14.0,        // Range: 11.5 to 16.5
+    amplitude: 2.5,     // When P1 peaks (9.5), P2 is low (11.5) → 2.0 gap
+    speed: 1.0,
+    phase: Math.PI      // Anti-phase (peaks at sin=-1)
+  },
+  // Platform 3: In-phase with P1 (Northeast, 154.29°)
+  {
+    angle: 154.29,
+    baseY: 21.0,        // Range: 18.5 to 23.5
+    amplitude: 2.5,     // When P2 peaks (16.5), P3 is low (18.5) → 2.0 gap
+    speed: 1.0,
+    phase: 0
+  },
+  // Platform 4: Anti-phase (Northwest, 205.71°)
+  {
+    angle: 205.71,
+    baseY: 28.0,        // Range: 25.5 to 30.5
+    amplitude: 2.5,     // When P3 peaks (23.5), P4 is low (25.5) → 2.0 gap
+    speed: 1.0,
+    phase: Math.PI
+  },
+  // Platform 5: In-phase with P1 (West, 257.14°)
+  {
+    angle: 257.14,
+    baseY: 35.0,        // Range: 32.5 to 37.5
+    amplitude: 2.5,     // When P4 peaks (30.5), P5 is low (32.5) → 2.0 gap
+    speed: 1.0,
+    phase: 0
+  },
+  // Platform 6: Exit platform, anti-phase (Southwest, 308.57°)
+  {
+    angle: 308.57,
+    baseY: 42.0,        // Range: 39.5 to 44.5
+    amplitude: 2.5,     // When P5 peaks (37.5), P6 is low (39.5) → 2.0 gap
+    speed: 1.0,
+    phase: Math.PI      // Portal at Y=43 accessible when high
+  }
 ];
 
 function createPlatforms() {
   const cfg = ROOM8_CONFIG;
   const platforms = [];
-  
+
   const platformMaterial = new THREE.MeshStandardMaterial({
     color: 0x3a2815,       // Dark stone with bronze tone
     roughness: 0.8,
@@ -520,36 +575,55 @@ function createPlatforms() {
     );
 
     const platform = new THREE.Mesh(platformGeometry, platformMaterial.clone());
-    platform.position.set(0, params.baseY, 0);
-    
-    // Store motion parameters
+
+    // Calculate spiral position from angle and radial distance
+    // 0° = South (positive Z), 90° = East (positive X), etc.
+    const angleRad = params.angle * Math.PI / 180;
+    const x = Math.sin(angleRad) * cfg.platformRadialPosition;
+    const z = Math.cos(angleRad) * cfg.platformRadialPosition;
+
+    platform.position.set(x, params.baseY, z);
+
+    // Store motion parameters and position data
     platform.userData.motionParams = params;
     platform.userData.platformIndex = i;
-    
+    platform.userData.angleRad = angleRad;
+    platform.userData.baseX = x;
+    platform.userData.baseZ = z;
+
     scene.add(platform);
     platforms.push(platform);
+
+    // Debug log for verification
+    if (i === 0) {
+      console.log(`Platform ${i}: angle=${params.angle.toFixed(1)}°, pos=(${x.toFixed(2)}, ${params.baseY}, ${z.toFixed(2)}), static`);
+    } else {
+      console.log(`Platform ${i}: angle=${params.angle.toFixed(1)}°, pos=(${x.toFixed(2)}, ${params.baseY}±${params.amplitude}, ${z.toFixed(2)}), phase=${params.phase.toFixed(2)}`);
+    }
   });
 
-  console.log(`✓ Created ${platforms.length} platforms`);
+  console.log(`✓ Created ${platforms.length} platforms in spiral pattern`);
   return platforms;
 }
 
 /**
- * Detect if player is standing on a platform
+ * Detect if player is standing on a platform (3D collision for spiral layout)
  */
 function detectPlatformCollision(playerPos) {
   const cfg = ROOM8_CONFIG;
   const feetY = playerPos.y - cfg.eyeHeight;
-  
+
   for (let platform of platforms) {
+    // Calculate 3D horizontal distance (works for spiral positions)
     const horizontalDist = Math.sqrt(
       (playerPos.x - platform.position.x) ** 2 +
       (playerPos.z - platform.position.z) ** 2
     );
-    
+
     const platformTop = platform.position.y + cfg.platformHeight / 2;
-    
+
     // Within platform radius and near platform surface
+    // Buffer of 0.3 units (landing zone: radius 1.5 for platformRadius 1.8)
     if (
       horizontalDist <= cfg.platformRadius - 0.3 &&
       Math.abs(feetY - platformTop) < 0.6
@@ -557,7 +631,7 @@ function detectPlatformCollision(playerPos) {
       return platform;
     }
   }
-  
+
   return null;
 }
 
@@ -651,16 +725,16 @@ function createWallNFTs() {
 }
 
 /**
- * Respawn player at Platform 0
+ * Respawn player at Platform 0 (spiral spawn position)
  */
 function respawnPlayer() {
   const player = controls.getObject();
-  player.position.set(0, spawnY, 0);
+  player.position.set(0, spawnY, spawnZ); // Match Platform 0 position
   isJumping = false;
   isFalling = false;
   jumpVelocity = 0;
   fallVelocity = 0;
-  console.log('Respawned at Platform 0');
+  console.log('Respawned at Platform 0 (spiral position)');
 }
 
 /**
