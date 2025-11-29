@@ -622,17 +622,36 @@ function detectPlatformCollision(playerPos) {
 
     const platformTop = platform.position.y + cfg.platformHeight / 2;
 
-    // Within platform radius and near platform surface
-    // Buffer of 0.3 units (landing zone: radius 1.5 for platformRadius 1.8)
+    // Increased tolerance for more reliable collision
+    // Horizontal: radius 1.7 (was 1.5), Vertical: ±1.2 (was ±0.6)
     if (
-      horizontalDist <= cfg.platformRadius - 0.3 &&
-      Math.abs(feetY - platformTop) < 0.6
+      horizontalDist <= cfg.platformRadius - 0.1 &&
+      Math.abs(feetY - platformTop) < 1.2
     ) {
       return platform;
     }
   }
 
   return null;
+}
+
+/**
+ * Check if player is on the floor (solid ground at Y=0)
+ */
+function isOnFloor(playerPos) {
+  const cfg = ROOM8_CONFIG;
+  const feetY = playerPos.y - cfg.eyeHeight;
+
+  // Check if feet are near floor level (Y=0)
+  if (Math.abs(feetY) < 0.8) {
+    // Check if within shaft radius (with buffer for safety)
+    const distFromCenter = Math.sqrt(playerPos.x ** 2 + playerPos.z ** 2);
+    if (distFromCenter < cfg.baseRadius - 1.0) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**
@@ -917,16 +936,18 @@ function animate() {
   if (controls.isLocked) {
     const player = controls.getObject();
     const onPlatform = detectPlatformCollision(player.position);
+    const onFloor = isOnFloor(player.position);
+    const onSolidGround = onPlatform || onFloor;
 
-    // Vertical physics - platform-based (Room 6 pattern)
+    // Vertical physics - platform and floor collision
     if (isJumping) {
       player.position.y += jumpVelocity * delta;
       jumpVelocity += gravity * delta;
-      
+
       // Land on platform if we're on one
-      if (onPlatform) {
+      if (onPlatform && jumpVelocity <= 0) {
         const platformTop = onPlatform.position.y + ROOM8_CONFIG.platformHeight / 2;
-        if (player.position.y - eyeHeight <= platformTop) {
+        if (player.position.y - eyeHeight <= platformTop + 0.5) {
           player.position.y = platformTop + eyeHeight;
           isJumping = false;
           jumpVelocity = 0;
@@ -935,8 +956,19 @@ function animate() {
           triggerPlatformLandingFeedback(onPlatform); // UX feedback
         }
       }
-      // Start falling if descended and not on platform
-      else if (player.position.y - eyeHeight <= 0) {
+      // Land on floor if descending
+      else if (onFloor && jumpVelocity <= 0) {
+        const floorTop = 0;
+        if (player.position.y - eyeHeight <= floorTop + 0.5) {
+          player.position.y = floorTop + eyeHeight;
+          isJumping = false;
+          jumpVelocity = 0;
+          isFalling = false;
+          currentPlatform = null;
+        }
+      }
+      // Start falling if descended past ground level
+      else if (player.position.y - eyeHeight <= 0 && !onSolidGround) {
         isJumping = false;
         isFalling = true;
         fallVelocity = jumpVelocity;
@@ -944,7 +976,7 @@ function animate() {
     } else if (isFalling) {
       player.position.y += fallVelocity * delta;
       fallVelocity += gravity * delta * 0.8;
-      
+
       // Check if landed on platform mid-fall
       if (onPlatform) {
         const platformTop = onPlatform.position.y + ROOM8_CONFIG.platformHeight / 2;
@@ -954,18 +986,31 @@ function animate() {
         currentPlatform = onPlatform;
         triggerPlatformLandingFeedback(onPlatform); // UX feedback
       }
+      // Check if landed on floor mid-fall
+      else if (onFloor) {
+        player.position.y = eyeHeight;
+        isFalling = false;
+        fallVelocity = 0;
+        currentPlatform = null;
+      }
       // Respawn if fallen too far
       else if (player.position.y < -1.0) {
         respawnPlayer();
       }
     } else {
-      // Ground state - standing on platform or falling
+      // Ground state - standing on platform, floor, or falling
       if (onPlatform) {
         const platformTop = onPlatform.position.y + ROOM8_CONFIG.platformHeight / 2;
         player.position.y = platformTop + eyeHeight;
         currentPlatform = onPlatform;
+      } else if (onFloor) {
+        // Standing on floor - maintain height
+        if (player.position.y < eyeHeight) {
+          player.position.y = eyeHeight;
+        }
+        currentPlatform = null;
       } else {
-        // Not on platform and not jumping - start falling
+        // Not on solid ground and not jumping - start falling
         if (player.position.y > 0.5) {
           isFalling = true;
           fallVelocity = 0;
