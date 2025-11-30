@@ -109,6 +109,11 @@ let isFalling = false;
 let fallVelocity = 0;
 let currentPlatform = null;
 
+// Smooth landing system - prevents camera glitches when landing on moving platforms
+let isLandingTransition = false;
+let landingLerpFactor = 0;
+const LANDING_LERP_SPEED = 12.0;  // How fast to blend to platform position
+
 // Spawn on Platform 0 (static base platform at angle 0°, radial position 6.0)
 // Platform 0 is at (0, 2.0, 6.0) in spiral layout
 const spawnY = 2.0 + ROOM8_CONFIG.platformHeight / 2 + eyeHeight;
@@ -660,9 +665,10 @@ function createHieroglyphicTexture() {
   const glyphFunctions = [drawEye, drawAnkh, drawScarab, drawBird, drawWater, drawPyramid, drawSun, drawStaff];
 
   // Draw hieroglyphs in horizontal bands (like tomb walls)
-  const rows = 8;
-  const glyphsPerRow = 10;
-  const glyphSize = 30;
+  // Reduced density for cleaner, less cluttered appearance
+  const rows = 4;
+  const glyphsPerRow = 5;
+  const glyphSize = 45;  // Larger individual symbols
   const rowSpacing = size / rows;
 
   for (let row = 0; row < rows; row++) {
@@ -698,12 +704,12 @@ function createHieroglyphicTexture() {
     ctx.stroke();
   }
 
-  // Final aging overlay
-  ctx.fillStyle = 'rgba(100, 80, 60, 0.15)';
-  for (let i = 0; i < 500; i++) {
+  // Final aging overlay (reduced)
+  ctx.fillStyle = 'rgba(100, 80, 60, 0.12)';
+  for (let i = 0; i < 150; i++) {
     const x = Math.random() * size;
     const y = Math.random() * size;
-    const radius = 2 + Math.random() * 8;
+    const radius = 2 + Math.random() * 5;
     ctx.beginPath();
     ctx.arc(x, y, radius, 0, Math.PI * 2);
     ctx.fill();
@@ -712,9 +718,12 @@ function createHieroglyphicTexture() {
   const texture = new THREE.CanvasTexture(canvas);
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(1, 4);  // Repeat vertically for seamless tiling
+  // Balanced repeat for proper aspect ratio on cylinder
+  // Shaft: circumference ~75 units, height 50 units
+  // 3 tiles around (25 units each) × 2 tiles up (25 units each) = square tiles
+  texture.repeat.set(3, 2);
 
-  console.log('✓ Generated procedural hieroglyphic texture (1024x1024)');
+  console.log('✓ Generated procedural hieroglyphic texture (1024x1024, 3×2 tiling)');
   return texture;
 }
 
@@ -1200,7 +1209,11 @@ function onKeyDown(event) {
       moveRight = true;
       break;
     case 'Space':
-      if (!isJumping) { jumpVelocity = 10; isJumping = true; }
+      if (!isJumping) {
+        jumpVelocity = 10;
+        isJumping = true;
+        isLandingTransition = false;  // Reset landing state when jumping
+      }
       break;
   }
 }
@@ -1259,11 +1272,13 @@ function animate() {
       if (onPlatform && jumpVelocity <= 0) {
         const platformTop = onPlatform.position.y + ROOM8_CONFIG.platformHeight / 2;
         if (player.position.y - eyeHeight <= platformTop + 0.5) {
-          player.position.y = platformTop + eyeHeight;
+          // Start smooth landing transition instead of hard snap
           isJumping = false;
           jumpVelocity = 0;
           isFalling = false;
           currentPlatform = onPlatform;
+          isLandingTransition = true;
+          landingLerpFactor = 0;
           triggerPlatformLandingFeedback(onPlatform); // UX feedback
         }
       }
@@ -1290,11 +1305,12 @@ function animate() {
 
       // Check if landed on platform mid-fall
       if (onPlatform) {
-        const platformTop = onPlatform.position.y + ROOM8_CONFIG.platformHeight / 2;
-        player.position.y = platformTop + eyeHeight;
+        // Start smooth landing transition instead of hard snap
         isFalling = false;
         fallVelocity = 0;
         currentPlatform = onPlatform;
+        isLandingTransition = true;
+        landingLerpFactor = 0;
         triggerPlatformLandingFeedback(onPlatform); // UX feedback
       }
       // Check if landed on floor mid-fall
@@ -1312,7 +1328,22 @@ function animate() {
       // Ground state - standing on platform, floor, or falling
       if (onPlatform) {
         const platformTop = onPlatform.position.y + ROOM8_CONFIG.platformHeight / 2;
-        player.position.y = platformTop + eyeHeight;
+        const targetY = platformTop + eyeHeight;
+
+        // Smooth landing transition - lerp to platform position
+        if (isLandingTransition) {
+          landingLerpFactor += LANDING_LERP_SPEED * delta;
+          if (landingLerpFactor >= 1.0) {
+            landingLerpFactor = 1.0;
+            isLandingTransition = false;
+          }
+          // Smooth blend from current position to target
+          player.position.y = player.position.y + (targetY - player.position.y) * Math.min(landingLerpFactor, 1.0);
+        } else {
+          // Already settled - smoothly follow platform with high lerp factor
+          // This prevents micro-jumps from platform movement
+          player.position.y = player.position.y + (targetY - player.position.y) * 0.3;
+        }
         currentPlatform = onPlatform;
       } else if (onFloor) {
         // Standing on floor - maintain height
@@ -1320,11 +1351,13 @@ function animate() {
           player.position.y = eyeHeight;
         }
         currentPlatform = null;
+        isLandingTransition = false;
       } else {
         // Not on solid ground and not jumping - start falling
         if (player.position.y > 0.5) {
           isFalling = true;
           fallVelocity = 0;
+          isLandingTransition = false;
         }
       }
     }
