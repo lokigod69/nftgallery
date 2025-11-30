@@ -426,11 +426,307 @@ function placeAncientLamps() {
 }
 
 // ----------------------------------------------------------------------
+// Procedural Hieroglyphic Texture Generation
+// ----------------------------------------------------------------------
+
+/**
+ * Generate ancient Egyptian hieroglyphic texture procedurally
+ * Creates authentic-looking tomb wall with glyphs, weathering, and depth
+ */
+function createHieroglyphicTexture() {
+  const canvas = document.createElement('canvas');
+  const size = 1024;  // High-res for quality
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+
+  // Base sandstone color with subtle variation
+  const baseColor = '#c4a052';
+  ctx.fillStyle = baseColor;
+  ctx.fillRect(0, 0, size, size);
+
+  // Add stone texture noise
+  for (let i = 0; i < 3000; i++) {
+    const x = Math.random() * size;
+    const y = Math.random() * size;
+    const brightness = 180 + Math.random() * 75;
+    ctx.fillStyle = `rgba(${brightness}, ${brightness * 0.85}, ${brightness * 0.6}, ${0.15 + Math.random() * 0.2})`;
+    ctx.fillRect(x, y, 1 + Math.random() * 2, 1 + Math.random() * 2);
+  }
+
+  // Weathering cracks and aging
+  ctx.strokeStyle = 'rgba(80, 60, 40, 0.3)';
+  ctx.lineWidth = 0.5 + Math.random();
+  for (let i = 0; i < 15; i++) {
+    ctx.beginPath();
+    const startY = Math.random() * size;
+    ctx.moveTo(0, startY);
+    for (let x = 0; x < size; x += 20) {
+      ctx.lineTo(x, startY + (Math.random() - 0.5) * 30);
+    }
+    ctx.stroke();
+  }
+
+  // Hieroglyphic symbol drawing functions
+  const glyphColor = 'rgba(60, 45, 30, 0.7)';  // Dark carved color
+
+  // Eye of Horus
+  function drawEye(x, y, size) {
+    ctx.strokeStyle = glyphColor;
+    ctx.fillStyle = glyphColor;
+    ctx.lineWidth = 2;
+
+    // Almond eye shape
+    ctx.beginPath();
+    ctx.ellipse(x, y, size, size * 0.5, 0, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Pupil
+    ctx.beginPath();
+    ctx.arc(x, y, size * 0.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Eye line extensions
+    ctx.beginPath();
+    ctx.moveTo(x + size, y);
+    ctx.lineTo(x + size * 1.3, y - size * 0.2);
+    ctx.moveTo(x - size, y);
+    ctx.lineTo(x - size * 1.2, y);
+    ctx.stroke();
+  }
+
+  // Ankh (life symbol)
+  function drawAnkh(x, y, size) {
+    ctx.strokeStyle = glyphColor;
+    ctx.lineWidth = 2.5;
+
+    // Loop at top
+    ctx.beginPath();
+    ctx.arc(x, y - size * 0.3, size * 0.3, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Vertical line
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x, y + size);
+    ctx.stroke();
+
+    // Horizontal bar
+    ctx.beginPath();
+    ctx.moveTo(x - size * 0.5, y + size * 0.3);
+    ctx.lineTo(x + size * 0.5, y + size * 0.3);
+    ctx.stroke();
+  }
+
+  // Scarab beetle
+  function drawScarab(x, y, size) {
+    ctx.fillStyle = glyphColor;
+
+    // Body (oval)
+    ctx.beginPath();
+    ctx.ellipse(x, y, size * 0.4, size * 0.6, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Head (small circle)
+    ctx.beginPath();
+    ctx.arc(x, y - size * 0.5, size * 0.25, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Legs (simplified lines)
+    ctx.strokeStyle = glyphColor;
+    ctx.lineWidth = 2;
+    for (let i = -1; i <= 1; i++) {
+      ctx.beginPath();
+      ctx.moveTo(x - size * 0.3, y + i * size * 0.2);
+      ctx.lineTo(x - size * 0.6, y + i * size * 0.3);
+      ctx.moveTo(x + size * 0.3, y + i * size * 0.2);
+      ctx.lineTo(x + size * 0.6, y + i * size * 0.3);
+      ctx.stroke();
+    }
+  }
+
+  // Bird (falcon/ibis)
+  function drawBird(x, y, size) {
+    ctx.strokeStyle = glyphColor;
+    ctx.fillStyle = glyphColor;
+    ctx.lineWidth = 2;
+
+    // Body
+    ctx.beginPath();
+    ctx.ellipse(x, y, size * 0.3, size * 0.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Head
+    ctx.beginPath();
+    ctx.arc(x - size * 0.2, y - size * 0.4, size * 0.25, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Beak
+    ctx.beginPath();
+    ctx.moveTo(x - size * 0.35, y - size * 0.4);
+    ctx.lineTo(x - size * 0.6, y - size * 0.3);
+    ctx.stroke();
+
+    // Tail
+    ctx.beginPath();
+    ctx.moveTo(x + size * 0.3, y);
+    ctx.lineTo(x + size * 0.7, y + size * 0.3);
+    ctx.stroke();
+  }
+
+  // Wavy water lines
+  function drawWater(x, y, size) {
+    ctx.strokeStyle = glyphColor;
+    ctx.lineWidth = 2;
+
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.moveTo(x - size * 0.5, y + i * size * 0.2);
+      for (let dx = 0; dx < size; dx += size * 0.15) {
+        const wave = Math.sin((dx / size) * Math.PI * 4) * size * 0.1;
+        ctx.lineTo(x - size * 0.5 + dx, y + i * size * 0.2 + wave);
+      }
+      ctx.stroke();
+    }
+  }
+
+  // Pyramid
+  function drawPyramid(x, y, size) {
+    ctx.strokeStyle = glyphColor;
+    ctx.fillStyle = glyphColor;
+    ctx.lineWidth = 2;
+
+    ctx.beginPath();
+    ctx.moveTo(x, y - size * 0.6);  // Top
+    ctx.lineTo(x - size * 0.5, y + size * 0.3);  // Bottom left
+    ctx.lineTo(x + size * 0.5, y + size * 0.3);  // Bottom right
+    ctx.closePath();
+    ctx.fill();
+
+    // Center line
+    ctx.beginPath();
+    ctx.moveTo(x, y - size * 0.6);
+    ctx.lineTo(x, y + size * 0.3);
+    ctx.stroke();
+  }
+
+  // Sun disk
+  function drawSun(x, y, size) {
+    ctx.strokeStyle = glyphColor;
+    ctx.fillStyle = glyphColor;
+    ctx.lineWidth = 2;
+
+    // Disk
+    ctx.beginPath();
+    ctx.arc(x, y, size * 0.4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Rays
+    for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 6) {
+      ctx.beginPath();
+      const x1 = x + Math.cos(angle) * size * 0.5;
+      const y1 = y + Math.sin(angle) * size * 0.5;
+      const x2 = x + Math.cos(angle) * size * 0.8;
+      const y2 = y + Math.sin(angle) * size * 0.8;
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+    }
+  }
+
+  // Staff/Was scepter
+  function drawStaff(x, y, size) {
+    ctx.strokeStyle = glyphColor;
+    ctx.lineWidth = 2.5;
+
+    // Main staff
+    ctx.beginPath();
+    ctx.moveTo(x, y - size * 0.6);
+    ctx.lineTo(x, y + size * 0.6);
+    ctx.stroke();
+
+    // Fork at top
+    ctx.beginPath();
+    ctx.arc(x, y - size * 0.5, size * 0.2, 0, Math.PI, true);
+    ctx.stroke();
+
+    // Base
+    ctx.beginPath();
+    ctx.moveTo(x - size * 0.2, y + size * 0.6);
+    ctx.lineTo(x + size * 0.2, y + size * 0.6);
+    ctx.stroke();
+  }
+
+  const glyphFunctions = [drawEye, drawAnkh, drawScarab, drawBird, drawWater, drawPyramid, drawSun, drawStaff];
+
+  // Draw hieroglyphs in horizontal bands (like tomb walls)
+  const rows = 8;
+  const glyphsPerRow = 10;
+  const glyphSize = 30;
+  const rowSpacing = size / rows;
+
+  for (let row = 0; row < rows; row++) {
+    const y = (row + 0.5) * rowSpacing;
+    const colSpacing = size / glyphsPerRow;
+
+    // Alternating row offset for authenticity
+    const offset = (row % 2) * (colSpacing * 0.5);
+
+    for (let col = 0; col < glyphsPerRow; col++) {
+      const x = offset + (col + 0.5) * colSpacing;
+
+      // Randomly select glyph
+      const glyphFunc = glyphFunctions[Math.floor(Math.random() * glyphFunctions.length)];
+
+      // Slightly randomize position and size for organic feel
+      const jitterX = (Math.random() - 0.5) * 15;
+      const jitterY = (Math.random() - 0.5) * 15;
+      const sizeVar = glyphSize * (0.8 + Math.random() * 0.4);
+
+      glyphFunc(x + jitterX, y + jitterY, sizeVar);
+    }
+  }
+
+  // Add vertical cartouche-like dividers
+  ctx.strokeStyle = 'rgba(80, 60, 40, 0.4)';
+  ctx.lineWidth = 2;
+  for (let i = 1; i < 4; i++) {
+    const x = (size / 4) * i;
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, size);
+    ctx.stroke();
+  }
+
+  // Final aging overlay
+  ctx.fillStyle = 'rgba(100, 80, 60, 0.15)';
+  for (let i = 0; i < 500; i++) {
+    const x = Math.random() * size;
+    const y = Math.random() * size;
+    const radius = 2 + Math.random() * 8;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(1, 4);  // Repeat vertically for seamless tiling
+
+  console.log('✓ Generated procedural hieroglyphic texture (1024x1024)');
+  return texture;
+}
+
+// ----------------------------------------------------------------------
 // Vertical Shaft Structure
 // ----------------------------------------------------------------------
 function createShaft() {
   const cfg = ROOM8_CONFIG;
-  
+
+  // Generate procedural hieroglyphic texture
+  const hieroglyphicTexture = createHieroglyphicTexture();
+
   // Main vertical cylindrical shaft (tapered)
   const shaftGeometry = new THREE.CylinderGeometry(
     cfg.topRadius,    // Top radius (narrower)
@@ -443,6 +739,9 @@ function createShaft() {
 
   const shaftMaterial = new THREE.MeshStandardMaterial({
     color: 0xc4a052,     // Sandstone yellow-beige
+    map: hieroglyphicTexture,  // Hieroglyphic wall art
+    bumpMap: hieroglyphicTexture,  // Add depth to carvings
+    bumpScale: 0.3,  // Subtle depth effect
     roughness: 0.85,
     metalness: 0.05,
     side: THREE.BackSide
@@ -599,9 +898,9 @@ function createPlatforms() {
 
     // Debug log for verification
     if (i === 0) {
-      console.log(`Platform ${i}: angle=${params.angle.toFixed(1)}°, pos=(${x.toFixed(2)}, ${params.baseY}, ${z.toFixed(2)}), static`);
+      console.log(`Platform ${i}: angle=${params.angle.toFixed(1)}°, pos=(${x.toFixed(2)}, ${params.baseY}, ${z.toFixed(2)}), radius=${radius}, static`);
     } else {
-      console.log(`Platform ${i}: angle=${params.angle.toFixed(1)}°, pos=(${x.toFixed(2)}, ${params.baseY}±${params.amplitude}, ${z.toFixed(2)}), phase=${params.phase.toFixed(2)}`);
+      console.log(`Platform ${i}: angle=${params.angle.toFixed(1)}°, pos=(${x.toFixed(2)}, ${params.baseY}±${params.amplitude}, ${z.toFixed(2)}), radius=${radius}, phase=${params.phase.toFixed(2)}`);
     }
   });
 
@@ -628,12 +927,18 @@ function detectPlatformCollision(playerPos) {
     // Use stored platform radius (Platform 0 is larger than others)
     const platformRadius = platform.userData.radius || cfg.platformRadius;
 
-    // Balanced tolerance - reliable but prevents glitching
-    // Horizontal: radius - 0.1, Vertical: ±0.8 (reduced from 1.2 to prevent inside-platform glitching)
-    if (
-      horizontalDist <= platformRadius - 0.1 &&
-      Math.abs(feetY - platformTop) < 0.8
-    ) {
+    const vertDist = Math.abs(feetY - platformTop);
+    const hCheck = horizontalDist <= platformRadius - 0.1;
+    const vCheck = vertDist < 1.0;  // Increased from 0.8 for more reliable collision
+
+    // Debug Platform 0 collisions
+    if (platform.userData.platformIndex === 0 && (hCheck || vCheck)) {
+      console.log(`P0 collision check: hDist=${horizontalDist.toFixed(2)}, radius=${platformRadius}, vDist=${vertDist.toFixed(2)}, hCheck=${hCheck}, vCheck=${vCheck}`);
+    }
+
+    // Balanced tolerance - reliable collision without glitching
+    // Horizontal: radius - 0.1, Vertical: ±1.0 (tight enough to prevent glitching, loose enough to catch fast falls)
+    if (hCheck && vCheck) {
       return platform;
     }
   }
