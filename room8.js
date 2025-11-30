@@ -995,9 +995,10 @@ function createWallNFTs() {
   const nftPlanes = [];
   const textureLoader = new THREE.TextureLoader();
 
-  // 6 vertical levels to fill shaft from floor to ceiling
+  // 6 vertical levels to fill shaft from bottom to top
+  // Player spawns at Y≈5, so start levels above that
   // Reuses the 32 available NFT textures with modulo wrapping
-  const levels = [5, 13, 21, 29, 37, 45];
+  const levels = [8, 16, 24, 32, 40, 48];
   const nftsPerLevel = 8;
   let loadedCount = 0;
   let nftIndex = 0;
