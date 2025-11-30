@@ -34,7 +34,7 @@ import { initScene } from './src/core/scene-setup.js';
  *
  * PERFORMANCE:
  * - 7 animated platforms (sinusoidal, negligible CPU)
- * - 48 NFT textures loaded async with fallback (6 levels × 8 per level)
+ * - 32 NFT textures loaded async with fallback
  * - 60 dust particles (reduced from 150 for performance)
  * - 3 ancient lamps in spiral pattern (shared geometries/materials, ~30 meshes)
  * - 11 lights total (reduced from 16 for better performance)
@@ -65,9 +65,9 @@ const ROOM8_CONFIG = {
   gravity: -30,
   jumpVelocity: 10,
   
-  // Content - 6 vertical levels to fill shaft from bottom to top
-  nftCount: 48,           // 6 levels × 8 NFTs per level
-  nftStartIndex: 1,       // Start from nft1 (use available placeholders)
+  // Content
+  nftCount: 32,
+  nftStartIndex: 72,      // nft72-103 (32 total)
   nftSize: 2.0,
   
   // VFX
@@ -83,11 +83,11 @@ const ROOM8_CONFIG = {
   lampOrbDistance: 8.0,          // Focused lighting
 
   // Spiral lamp positions (angle, Y height)
-  // Positioned between NFT levels (Y=6,14,22,30,38,46) to avoid obstruction
+  // Positioned between platforms AND between NFT levels to avoid obstruction
   lampPositions: [
-    { angle: 25.7,   y: 10.0 },  // Between NFT Y=6 and Y=14
-    { angle: 128.6,  y: 26.0 },  // Between NFT Y=22 and Y=30
-    { angle: 231.4,  y: 42.0 }   // Between NFT Y=38 and Y=46
+    { angle: 25.7,   y: 6.0 },   // Between P0-P1, below NFT Y=10
+    { angle: 128.6,  y: 25.0 },  // Between P3-P4, between NFT Y=20 and Y=30
+    { angle: 231.4,  y: 45.0 }   // Between P5-P6, above NFT Y=40
   ],
 
   // Performance
@@ -994,42 +994,45 @@ function createWallNFTs() {
   const cfg = ROOM8_CONFIG;
   const nftPlanes = [];
   const textureLoader = new THREE.TextureLoader();
-  
-  // 6 vertical levels × 8 per level = 48 NFTs (fills shaft from bottom to top)
-  const levels = [6, 14, 22, 30, 38, 46];  // Evenly spaced from near floor to near ceiling
+
+  // 6 vertical levels to fill shaft from floor to ceiling
+  // Reuses the 32 available NFT textures with modulo wrapping
+  const levels = [5, 13, 21, 29, 37, 45];
   const nftsPerLevel = 8;
   let loadedCount = 0;
   let nftIndex = 0;
-  
+  const totalNftsAvailable = cfg.nftCount;  // 32 NFTs available
+
   levels.forEach(levelY => {
     for (let i = 0; i < nftsPerLevel; i++) {
       const angle = (i / nftsPerLevel) * Math.PI * 2;
       const radius = cfg.baseRadius - 0.5; // Inset from wall
-      
+
       const nftX = Math.cos(angle) * radius;
       const nftZ = Math.sin(angle) * radius;
-      
+
       // Start with black placeholder
       const placeholderMaterial = new THREE.MeshBasicMaterial({
         color: 0x000000,
         side: THREE.DoubleSide
       });
-      
+
       const nftPlane = new THREE.Mesh(
         new THREE.PlaneGeometry(cfg.nftSize, cfg.nftSize),
         placeholderMaterial
       );
-      
+
       nftPlane.position.set(nftX, levelY, nftZ);
       nftPlane.lookAt(0, levelY, 0); // Face inward
-      
+
       scene.add(nftPlane);
       nftPlanes.push(nftPlane);
-      
-      // Load real NFT texture asynchronously
-      const currentNftIndex = cfg.nftStartIndex + nftIndex;
+
+      // Load real NFT texture - use modulo to cycle through available NFTs
+      const wrappedIndex = nftIndex % totalNftsAvailable;
+      const currentNftIndex = cfg.nftStartIndex + wrappedIndex;
       const nftUrl = getNftUrl(currentNftIndex);
-      
+
       textureLoader.load(
         nftUrl,
         (texture) => {
@@ -1037,15 +1040,15 @@ function createWallNFTs() {
           texture.minFilter = THREE.LinearFilter;
           texture.magFilter = THREE.LinearFilter;
           texture.encoding = THREE.sRGBEncoding;
-          
+
           nftPlane.material = new THREE.MeshBasicMaterial({
             map: texture,
             side: THREE.DoubleSide
           });
-          
+
           loadedCount++;
-          if (loadedCount === cfg.nftCount) {
-            console.log(`✓ All ${loadedCount} NFT textures loaded (nft${cfg.nftStartIndex}-${currentNftIndex})`);
+          if (loadedCount === nftPlanes.length) {
+            console.log(`✓ All ${loadedCount} NFT planes textured`);
           }
         },
         undefined,
@@ -1054,12 +1057,12 @@ function createWallNFTs() {
           console.warn(`⚠ NFT ${currentNftIndex} failed to load, using placeholder`);
         }
       );
-      
+
       nftIndex++;
     }
   });
-  
-  console.log(`✓ Placed ${nftPlanes.length} NFT planes, loading textures...`);
+
+  console.log(`✓ Placed ${nftPlanes.length} NFT planes across ${levels.length} levels, loading textures...`);
   return nftPlanes;
 }
 
