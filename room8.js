@@ -15,9 +15,10 @@ import { initScene } from './src/core/scene-setup.js';
  * - NFTs: 32 wall placeholders (4 levels × 8 per ring), nft72-103
  * - Portal: to Room 5, at Y=43 (accessible from Platform 6)
  * - Physics: Jump=10, Gravity=-30, Respawn if Y<-1.0
- * - Lights: 16 total (1 ambient + 6 torches + 1 god ray + 8 lamp orbs)
- * - Ancient Lamps: 8 wall-mounted Egyptian sconces with procedural textures
- *   - Placement: Platform levels 1,2,4,6 (2 lamps per level, opposite sides)
+ * - Lights: 11 total (1 ambient + 6 torches + 1 god ray + 3 lamp orbs)
+ * - Ancient Lamps: 3 wall-mounted Egyptian sconces in spiral pattern
+ *   - Placement: Double helix with platforms (between P0-P1, P2-P3, P4-P5)
+ *   - Angles: 25.7°, 128.6°, 231.4° (offset from platform spiral)
  *   - Each has glowing amber orb with PointLight (intensity 3.0, distance 8.0)
  *   - Materials: Procedural sandstone texture, hieroglyph bump map, metal band
  *   - Subtle flicker animation for realistic fire-like behavior
@@ -25,18 +26,19 @@ import { initScene } from './src/core/scene-setup.js';
  * CONFIG KNOBS:
  * - ROOM8_CONFIG.nftStartIndex: First NFT number (default 72)
  * - ROOM8_CONFIG.enableDustParticles: Atmospheric dust (default true)
+ * - ROOM8_CONFIG.dustParticleCount: Number of particles (default 60)
  * - ROOM8_CONFIG.platformLandingFeedback: Emissive pulse on land (default true)
  * - ROOM8_CONFIG.enableAncientLamps: Wall-mounted lamps (default true)
- * - ROOM8_CONFIG.lampLevels: Platform indices for lamp placement
+ * - ROOM8_CONFIG.lampPositions: Spiral lamp positions (angle, y)
  * - ROOM8_CONFIG.lampOrbIntensity: Light intensity per lamp orb
  *
  * PERFORMANCE:
  * - 7 animated platforms (sinusoidal, negligible CPU)
  * - 32 NFT textures loaded async with fallback
- * - ~150 dust particles (optional, lightweight)
- * - 8 ancient lamps (shared geometries/materials, ~80 meshes total)
- * - 16 lights total (balanced for target hardware)
- * - Target: 60 FPS, <25 MB VRAM
+ * - 60 dust particles (reduced from 150 for performance)
+ * - 3 ancient lamps in spiral pattern (shared geometries/materials, ~30 meshes)
+ * - 11 lights total (reduced from 16 for better performance)
+ * - Target: 60 FPS, <20 MB VRAM
  */
 // ═══════════════════════════════════════════════════════════════════════
 
@@ -69,21 +71,27 @@ const ROOM8_CONFIG = {
   
   // VFX
   enableDustParticles: true,
-  dustParticleCount: 150,
+  dustParticleCount: 60,       // Reduced from 150 for performance
   platformLandingFeedback: true,
   
-  // Ancient Lamps
+  // Ancient Lamps (Spiral Design - Double Helix with Platforms)
   enableAncientLamps: true,
-  lampLevels: [1, 2, 4, 6],      // Platform indices for lamp placement
-  lampsPerLevel: 2,              // Opposite sides for symmetry
-  lampVerticalOffset: 1.5,       // Above platform surface
-  lampRadiusInset: 0.8,          // Recess into wall slightly
+  lampCount: 3,                  // Reduced from 8 for performance
+  lampRadiusPosition: 10.5,      // Distance from shaft center (near wall)
   lampOrbIntensity: 3.0,         // Tuned for balance
   lampOrbDistance: 8.0,          // Focused lighting
-  
+
+  // Spiral lamp positions (angle, Y height)
+  // Positioned between platforms for double helix effect
+  lampPositions: [
+    { angle: 25.7,   y: 4.5 },   // Between P0-P1
+    { angle: 128.6,  y: 17.5 },  // Between P2-P3
+    { angle: 231.4,  y: 31.5 }   // Between P4-P5
+  ],
+
   // Performance
   torchCount: 6,                 // 3 levels × 2 per level
-  totalLights: 16                // ambient + 6 torches + 1 god ray + 8 lamp orbs
+  totalLights: 11                // ambient + 6 torches + 1 god ray + 3 lamp orbs (spiral)
 };
 
 const eyeHeight = ROOM8_CONFIG.eyeHeight;
@@ -378,7 +386,7 @@ function createAncientLamp() {
 }
 
 /**
- * Place ancient lamps at key platform levels
+ * Place ancient lamps in spiral pattern (double helix with platforms)
  * Returns: Array of { group, orbLight } for animation
  */
 function placeAncientLamps() {
@@ -388,41 +396,31 @@ function placeAncientLamps() {
   initLampMaterials(); // Initialize shared materials once
 
   const lamps = [];
-  const platformYPositions = [
-    2.0,  // P0
-    8.0,  // P1
-    14.0, // P2
-    20.0, // P3
-    26.0, // P4
-    32.0, // P5
-    42.0  // P6
-  ];
 
-  cfg.lampLevels.forEach(platformIndex => {
-    const platformY = platformYPositions[platformIndex];
-    const lampY = platformY + cfg.lampVerticalOffset;
-    const lampRadius = cfg.baseRadius - cfg.lampRadiusInset;
+  cfg.lampPositions.forEach((lampData, i) => {
+    const { angle, y } = lampData;
 
-    // Place 2 lamps per level, opposite sides
-    for (let i = 0; i < cfg.lampsPerLevel; i++) {
-      const angle = i * Math.PI; // 0° and 180°
-      const x = Math.cos(angle) * lampRadius;
-      const z = Math.sin(angle) * lampRadius;
+    // Calculate spiral position from angle and radial distance
+    // Same formula as platforms: 0° = South (positive Z), 90° = East (positive X)
+    const angleRad = angle * Math.PI / 180;
+    const x = Math.sin(angleRad) * cfg.lampRadiusPosition;
+    const z = Math.cos(angleRad) * cfg.lampRadiusPosition;
 
-      const { group, orbLight } = createAncientLamp();
+    const { group, orbLight } = createAncientLamp();
 
-      // Position and orient lamp
-      group.position.set(x, lampY, z);
+    // Position lamp in spiral
+    group.position.set(x, y, z);
 
-      // Face inward toward shaft center
-      group.lookAt(0, lampY, 0);
+    // Face inward toward shaft center
+    group.lookAt(0, y, 0);
 
-      scene.add(group);
-      lamps.push({ group, orbLight });
-    }
+    scene.add(group);
+    lamps.push({ group, orbLight });
+
+    console.log(`Lamp ${i}: angle=${angle.toFixed(1)}°, pos=(${x.toFixed(2)}, ${y}, ${z.toFixed(2)})`);
   });
 
-  console.log(`✓ Placed ${lamps.length} ancient wall lamps at platform levels ${cfg.lampLevels.join(', ')}`);
+  console.log(`✓ Placed ${lamps.length} ancient wall lamps in spiral pattern (double helix)`);
   return lamps;
 }
 
