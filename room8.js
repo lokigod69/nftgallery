@@ -34,7 +34,7 @@ import { initScene } from './src/core/scene-setup.js';
  *
  * PERFORMANCE:
  * - 7 animated platforms (sinusoidal, negligible CPU)
- * - 32 NFT textures loaded async with fallback
+ * - 48 NFT textures loaded async with fallback (6 levels × 8 per level)
  * - 60 dust particles (reduced from 150 for performance)
  * - 3 ancient lamps in spiral pattern (shared geometries/materials, ~30 meshes)
  * - 11 lights total (reduced from 16 for better performance)
@@ -65,9 +65,9 @@ const ROOM8_CONFIG = {
   gravity: -30,
   jumpVelocity: 10,
   
-  // Content
-  nftCount: 32,
-  nftStartIndex: 72,      // nft72-103 (32 total)
+  // Content - 6 vertical levels to fill shaft from bottom to top
+  nftCount: 48,           // 6 levels × 8 NFTs per level
+  nftStartIndex: 1,       // Start from nft1 (use available placeholders)
   nftSize: 2.0,
   
   // VFX
@@ -83,11 +83,11 @@ const ROOM8_CONFIG = {
   lampOrbDistance: 8.0,          // Focused lighting
 
   // Spiral lamp positions (angle, Y height)
-  // Positioned between platforms AND between NFT levels (Y=10,20,30,40) to avoid obstruction
+  // Positioned between NFT levels (Y=6,14,22,30,38,46) to avoid obstruction
   lampPositions: [
-    { angle: 25.7,   y: 6.0 },   // Between P0-P1, well below NFT Y=10
-    { angle: 128.6,  y: 25.0 },  // Between P3-P4, halfway between NFT Y=20 and Y=30
-    { angle: 231.4,  y: 37.0 }   // Between P5-P6, between NFT Y=30 and Y=40
+    { angle: 25.7,   y: 10.0 },  // Between NFT Y=6 and Y=14
+    { angle: 128.6,  y: 26.0 },  // Between NFT Y=22 and Y=30
+    { angle: 231.4,  y: 42.0 }   // Between NFT Y=38 and Y=46
   ],
 
   // Performance
@@ -995,8 +995,8 @@ function createWallNFTs() {
   const nftPlanes = [];
   const textureLoader = new THREE.TextureLoader();
   
-  // 4 vertical levels × 8 per level = 32 NFTs
-  const levels = [10, 20, 30, 40];
+  // 6 vertical levels × 8 per level = 48 NFTs (fills shaft from bottom to top)
+  const levels = [6, 14, 22, 30, 38, 46];  // Evenly spaced from near floor to near ceiling
   const nftsPerLevel = 8;
   let loadedCount = 0;
   let nftIndex = 0;
