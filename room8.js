@@ -996,35 +996,41 @@ function createWallNFTs() {
   const textureLoader = new THREE.TextureLoader();
 
   // 6 vertical levels to fill shaft from bottom to top
-  // Player spawns at Y≈5, so start levels above that
-  // Reuses the 32 available NFT textures with modulo wrapping
+  // Shaft height is 50, player spawns at Y≈5
   const levels = [8, 16, 24, 32, 40, 48];
   const nftsPerLevel = 8;
   let loadedCount = 0;
   let nftIndex = 0;
   const totalNftsAvailable = cfg.nftCount;  // 32 NFTs available
 
+  // Create shared geometry for all NFT planes
+  const nftGeometry = new THREE.PlaneGeometry(cfg.nftSize, cfg.nftSize);
+
   levels.forEach(levelY => {
     for (let i = 0; i < nftsPerLevel; i++) {
+      // Calculate angle around the shaft (0 to 2π)
       const angle = (i / nftsPerLevel) * Math.PI * 2;
-      const radius = cfg.baseRadius - 0.5; // Inset from wall
+      const radius = cfg.baseRadius - 0.5; // Inset slightly from wall
 
+      // Position on the cylindrical wall
       const nftX = Math.cos(angle) * radius;
       const nftZ = Math.sin(angle) * radius;
 
-      // Start with black placeholder
+      // Start with black placeholder material
       const placeholderMaterial = new THREE.MeshBasicMaterial({
         color: 0x000000,
         side: THREE.DoubleSide
       });
 
-      const nftPlane = new THREE.Mesh(
-        new THREE.PlaneGeometry(cfg.nftSize, cfg.nftSize),
-        placeholderMaterial
-      );
+      const nftPlane = new THREE.Mesh(nftGeometry, placeholderMaterial);
 
+      // Set position
       nftPlane.position.set(nftX, levelY, nftZ);
-      nftPlane.lookAt(0, levelY, 0); // Face inward
+
+      // Manually rotate to face center (inward)
+      // Plane default faces +Z, we need it to face toward (0, levelY, 0)
+      // Rotation around Y axis: angle + π to face inward
+      nftPlane.rotation.y = angle + Math.PI;
 
       scene.add(nftPlane);
       nftPlanes.push(nftPlane);
@@ -1037,7 +1043,6 @@ function createWallNFTs() {
       textureLoader.load(
         nftUrl,
         (texture) => {
-          // Success: replace material with textured version
           texture.minFilter = THREE.LinearFilter;
           texture.magFilter = THREE.LinearFilter;
           texture.encoding = THREE.sRGBEncoding;
@@ -1054,7 +1059,6 @@ function createWallNFTs() {
         },
         undefined,
         (error) => {
-          // Fallback: keep black placeholder
           console.warn(`⚠ NFT ${currentNftIndex} failed to load, using placeholder`);
         }
       );
@@ -1063,7 +1067,7 @@ function createWallNFTs() {
     }
   });
 
-  console.log(`✓ Placed ${nftPlanes.length} NFT planes across ${levels.length} levels, loading textures...`);
+  console.log(`✓ Placed ${nftPlanes.length} NFT planes across ${levels.length} levels`);
   return nftPlanes;
 }
 
