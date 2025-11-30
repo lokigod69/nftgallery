@@ -53,7 +53,8 @@ const ROOM8_CONFIG = {
   
   // Platforms (Spiral Design)
   platformCount: 7,
-  platformRadius: 1.8,          // Reduced from 3.5 for spiral layout
+  platformRadius: 1.8,          // Standard platform size (spiral platforms)
+  platformSpawnRadius: 5.0,     // Larger spawn platform (Platform 0)
   platformHeight: 0.6,
   platformRadialPosition: 6.0,  // Distance from shaft center (0,0)
   platformAngularSpacing: 51.43, // Degrees between platforms (360°/7)
@@ -82,11 +83,11 @@ const ROOM8_CONFIG = {
   lampOrbDistance: 8.0,          // Focused lighting
 
   // Spiral lamp positions (angle, Y height)
-  // Positioned between platforms for double helix effect
+  // Positioned between platforms AND between NFT levels (Y=10,20,30,40) to avoid obstruction
   lampPositions: [
-    { angle: 25.7,   y: 4.5 },   // Between P0-P1
-    { angle: 128.6,  y: 17.5 },  // Between P2-P3
-    { angle: 231.4,  y: 31.5 }   // Between P4-P5
+    { angle: 25.7,   y: 6.0 },   // Between P0-P1, well below NFT Y=10
+    { angle: 128.6,  y: 25.0 },  // Between P3-P4, halfway between NFT Y=20 and Y=30
+    { angle: 231.4,  y: 37.0 }   // Between P5-P6, between NFT Y=30 and Y=40
   ],
 
   // Performance
@@ -565,9 +566,12 @@ function createPlatforms() {
   });
 
   platformMotionParams.forEach((params, i) => {
+    // Use larger radius for Platform 0 (spawn), normal radius for others
+    const radius = (i === 0) ? cfg.platformSpawnRadius : cfg.platformRadius;
+
     const platformGeometry = new THREE.CylinderGeometry(
-      cfg.platformRadius,
-      cfg.platformRadius,
+      radius,
+      radius,
       cfg.platformHeight,
       32
     );
@@ -588,6 +592,7 @@ function createPlatforms() {
     platform.userData.angleRad = angleRad;
     platform.userData.baseX = x;
     platform.userData.baseZ = z;
+    platform.userData.radius = radius;  // Store actual platform radius for collision detection
 
     scene.add(platform);
     platforms.push(platform);
@@ -620,11 +625,14 @@ function detectPlatformCollision(playerPos) {
 
     const platformTop = platform.position.y + cfg.platformHeight / 2;
 
-    // Increased tolerance for more reliable collision
-    // Horizontal: radius 1.7 (was 1.5), Vertical: ±1.2 (was ±0.6)
+    // Use stored platform radius (Platform 0 is larger than others)
+    const platformRadius = platform.userData.radius || cfg.platformRadius;
+
+    // Balanced tolerance - reliable but prevents glitching
+    // Horizontal: radius - 0.1, Vertical: ±0.8 (reduced from 1.2 to prevent inside-platform glitching)
     if (
-      horizontalDist <= cfg.platformRadius - 0.1 &&
-      Math.abs(feetY - platformTop) < 1.2
+      horizontalDist <= platformRadius - 0.1 &&
+      Math.abs(feetY - platformTop) < 0.8
     ) {
       return platform;
     }
