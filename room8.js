@@ -988,89 +988,91 @@ function updatePlatforms(time) {
 }
 
 // ----------------------------------------------------------------------
-// Wall NFT System (Phase 5 - Real Texture Integration)
+// Wall NFT System - Complete Rewrite
+// Places NFTs like stickers on the inside of a barrel
 // ----------------------------------------------------------------------
 function createWallNFTs() {
   const cfg = ROOM8_CONFIG;
-  const nftPlanes = [];
+  const nftMeshes = [];
   const textureLoader = new THREE.TextureLoader();
 
-  // 6 vertical levels to fill shaft from bottom to top
-  // Shaft height is 50, player spawns at Y≈5
-  const levels = [8, 16, 24, 32, 40, 48];
-  const nftsPerLevel = 8;
-  let loadedCount = 0;
-  let nftIndex = 0;
-  const totalNftsAvailable = cfg.nftCount;  // 32 NFTs available
+  // 6 horizontal rings from floor to ceiling
+  const ringHeights = [8, 16, 24, 32, 40, 48];
+  const nftsPerRing = 8;
+  const wallRadius = cfg.baseRadius - 0.3;  // Slightly inset from wall
+  const nftSize = cfg.nftSize;
+  const totalAvailable = cfg.nftCount;
 
-  // Create shared geometry for all NFT planes
-  const nftGeometry = new THREE.PlaneGeometry(cfg.nftSize, cfg.nftSize);
+  let globalIdx = 0;
 
-  levels.forEach(levelY => {
-    for (let i = 0; i < nftsPerLevel; i++) {
-      // Calculate angle around the shaft (0 to 2π)
-      const angle = (i / nftsPerLevel) * Math.PI * 2;
-      const radius = cfg.baseRadius - 0.5; // Inset slightly from wall
+  // Create each ring of NFTs
+  for (let ring = 0; ring < ringHeights.length; ring++) {
+    const y = ringHeights[ring];
+
+    // Create 8 NFTs evenly spaced around the ring
+    for (let slot = 0; slot < nftsPerRing; slot++) {
+      // Angle around cylinder (0 to 2π)
+      const theta = (slot / nftsPerRing) * Math.PI * 2;
 
       // Position on the cylindrical wall
-      const nftX = Math.cos(angle) * radius;
-      const nftZ = Math.sin(angle) * radius;
+      const x = Math.cos(theta) * wallRadius;
+      const z = Math.sin(theta) * wallRadius;
 
-      // Start with black placeholder material
-      const placeholderMaterial = new THREE.MeshBasicMaterial({
-        color: 0x000000,
+      // Create fresh geometry for this NFT (not shared)
+      const geometry = new THREE.PlaneGeometry(nftSize, nftSize);
+
+      // Dark placeholder material
+      const material = new THREE.MeshBasicMaterial({
+        color: 0x111111,
         side: THREE.DoubleSide
       });
 
-      const nftPlane = new THREE.Mesh(nftGeometry, placeholderMaterial);
+      const mesh = new THREE.Mesh(geometry, material);
 
-      // Set position on the cylindrical wall
-      nftPlane.position.set(nftX, levelY, nftZ);
+      // Position the NFT on the wall
+      mesh.position.set(x, y, z);
 
-      // Rotate to be tangent to cylinder wall AND face inward toward center
-      // Plane default faces +Z. To face center from position at angle θ:
-      // - At angle=0 (+X side), need to face -X direction → rotate Y by +π/2
-      // - At angle=π/2 (+Z side), need to face -Z direction → rotate Y by +π
-      // Formula: rotation.y = angle + π/2
-      nftPlane.rotation.y = angle + Math.PI / 2;
+      // Calculate rotation to face center
+      // Plane default normal is +Z (0,0,1)
+      // We need normal to point toward center: direction = (-x, 0, -z) normalized
+      // Using atan2 to get the correct Y rotation
+      const rotationY = Math.atan2(-x, -z);
+      mesh.rotation.y = rotationY;
 
-      scene.add(nftPlane);
-      nftPlanes.push(nftPlane);
+      scene.add(mesh);
+      nftMeshes.push(mesh);
 
-      // Load real NFT texture - use modulo to cycle through available NFTs
-      const wrappedIndex = nftIndex % totalNftsAvailable;
-      const currentNftIndex = cfg.nftStartIndex + wrappedIndex;
-      const nftUrl = getNftUrl(currentNftIndex);
+      // Load texture with modulo wrapping (reuse 32 textures across 48 slots)
+      const textureIdx = cfg.nftStartIndex + (globalIdx % totalAvailable);
+      const url = getNftUrl(textureIdx);
+
+      // Capture mesh reference for closure
+      const currentMesh = mesh;
 
       textureLoader.load(
-        nftUrl,
+        url,
         (texture) => {
           texture.minFilter = THREE.LinearFilter;
           texture.magFilter = THREE.LinearFilter;
           texture.encoding = THREE.sRGBEncoding;
 
-          nftPlane.material = new THREE.MeshBasicMaterial({
-            map: texture,
-            side: THREE.DoubleSide
-          });
-
-          loadedCount++;
-          if (loadedCount === nftPlanes.length) {
-            console.log(`✓ All ${loadedCount} NFT planes textured`);
-          }
+          // Update existing material instead of replacing
+          currentMesh.material.map = texture;
+          currentMesh.material.color.set(0xffffff);
+          currentMesh.material.needsUpdate = true;
         },
         undefined,
-        (error) => {
-          console.warn(`⚠ NFT ${currentNftIndex} failed to load, using placeholder`);
+        (err) => {
+          console.warn(`NFT ${textureIdx} failed to load`);
         }
       );
 
-      nftIndex++;
+      globalIdx++;
     }
-  });
+  }
 
-  console.log(`✓ Placed ${nftPlanes.length} NFT planes across ${levels.length} levels`);
-  return nftPlanes;
+  console.log(`✓ Created ${nftMeshes.length} NFTs in ${ringHeights.length} rings`);
+  return nftMeshes;
 }
 
 /**
