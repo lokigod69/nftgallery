@@ -66,8 +66,8 @@ const ROOM8_CONFIG = {
   jumpVelocity: 10,
   
   // Content
-  nftCount: 32,
-  nftStartIndex: 72,      // nft72-103 (32 total)
+  nftCount: 48,           // 6 rings × 8 NFTs = 48 total
+  nftStartIndex: 1,       // Start from nft1 (plenty available as placeholders)
   nftSize: 2.0,
   
   // VFX
@@ -121,13 +121,13 @@ const spawnZ = ROOM8_CONFIG.platformRadialPosition; // Platform 0 at angle 0° (
 const { scene, camera, renderer, controls } = initScene({
   spawnPosition: { x: 0, y: spawnY, z: spawnZ },
   background: 0x1a140f,  // Dark warm brown
-  fog: { color: 0x2a1f15, near: 15, far: 45 }  // Warm brown fog
+  fog: { color: 0x2a1f15, near: 20, far: 65 }  // Extended fog for better NFT visibility
 });
 
 // ----------------------------------------------------------------------
 // Lighting - Egyptian Torch/Brazier System
 // ----------------------------------------------------------------------
-const ambientLight = new THREE.AmbientLight(0xaa8844, 0.15);
+const ambientLight = new THREE.AmbientLight(0xaa8844, 0.25);  // Slightly brighter
 scene.add(ambientLight);
 
 // Torch lights at 3 vertical levels (2 per level, opposite sides)
@@ -1016,8 +1016,8 @@ function createWallNFTs() {
       const xPos = Math.cos(angleRad) * radius;
       const zPos = Math.sin(angleRad) * radius;
 
-      // Calculate which NFT texture to use (wrap around 32 available)
-      const textureNum = cfg.nftStartIndex + (nftCounter % cfg.nftCount);
+      // Calculate which NFT texture to use (nft1 through nft48)
+      const textureNum = cfg.nftStartIndex + nftCounter;
 
       // Load texture first (like Room 6 does)
       const texture = textureLoader.load(
@@ -1043,10 +1043,10 @@ function createWallNFTs() {
       // Set position
       plane.position.set(xPos, yPos, zPos);
 
-      // Set rotation to face center
-      // Plane default faces +Z, we need it to face toward (0,0,0) from its position
-      // Rotation = -(angle + 90°) to face inward
-      plane.rotation.y = -(angleRad + Math.PI / 2);
+      // Set rotation to face center using atan2 on actual position
+      // This is more reliable than using the calculated angle
+      // atan2(x, z) gives angle from +Z axis, add π to face inward
+      plane.rotation.y = Math.atan2(xPos, zPos) + Math.PI;
 
       scene.add(plane);
       nftPlanes.push(plane);
