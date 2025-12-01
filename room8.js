@@ -996,8 +996,9 @@ function createWallNFTs() {
   const nftMeshes = [];
   const textureLoader = new THREE.TextureLoader();
 
-  // 6 horizontal rings from floor to ceiling
-  const ringHeights = [8, 16, 24, 32, 40, 48];
+  // 6 horizontal rings from near floor to near ceiling
+  // Player spawns at Y≈5, shaft height is 50
+  const ringHeights = [6, 14, 22, 30, 38, 46];
   const nftsPerRing = 8;
   const wallRadius = cfg.baseRadius - 0.3;  // Slightly inset from wall
   const nftSize = cfg.nftSize;
@@ -1008,6 +1009,7 @@ function createWallNFTs() {
   // Create each ring of NFTs
   for (let ring = 0; ring < ringHeights.length; ring++) {
     const y = ringHeights[ring];
+    console.log(`Creating NFT ring ${ring + 1}/${ringHeights.length} at Y=${y}`);
 
     // Create 8 NFTs evenly spaced around the ring
     for (let slot = 0; slot < nftsPerRing; slot++) {
