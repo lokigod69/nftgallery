@@ -1024,13 +1024,15 @@ function createWallNFTs() {
 
       const nftPlane = new THREE.Mesh(nftGeometry, placeholderMaterial);
 
-      // Set position
+      // Set position on the cylindrical wall
       nftPlane.position.set(nftX, levelY, nftZ);
 
-      // Manually rotate to face center (inward)
-      // Plane default faces +Z, we need it to face toward (0, levelY, 0)
-      // Rotation around Y axis: angle + π to face inward
-      nftPlane.rotation.y = angle + Math.PI;
+      // Rotate to be tangent to cylinder wall AND face inward toward center
+      // Plane default faces +Z. To face center from position at angle θ:
+      // - At angle=0 (+X side), need to face -X direction → rotate Y by +π/2
+      // - At angle=π/2 (+Z side), need to face -Z direction → rotate Y by +π
+      // Formula: rotation.y = angle + π/2
+      nftPlane.rotation.y = angle + Math.PI / 2;
 
       scene.add(nftPlane);
       nftPlanes.push(nftPlane);
