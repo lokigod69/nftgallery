@@ -988,77 +988,70 @@ function updatePlatforms(time) {
 }
 
 // ----------------------------------------------------------------------
-// Wall NFT System - Simple Direct Approach (like Room 6)
+// Wall NFT System - Group-based approach for reliable orientation
+// Each NFT is a child of a Group that rotates around the Y axis
 // ----------------------------------------------------------------------
 function createWallNFTs() {
   const cfg = ROOM8_CONFIG;
   const textureLoader = new THREE.TextureLoader();
-  const nftPlanes = [];
+  const nftGroups = [];
 
-  // Configuration
-  const ringYPositions = [6, 14, 22, 30, 38, 46];  // 6 rings
-  const nftsPerRing = 8;
-  const radius = cfg.baseRadius - 0.5;
-  const size = cfg.nftSize;
+  // 6 rings, 8 NFTs per ring = 48 total
+  const ringHeights = [6, 14, 22, 30, 38, 46];
+  const perRing = 8;
+  const wallDist = cfg.baseRadius - 0.5;  // Distance from center to wall
+  const nftSize = cfg.nftSize;
 
-  let nftCounter = 0;
+  let count = 0;
 
-  // Create all 48 NFTs (6 rings × 8 per ring)
-  for (let ringIdx = 0; ringIdx < ringYPositions.length; ringIdx++) {
-    const yPos = ringYPositions[ringIdx];
+  for (let r = 0; r < ringHeights.length; r++) {
+    const h = ringHeights[r];
 
-    for (let slotIdx = 0; slotIdx < nftsPerRing; slotIdx++) {
-      // Calculate angle (0, 45, 90, 135, 180, 225, 270, 315 degrees)
-      const angleDeg = (slotIdx / nftsPerRing) * 360;
-      const angleRad = angleDeg * Math.PI / 180;
+    for (let s = 0; s < perRing; s++) {
+      const angle = (s / perRing) * Math.PI * 2;  // Angle around circle
 
-      // Position on cylinder wall
-      const xPos = Math.cos(angleRad) * radius;
-      const zPos = Math.sin(angleRad) * radius;
+      // Create a pivot group at the center
+      const pivot = new THREE.Group();
+      pivot.position.set(0, h, 0);  // Position at ring height
+      pivot.rotation.y = angle;     // Rotate to slot position
 
-      // Calculate which NFT texture to use (nft1 through nft48)
-      const textureNum = cfg.nftStartIndex + nftCounter;
+      // NFT texture number (1 through 48)
+      const texNum = cfg.nftStartIndex + count;
 
-      // Load texture first (like Room 6 does)
-      const texture = textureLoader.load(
-        getNftUrl(textureNum),
-        (tex) => {
-          tex.colorSpace = THREE.SRGBColorSpace;
-        }
-      );
+      // Load texture
+      const tex = textureLoader.load(getNftUrl(texNum), (t) => {
+        t.colorSpace = THREE.SRGBColorSpace;
+      });
 
-      // Create material with texture
-      const material = new THREE.MeshBasicMaterial({
-        map: texture,
+      // Create plane facing +Z, positioned at -Z (toward wall)
+      const mat = new THREE.MeshBasicMaterial({
+        map: tex,
         side: THREE.DoubleSide,
         toneMapped: false
       });
 
-      // Create plane geometry and mesh
       const plane = new THREE.Mesh(
-        new THREE.PlaneGeometry(size, size),
-        material
+        new THREE.PlaneGeometry(nftSize, nftSize),
+        mat
       );
 
-      // Set position
-      plane.position.set(xPos, yPos, zPos);
+      // Position plane at wall distance, facing center
+      // Plane is child of pivot, so it will rotate with the pivot
+      plane.position.set(0, 0, -wallDist);  // Offset backward from pivot
+      // No rotation needed - plane faces +Z by default, which is toward center
 
-      // Set rotation to face center using atan2 on actual position
-      // This is more reliable than using the calculated angle
-      // atan2(x, z) gives angle from +Z axis, add π to face inward
-      plane.rotation.y = Math.atan2(xPos, zPos) + Math.PI;
+      pivot.add(plane);
+      scene.add(pivot);
+      nftGroups.push(pivot);
 
-      scene.add(plane);
-      nftPlanes.push(plane);
-
-      nftCounter++;
+      count++;
     }
 
-    console.log(`Ring ${ringIdx + 1}: Y=${yPos}, 8 NFTs placed`);
+    console.log(`Ring ${r + 1}/6 at Y=${h}: 8 NFTs`);
   }
 
-  console.log(`✓ Created ${nftPlanes.length} wall NFTs in ${ringYPositions.length} rings`);
-  return nftPlanes;
+  console.log(`✓ Total: ${count} NFTs in 6 rings`);
+  return nftGroups;
 }
 
 /**
