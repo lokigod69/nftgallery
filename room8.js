@@ -988,91 +988,77 @@ function updatePlatforms(time) {
 }
 
 // ----------------------------------------------------------------------
-// Wall NFT System - Complete Rewrite
-// Places NFTs like stickers on the inside of a barrel
+// Wall NFT System - Simple Direct Approach (like Room 6)
 // ----------------------------------------------------------------------
 function createWallNFTs() {
   const cfg = ROOM8_CONFIG;
-  const nftMeshes = [];
   const textureLoader = new THREE.TextureLoader();
+  const nftPlanes = [];
 
-  // 6 horizontal rings from near floor to near ceiling
-  // Player spawns at Y≈5, shaft height is 50
-  const ringHeights = [6, 14, 22, 30, 38, 46];
+  // Configuration
+  const ringYPositions = [6, 14, 22, 30, 38, 46];  // 6 rings
   const nftsPerRing = 8;
-  const wallRadius = cfg.baseRadius - 0.3;  // Slightly inset from wall
-  const nftSize = cfg.nftSize;
-  const totalAvailable = cfg.nftCount;
+  const radius = cfg.baseRadius - 0.5;
+  const size = cfg.nftSize;
 
-  let globalIdx = 0;
+  let nftCounter = 0;
 
-  // Create each ring of NFTs
-  for (let ring = 0; ring < ringHeights.length; ring++) {
-    const y = ringHeights[ring];
-    console.log(`Creating NFT ring ${ring + 1}/${ringHeights.length} at Y=${y}`);
+  // Create all 48 NFTs (6 rings × 8 per ring)
+  for (let ringIdx = 0; ringIdx < ringYPositions.length; ringIdx++) {
+    const yPos = ringYPositions[ringIdx];
 
-    // Create 8 NFTs evenly spaced around the ring
-    for (let slot = 0; slot < nftsPerRing; slot++) {
-      // Angle around cylinder (0 to 2π)
-      const theta = (slot / nftsPerRing) * Math.PI * 2;
+    for (let slotIdx = 0; slotIdx < nftsPerRing; slotIdx++) {
+      // Calculate angle (0, 45, 90, 135, 180, 225, 270, 315 degrees)
+      const angleDeg = (slotIdx / nftsPerRing) * 360;
+      const angleRad = angleDeg * Math.PI / 180;
 
-      // Position on the cylindrical wall
-      const x = Math.cos(theta) * wallRadius;
-      const z = Math.sin(theta) * wallRadius;
+      // Position on cylinder wall
+      const xPos = Math.cos(angleRad) * radius;
+      const zPos = Math.sin(angleRad) * radius;
 
-      // Create fresh geometry for this NFT (not shared)
-      const geometry = new THREE.PlaneGeometry(nftSize, nftSize);
+      // Calculate which NFT texture to use (wrap around 32 available)
+      const textureNum = cfg.nftStartIndex + (nftCounter % cfg.nftCount);
 
-      // Dark placeholder material
-      const material = new THREE.MeshBasicMaterial({
-        color: 0x111111,
-        side: THREE.DoubleSide
-      });
-
-      const mesh = new THREE.Mesh(geometry, material);
-
-      // Position the NFT on the wall
-      mesh.position.set(x, y, z);
-
-      // Use lookAt with explicit up vector to face the center
-      // This is more reliable than manual rotation calculation
-      mesh.up.set(0, 1, 0);  // Keep the plane upright
-      mesh.lookAt(0, y, 0);  // Look at center at same Y height
-
-      scene.add(mesh);
-      nftMeshes.push(mesh);
-
-      // Load texture with modulo wrapping (reuse 32 textures across 48 slots)
-      const textureIdx = cfg.nftStartIndex + (globalIdx % totalAvailable);
-      const url = getNftUrl(textureIdx);
-
-      // Capture mesh reference for closure
-      const currentMesh = mesh;
-
-      textureLoader.load(
-        url,
-        (texture) => {
-          texture.minFilter = THREE.LinearFilter;
-          texture.magFilter = THREE.LinearFilter;
-          texture.encoding = THREE.sRGBEncoding;
-
-          // Update existing material instead of replacing
-          currentMesh.material.map = texture;
-          currentMesh.material.color.set(0xffffff);
-          currentMesh.material.needsUpdate = true;
-        },
-        undefined,
-        (err) => {
-          console.warn(`NFT ${textureIdx} failed to load`);
+      // Load texture first (like Room 6 does)
+      const texture = textureLoader.load(
+        getNftUrl(textureNum),
+        (tex) => {
+          tex.colorSpace = THREE.SRGBColorSpace;
         }
       );
 
-      globalIdx++;
+      // Create material with texture
+      const material = new THREE.MeshBasicMaterial({
+        map: texture,
+        side: THREE.DoubleSide,
+        toneMapped: false
+      });
+
+      // Create plane geometry and mesh
+      const plane = new THREE.Mesh(
+        new THREE.PlaneGeometry(size, size),
+        material
+      );
+
+      // Set position
+      plane.position.set(xPos, yPos, zPos);
+
+      // Set rotation to face center
+      // Plane default faces +Z, we need it to face toward (0,0,0) from its position
+      // Rotation = -(angle + 90°) to face inward
+      plane.rotation.y = -(angleRad + Math.PI / 2);
+
+      scene.add(plane);
+      nftPlanes.push(plane);
+
+      nftCounter++;
     }
+
+    console.log(`Ring ${ringIdx + 1}: Y=${yPos}, 8 NFTs placed`);
   }
 
-  console.log(`✓ Created ${nftMeshes.length} NFTs in ${ringHeights.length} rings`);
-  return nftMeshes;
+  console.log(`✓ Created ${nftPlanes.length} wall NFTs in ${ringYPositions.length} rings`);
+  return nftPlanes;
 }
 
 /**
