@@ -1034,12 +1034,10 @@ function createWallNFTs() {
       // Position the NFT on the wall
       mesh.position.set(x, y, z);
 
-      // Calculate rotation to face center
-      // Plane default normal is +Z (0,0,1)
-      // We need normal to point toward center: direction = (-x, 0, -z) normalized
-      // Using atan2 to get the correct Y rotation
-      const rotationY = Math.atan2(-x, -z);
-      mesh.rotation.y = rotationY;
+      // Use lookAt with explicit up vector to face the center
+      // This is more reliable than manual rotation calculation
+      mesh.up.set(0, 1, 0);  // Keep the plane upright
+      mesh.lookAt(0, y, 0);  // Look at center at same Y height
 
       scene.add(mesh);
       nftMeshes.push(mesh);
