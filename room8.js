@@ -55,6 +55,7 @@ const ROOM8_CONFIG = {
   platformCount: 8,   // 8 platforms: spawn + 6 moving + exit platform at top
   platformRadius: 1.8,          // Standard platform size (spiral platforms)
   platformSpawnRadius: 5.0,     // Larger spawn platform (Platform 0)
+  platformExitRadius: 3.6,      // Exit platform (Platform 7) - double normal size
   platformHeight: 0.6,
   platformRadialPosition: 6.0,  // Distance from shaft center (0,0)
   platformAngularSpacing: 51.43, // Degrees between platforms (360°/7)
@@ -883,9 +884,10 @@ function createPlatforms() {
   });
 
   platformMotionParams.forEach((params, i) => {
-    // Use larger radius for Platform 0 (spawn) and Platform 7 (exit), normal radius for others
-    const isLargePlatform = (i === 0 || i === 7);
-    const radius = isLargePlatform ? cfg.platformSpawnRadius : cfg.platformRadius;
+    // Platform sizes: P0 (spawn) = 5.0, P7 (exit) = 3.6, others = 1.8
+    let radius = cfg.platformRadius;
+    if (i === 0) radius = cfg.platformSpawnRadius;
+    if (i === 7) radius = cfg.platformExitRadius;
 
     const platformGeometry = new THREE.CylinderGeometry(
       radius,
@@ -1164,15 +1166,19 @@ const ancientLamps = placeAncientLamps(); // Ancient Egyptian wall lamps
 // ----------------------------------------------------------------------
 // Portal to Room 5
 // ----------------------------------------------------------------------
-const portalY = 48.5; // Near ceiling, accessible from Platform 7 (exit platform at Y=47)
+// Portal positioned at inner edge of Platform 7 (angle 0° = positive Z direction)
+// Platform 7 center is at (0, 47, 6), radius 3.6, so inner edge is at z ≈ 2.4
+// Portal slightly raised for walk-through access
+const portalY = 48.5;
+const portalZ = 3.0;  // Inner edge of Platform 7, toward shaft center
 const portalObj = createLinkedPortal({
   scene,
   fromRoom: '8',
   toRoom: '5',
   x: 0,
   y: portalY,
-  z: 0,
-  rotationY: 0,
+  z: portalZ,
+  rotationY: Math.PI,  // Face toward platform (player walks forward into it)
   createLabel: true
 });
 
@@ -1183,7 +1189,7 @@ const checkPortalProximity = createMultiPortalChecker({
   camera: controls.getObject(),  // Use player position like Room 6
   portals: [
     {
-      position: new THREE.Vector3(0, portalY, 0),
+      position: new THREE.Vector3(0, portalY, portalZ),
       name: 'Eternal Eclipse (Room 5)',
       url: 'room5.html',
       showDistance: 3.0,
