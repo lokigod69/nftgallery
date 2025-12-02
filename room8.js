@@ -861,11 +861,11 @@ const platformMotionParams = [
     phase: Math.PI
   },
   // Platform 7: Exit platform - STATIC, larger (South, 360°=0°, above P0)
-  // Player stands here to access portal at ceiling
-  // P6 peaks at 44.5, so P7 at 45.5 gives ~1.0 unit gap (easy jump/step)
+  // Player stands here to access portal
+  // P6 peaks at 44.5, P7 at 42.0 means player jumps DOWN to it (easy!)
   {
     angle: 0,           // Full circle back to start (directly above P0)
-    baseY: 45.5,        // Reachable from P6's peak (44.5), ~1 unit gap
+    baseY: 42.0,        // Same height as P6's base - jump down from P6's peak
     amplitude: 0,       // No motion - stable exit platform
     speed: 0,
     phase: 0
@@ -954,9 +954,9 @@ function detectPlatformCollision(playerPos) {
     const hCheck = horizontalDist <= platformRadius - 0.1;
     const vCheck = vertDist < 1.0;  // Increased from 0.8 for more reliable collision
 
-    // Debug Platform 0 collisions
-    if (platform.userData.platformIndex === 0 && (hCheck || vCheck)) {
-      console.log(`P0 collision check: hDist=${horizontalDist.toFixed(2)}, radius=${platformRadius}, vDist=${vertDist.toFixed(2)}, hCheck=${hCheck}, vCheck=${vCheck}`);
+    // Debug Platform 0 and Platform 7 collisions
+    if ((platform.userData.platformIndex === 0 || platform.userData.platformIndex === 7) && (hCheck || vCheck)) {
+      console.log(`P${platform.userData.platformIndex} collision: hDist=${horizontalDist.toFixed(2)}, radius=${platformRadius}, vDist=${vertDist.toFixed(2)}, hCheck=${hCheck}, vCheck=${vCheck}`);
     }
 
     // Balanced tolerance - reliable collision without glitching
@@ -1169,9 +1169,9 @@ const ancientLamps = placeAncientLamps(); // Ancient Egyptian wall lamps
 // Portal to Room 5
 // ----------------------------------------------------------------------
 // Portal positioned at inner edge of Platform 7 (angle 0° = positive Z direction)
-// Platform 7 center is at (0, 45.5, 6), radius 3.6, so inner edge is at z ≈ 2.4
-// Player on P7: feet at ~45.8, eyes at ~48.3 - portal at eye level
-const portalY = 47.0;  // Comfortable walk-through height from P7
+// Platform 7 center is at (0, 42.0, 6), radius 3.6, so inner edge is at z ≈ 2.4
+// Player on P7: feet at ~42.3, eyes at ~44.8 - portal at eye level
+const portalY = 43.5;  // Comfortable walk-through height from P7 (Y=42)
 const portalZ = 3.0;   // Inner edge of Platform 7, toward shaft center
 const portalObj = createLinkedPortal({
   scene,
