@@ -76,24 +76,38 @@ const ROOM8_CONFIG = {
   dustParticleCount: 60,       // Reduced from 150 for performance
   platformLandingFeedback: true,
   
-  // Ancient Lamps (Spiral Design - Double Helix with Platforms)
+  // Ancient Lamps (Spiral Design - Between NFT rings)
   enableAncientLamps: true,
-  lampCount: 3,                  // Reduced from 8 for performance
+  lampCount: 10,                 // 2 per level × 5 levels
   lampRadiusPosition: 10.5,      // Distance from shaft center (near wall)
-  lampOrbIntensity: 3.0,         // Tuned for balance
+  lampOrbIntensity: 2.5,         // Tuned for balance
   lampOrbDistance: 8.0,          // Focused lighting
 
   // Spiral lamp positions (angle, Y height)
-  // Positioned between platforms AND between NFT levels to avoid obstruction
+  // Placed BETWEEN NFT rings (Y: 6,14,22,30,38,46) and BETWEEN NFT angles
+  // NFTs at 0°,45°,90°... so lamps at 22.5°,67.5°... (between them)
+  // 2 lamps per level (180° apart), spiraling up with 45° shift per level
   lampPositions: [
-    { angle: 25.7,   y: 6.0 },   // Between P0-P1, below NFT Y=10
-    { angle: 128.6,  y: 25.0 },  // Between P3-P4, between NFT Y=20 and Y=30
-    { angle: 231.4,  y: 45.0 }   // Between P5-P6, above NFT Y=40
+    // Level 1: Y=10 (between NFT Y=6 and Y=14)
+    { angle: 22.5,   y: 10 },
+    { angle: 202.5,  y: 10 },
+    // Level 2: Y=18 (between NFT Y=14 and Y=22) - shifted 45°
+    { angle: 67.5,   y: 18 },
+    { angle: 247.5,  y: 18 },
+    // Level 3: Y=26 (between NFT Y=22 and Y=30) - shifted another 45°
+    { angle: 112.5,  y: 26 },
+    { angle: 292.5,  y: 26 },
+    // Level 4: Y=34 (between NFT Y=30 and Y=38) - shifted another 45°
+    { angle: 157.5,  y: 34 },
+    { angle: 337.5,  y: 34 },
+    // Level 5: Y=42 (between NFT Y=38 and Y=46) - shifted another 45°
+    { angle: 202.5,  y: 42 },
+    { angle: 22.5,   y: 42 }
   ],
 
   // Performance
   torchCount: 6,                 // 3 levels × 2 per level
-  totalLights: 11                // ambient + 6 torches + 1 god ray + 3 lamp orbs (spiral)
+  totalLights: 18                // ambient + 6 torches + 1 god ray + 10 lamp orbs
 };
 
 const eyeHeight = ROOM8_CONFIG.eyeHeight;
