@@ -990,6 +990,7 @@ function updatePlatforms(time) {
 // ----------------------------------------------------------------------
 // Wall NFT System - Group-based approach for reliable orientation
 // Each NFT is a child of a Group that rotates around the Y axis
+// IMPORTANT: Must account for tapered cylinder (wall narrows at top)
 // ----------------------------------------------------------------------
 function createWallNFTs() {
   const cfg = ROOM8_CONFIG;
@@ -999,13 +1000,19 @@ function createWallNFTs() {
   // 6 rings, 8 NFTs per ring = 48 total
   const ringHeights = [6, 14, 22, 30, 38, 46];
   const perRing = 8;
-  const wallDist = cfg.baseRadius - 0.5;  // Distance from center to wall
   const nftSize = cfg.nftSize;
+  const shaftHeight = cfg.height;  // 50 units
 
   let count = 0;
 
   for (let r = 0; r < ringHeights.length; r++) {
     const h = ringHeights[r];
+
+    // Calculate wall radius at this height (tapered cylinder!)
+    // Linear interpolation: radius = baseRadius - (baseRadius - topRadius) * (h / shaftHeight)
+    const wallRadius = cfg.baseRadius - (cfg.baseRadius - cfg.topRadius) * (h / shaftHeight);
+    // Place NFTs 0.3 units inside the wall at this height
+    const wallDist = wallRadius - 0.3;
 
     for (let s = 0; s < perRing; s++) {
       const angle = (s / perRing) * Math.PI * 2;  // Angle around circle
@@ -1035,7 +1042,7 @@ function createWallNFTs() {
         mat
       );
 
-      // Position plane at wall distance, facing center
+      // Position plane at wall distance for THIS height, facing center
       // Plane is child of pivot, so it will rotate with the pivot
       plane.position.set(0, 0, -wallDist);  // Offset backward from pivot
       // No rotation needed - plane faces +Z by default, which is toward center
@@ -1047,10 +1054,10 @@ function createWallNFTs() {
       count++;
     }
 
-    console.log(`Ring ${r + 1}/6 at Y=${h}: 8 NFTs`);
+    console.log(`Ring ${r + 1}/6 at Y=${h}: 8 NFTs (wallRadius=${wallRadius.toFixed(2)}, dist=${wallDist.toFixed(2)})`);
   }
 
-  console.log(`✓ Total: ${count} NFTs in 6 rings`);
+  console.log(`✓ Total: ${count} NFTs in 6 rings (accounting for tapered wall)`);
   return nftGroups;
 }
 
