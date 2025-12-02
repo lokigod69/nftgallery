@@ -862,9 +862,10 @@ const platformMotionParams = [
   },
   // Platform 7: Exit platform - STATIC, larger (South, 360°=0°, above P0)
   // Player stands here to access portal at ceiling
+  // P6 peaks at 44.5, so P7 at 45.5 gives ~1.0 unit gap (easy jump/step)
   {
     angle: 0,           // Full circle back to start (directly above P0)
-    baseY: 47.0,        // Near ceiling (height 50), static
+    baseY: 45.5,        // Reachable from P6's peak (44.5), ~1 unit gap
     amplitude: 0,       // No motion - stable exit platform
     speed: 0,
     phase: 0
@@ -918,8 +919,9 @@ function createPlatforms() {
     platforms.push(platform);
 
     // Debug log for verification
-    if (i === 0) {
-      console.log(`Platform ${i}: angle=${params.angle.toFixed(1)}°, pos=(${x.toFixed(2)}, ${params.baseY}, ${z.toFixed(2)}), radius=${radius}, static`);
+    const isStatic = params.amplitude === 0;
+    if (isStatic) {
+      console.log(`Platform ${i}: angle=${params.angle.toFixed(1)}°, pos=(${x.toFixed(2)}, ${params.baseY}, ${z.toFixed(2)}), radius=${radius}, STATIC`);
     } else {
       console.log(`Platform ${i}: angle=${params.angle.toFixed(1)}°, pos=(${x.toFixed(2)}, ${params.baseY}±${params.amplitude}, ${z.toFixed(2)}), radius=${radius}, phase=${params.phase.toFixed(2)}`);
     }
@@ -1167,10 +1169,10 @@ const ancientLamps = placeAncientLamps(); // Ancient Egyptian wall lamps
 // Portal to Room 5
 // ----------------------------------------------------------------------
 // Portal positioned at inner edge of Platform 7 (angle 0° = positive Z direction)
-// Platform 7 center is at (0, 47, 6), radius 3.6, so inner edge is at z ≈ 2.4
-// Portal slightly raised for walk-through access
-const portalY = 48.5;
-const portalZ = 3.0;  // Inner edge of Platform 7, toward shaft center
+// Platform 7 center is at (0, 45.5, 6), radius 3.6, so inner edge is at z ≈ 2.4
+// Player on P7: feet at ~45.8, eyes at ~48.3 - portal at eye level
+const portalY = 47.0;  // Comfortable walk-through height from P7
+const portalZ = 3.0;   // Inner edge of Platform 7, toward shaft center
 const portalObj = createLinkedPortal({
   scene,
   fromRoom: '8',
