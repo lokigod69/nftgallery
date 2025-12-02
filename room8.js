@@ -52,7 +52,7 @@ const ROOM8_CONFIG = {
   height: 50,
   
   // Platforms (Spiral Design)
-  platformCount: 7,
+  platformCount: 8,   // 8 platforms: spawn + 6 moving + exit platform at top
   platformRadius: 1.8,          // Standard platform size (spiral platforms)
   platformSpawnRadius: 5.0,     // Larger spawn platform (Platform 0)
   platformHeight: 0.6,
@@ -851,13 +851,22 @@ const platformMotionParams = [
     speed: 1.0,
     phase: 0
   },
-  // Platform 6: Exit platform, anti-phase (Southwest, 308.57°)
+  // Platform 6: Moving platform, anti-phase (Southwest, 308.57°)
   {
     angle: 308.57,
     baseY: 42.0,        // Range: 39.5 to 44.5
     amplitude: 2.5,     // When P5 peaks (37.5), P6 is low (39.5) → 2.0 gap
     speed: 1.0,
-    phase: Math.PI      // Portal at Y=43 accessible when high
+    phase: Math.PI
+  },
+  // Platform 7: Exit platform - STATIC, larger (South, 360°=0°, above P0)
+  // Player stands here to access portal at ceiling
+  {
+    angle: 0,           // Full circle back to start (directly above P0)
+    baseY: 47.0,        // Near ceiling (height 50), static
+    amplitude: 0,       // No motion - stable exit platform
+    speed: 0,
+    phase: 0
   }
 ];
 
@@ -874,8 +883,9 @@ function createPlatforms() {
   });
 
   platformMotionParams.forEach((params, i) => {
-    // Use larger radius for Platform 0 (spawn), normal radius for others
-    const radius = (i === 0) ? cfg.platformSpawnRadius : cfg.platformRadius;
+    // Use larger radius for Platform 0 (spawn) and Platform 7 (exit), normal radius for others
+    const isLargePlatform = (i === 0 || i === 7);
+    const radius = isLargePlatform ? cfg.platformSpawnRadius : cfg.platformRadius;
 
     const platformGeometry = new THREE.CylinderGeometry(
       radius,
@@ -1154,7 +1164,7 @@ const ancientLamps = placeAncientLamps(); // Ancient Egyptian wall lamps
 // ----------------------------------------------------------------------
 // Portal to Room 5
 // ----------------------------------------------------------------------
-const portalY = 43; // Accessible from Platform 6
+const portalY = 48.5; // Near ceiling, accessible from Platform 7 (exit platform at Y=47)
 const portalObj = createLinkedPortal({
   scene,
   fromRoom: '8',
