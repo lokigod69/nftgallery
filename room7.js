@@ -125,19 +125,68 @@ const floor = new THREE.Mesh(floorGeo, floorMat);
 floor.rotation.x = -Math.PI / 2;
 scene.add(floor);
 
-// Original starry ceiling
+// Raised starry ceiling - higher and more spread out
 const starGeo = new THREE.BufferGeometry();
 const starVerts = [];
-for (let i = 0; i < 1000; i++) {
-  const x = Math.random() * 100 - 50;
-  const y = Math.random() * 20 + 10;
-  const z = Math.random() * 100 - 50;
+for (let i = 0; i < 1500; i++) {
+  const x = Math.random() * 120 - 60;       // Wider spread
+  const y = Math.random() * 40 + 25;        // Much higher: 25-65 (was 10-30)
+  const z = Math.random() * 120 - 60;       // Wider spread
   starVerts.push(x, y, z);
 }
 starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starVerts, 3));
-const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.2 });
+const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.15 });  // Slightly smaller
 const stars = new THREE.Points(starGeo, starMat);
 scene.add(stars);
+
+// ═══════════════════════════════════════════════════════════════════════
+// Wall Ambient Lighting - Faint glow around perimeter for sense of space
+// ═══════════════════════════════════════════════════════════════════════
+
+const wallLights = [];
+const wallLightColor = 0x334466;  // Soft blue-gray ambient glow
+const wallLightIntensity = 0.8;
+const wallLightDistance = 40;
+const wallOffset = 45;  // Near the edges of the 100-unit room
+
+// Corner lights (4 corners, 2 heights each)
+const cornerPositions = [
+  { x: -wallOffset, z: -wallOffset },
+  { x: wallOffset, z: -wallOffset },
+  { x: -wallOffset, z: wallOffset },
+  { x: wallOffset, z: wallOffset }
+];
+
+cornerPositions.forEach(pos => {
+  // Lower corner light
+  const lightLow = new THREE.PointLight(wallLightColor, wallLightIntensity, wallLightDistance);
+  lightLow.position.set(pos.x, 8, pos.z);
+  scene.add(lightLow);
+  wallLights.push(lightLow);
+
+  // Upper corner light
+  const lightHigh = new THREE.PointLight(wallLightColor, wallLightIntensity * 0.6, wallLightDistance);
+  lightHigh.position.set(pos.x, 20, pos.z);
+  scene.add(lightHigh);
+  wallLights.push(lightHigh);
+});
+
+// Mid-wall lights (along the 4 edges)
+const midWallPositions = [
+  { x: 0, z: -wallOffset },   // Back wall center
+  { x: 0, z: wallOffset },    // Front wall center
+  { x: -wallOffset, z: 0 },   // Left wall center
+  { x: wallOffset, z: 0 }     // Right wall center
+];
+
+midWallPositions.forEach(pos => {
+  const light = new THREE.PointLight(0x223344, wallLightIntensity * 0.5, wallLightDistance * 1.2);
+  light.position.set(pos.x, 12, pos.z);
+  scene.add(light);
+  wallLights.push(light);
+});
+
+console.log(`✓ Added ${wallLights.length} ambient wall lights`);
 
 // ═══════════════════════════════════════════════════════════════════════
 // Zigzag Path Generation - Jumpable alternating pattern
