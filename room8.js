@@ -325,8 +325,8 @@ function createAncientLamp() {
   const cfg = ROOM8_CONFIG;
   const lampGroup = new THREE.Group();
 
-  // Scale factor (prototype was large for showcase, scale down for shaft)
-  const scale = 0.6;
+  // Scale factor - sized to fit in gaps between NFTs without overlapping
+  const scale = 0.35;
 
   // 1. Main pillar backing
   const pillarGeo = new THREE.BoxGeometry(3.5 * scale, 9 * scale, 1 * scale);
