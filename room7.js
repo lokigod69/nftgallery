@@ -21,22 +21,21 @@ const ROOM7_CONFIG = {
   roomLength: 80,            // Path length (Z-axis)
 
   // Platform settings
-  platformSize: 3.5,         // NFT platform size (can stand and view)
+  platformSize: 4.0,         // NFT platform size (slightly larger for easier landing)
   platformHeight: 2.0,       // Height above floor
   platformThickness: 0.5,    // Platform depth
   spawnPlatformSize: 5.0,    // Larger spawn platform
   endPlatformSize: 5.0,      // Larger end platform
 
-  // Helix path parameters - 3 full S-curve iterations
-  helixAmplitude: 20,        // Max distance from center (reaches halfway to edge)
-  helixWavelength: 26,       // Distance for one full S-curve (3 iterations over 80 units)
-  platformSpacing: 6.0,      // Distance between platforms along path
+  // Zigzag path parameters - jumpable alternating pattern
+  zigzagAmplitude: 8,        // Max horizontal distance from center (reduced for jumpability)
+  platformSpacingZ: 4.5,     // Z distance between platforms (closer together)
 
   // Player physics
   eyeHeight: 2.0,            // Original eye height
   speed: 80.0,
   gravity: -30,
-  jumpVelocity: 12,          // Tuned for platform gaps
+  jumpVelocity: 14,          // Increased for longer jumps
 
   // Spawn and portal positions
   spawnZ: -40,               // Start position (negative Z)
@@ -140,45 +139,52 @@ const stars = new THREE.Points(starGeo, starMat);
 scene.add(stars);
 
 // ═══════════════════════════════════════════════════════════════════════
-// Helix Path Generation - Two intertwined S-curve paths
+// Zigzag Path Generation - Jumpable alternating pattern
 // ═══════════════════════════════════════════════════════════════════════
 
 /**
- * Generate helix path positions
- * Creates two intertwined sinusoidal paths from spawn to portal
- * BOTH paths are fully visible (left AND right S-curves)
+ * Generate zigzag path positions
+ * Creates a single path that alternates left-center-right in a jumpable pattern
+ * Pattern: center → left → right → center → left → right...
+ * Each platform is reachable from the previous one
  */
-function generateHelixPaths() {
+function generateZigzagPath() {
   const cfg = ROOM7_CONFIG;
   const positions = [];
 
-  const startZ = cfg.spawnZ + 6;  // First platform after spawn
-  const endZ = cfg.portalZ - 6;   // Last platform before end
+  const startZ = cfg.spawnZ + 5;  // First platform after spawn
+  const endZ = cfg.portalZ - 5;   // Last platform before end
   const pathLength = endZ - startZ;
 
-  // Calculate number of platforms per path based on spacing
-  const numPlatformsPerPath = Math.floor(pathLength / cfg.platformSpacing);
+  // Calculate number of platforms based on Z spacing
+  const numPlatforms = Math.floor(pathLength / cfg.platformSpacingZ);
 
-  for (let i = 0; i < numPlatformsPerPath; i++) {
-    const t = i / (numPlatformsPerPath - 1);  // 0 to 1 along path
-    const z = startZ + t * pathLength;
+  // Zigzag pattern positions (X offsets)
+  // Pattern repeats: center(0) → left(-amp) → right(+amp) → center(0) → left(-amp) → right(+amp)
+  // This creates a weaving path that's always jumpable
+  const amp = cfg.zigzagAmplitude;
 
-    // Sinusoidal X position - creates S-curves
-    // Phase creates 3 full S-curve iterations across the room
-    const phase = (z / cfg.helixWavelength) * Math.PI * 2;
+  for (let i = 0; i < numPlatforms; i++) {
+    const z = startZ + i * cfg.platformSpacingZ;
 
-    // Path 1: Right side S-curve
-    const x1 = Math.sin(phase) * cfg.helixAmplitude;
+    // Create zigzag pattern with 6-step cycle for visual variety
+    // 0: center, 1: left, 2: center-right, 3: right, 4: center-left, 5: left-center
+    const patternIndex = i % 6;
+    let x;
 
-    // Path 2: Left side S-curve (180° out of phase - mirrored)
-    const x2 = Math.sin(phase + Math.PI) * cfg.helixAmplitude;
+    switch (patternIndex) {
+      case 0: x = 0; break;                    // Center
+      case 1: x = -amp * 0.7; break;           // Left
+      case 2: x = amp * 0.4; break;            // Slight right
+      case 3: x = amp; break;                  // Full right
+      case 4: x = amp * 0.3; break;            // Slight right (coming back)
+      case 5: x = -amp * 0.5; break;           // Half left
+    }
 
-    // Add platforms to BOTH paths (not alternating)
-    positions.push({ x: x1, z: z, path: 1 });
-    positions.push({ x: x2, z: z, path: 2 });
+    positions.push({ x: x, z: z, index: i });
   }
 
-  console.log(`Generated ${positions.length} platform positions (${numPlatformsPerPath} per path × 2 paths)`);
+  console.log(`Generated ${positions.length} platform positions in zigzag pattern`);
   return positions;
 }
 
@@ -270,9 +276,9 @@ function createEndPlatform() {
 }
 
 /**
- * Create all NFT platforms along helix paths
+ * Create all NFT platforms along zigzag path
  */
-function createHelixPlatforms(positions, imageFiles) {
+function createZigzagPlatforms(positions, imageFiles) {
   const cfg = ROOM7_CONFIG;
   const y = cfg.platformHeight;
 
@@ -284,7 +290,7 @@ function createHelixPlatforms(positions, imageFiles) {
     createPlatform(pos.x, y, pos.z, cfg.platformSize, textureUrl, false);
   });
 
-  console.log(`Created ${positions.length} NFT platforms`);
+  console.log(`Created ${positions.length} NFT platforms in zigzag pattern`);
 }
 
 // Images from /assets/Room7
@@ -334,11 +340,11 @@ const imageFiles = [
 const spawnPlatform = createSpawnPlatform();
 const endPlatform = createEndPlatform();
 
-// Generate helix paths and create NFT platforms
-const helixPositions = generateHelixPaths();
-createHelixPlatforms(helixPositions, imageFiles);
+// Generate zigzag path and create NFT platforms
+const zigzagPositions = generateZigzagPath();
+createZigzagPlatforms(zigzagPositions, imageFiles);
 
-console.log(`✓ Room 7 initialized: ${platforms.length} total platforms`);
+console.log(`✓ Room 7 initialized: ${platforms.length} total platforms (zigzag path)`);
 
 // ═══════════════════════════════════════════════════════════════════════
 // Platform Collision Detection
