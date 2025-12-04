@@ -61,7 +61,7 @@ const ROOM8_CONFIG = {
   platformAngularSpacing: 51.43, // Degrees between platforms (360°/7)
   
   // Player physics
-  eyeHeight: 4.0,   // Matches rooms 2 & 3 for consistent feel
+  eyeHeight: 3.5,   // Balanced height - higher than default but stable on platforms
   speed: 100.0,
   gravity: -30,
   jumpVelocity: 10,
@@ -965,8 +965,8 @@ function detectPlatformCollision(playerPos) {
     const platformRadius = platform.userData.radius || cfg.platformRadius;
 
     const vertDist = Math.abs(feetY - platformTop);
-    const hCheck = horizontalDist <= platformRadius - 0.1;
-    const vCheck = vertDist < 1.0;  // Increased from 0.8 for more reliable collision
+    const hCheck = horizontalDist <= platformRadius + 0.2;  // More forgiving horizontal (was radius - 0.1)
+    const vCheck = vertDist < 1.5;  // More forgiving vertical (was 1.0)
 
     // Debug Platform 0 and Platform 7 collisions
     if ((platform.userData.platformIndex === 0 || platform.userData.platformIndex === 7) && (hCheck || vCheck)) {
