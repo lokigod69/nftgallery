@@ -61,7 +61,7 @@ const ROOM8_CONFIG = {
   platformAngularSpacing: 51.43, // Degrees between platforms (360°/7)
   
   // Player physics
-  eyeHeight: 2.5,
+  eyeHeight: 4.0,   // Matches rooms 2 & 3 for consistent feel
   speed: 100.0,
   gravity: -30,
   jumpVelocity: 10,
