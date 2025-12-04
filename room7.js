@@ -67,6 +67,7 @@ scene.background = new THREE.Color(0x000000);  // Original black background
 const spawnY = ROOM7_CONFIG.platformHeight + ROOM7_CONFIG.platformThickness / 2 + eyeHeight;
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(0, spawnY, ROOM7_CONFIG.spawnZ);
+camera.rotation.y = Math.PI;  // Face forward (toward +Z where the platforms and portal are)
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -452,12 +453,12 @@ function onKeyUp(event) {
 document.addEventListener('keydown', onKeyDown);
 document.addEventListener('keyup', onKeyUp);
 
-// Portal to Room 5 - positioned on end platform
+// Portal to Room 8 - positioned on end platform
 const portalY = ROOM7_CONFIG.platformHeight + ROOM7_CONFIG.platformThickness / 2 + eyeHeight;
 const portalObj = createLinkedPortal({
   scene,
   fromRoom: '7',
-  toRoom: '5',
+  toRoom: '8',
   x: 0,
   y: portalY,
   z: ROOM7_CONFIG.portalZ,
@@ -465,7 +466,7 @@ const portalObj = createLinkedPortal({
   createLabel: true
 });
 
-const portalToRoom5 = portalObj.portal;
+const portalToRoom8 = portalObj.portal;
 const portalGlow = portalObj.glow;
 
 const checkPortalProximity = createMultiPortalChecker({
@@ -473,8 +474,8 @@ const checkPortalProximity = createMultiPortalChecker({
   portals: [
     {
       position: new THREE.Vector3(0, portalY, ROOM7_CONFIG.portalZ),
-      name: 'Eternal Eclipse (Room 5)',
-      url: 'room5.html',
+      name: 'The Ascent (Room 8)',
+      url: 'room8.html',
       showDistance: 3.0,
       triggerDistance: 1.8
     }
@@ -584,7 +585,7 @@ function animate() {
   // ─────────────────────────────────────────────────────────────────
 
   checkPortalProximity();
-  animateLinkedPortal(portalToRoom5, portalGlow);
+  animateLinkedPortal(portalToRoom8, portalGlow);
 
   renderer.render(scene, camera);
 }

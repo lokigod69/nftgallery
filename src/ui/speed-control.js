@@ -12,12 +12,13 @@ export function initSpeedControl() {
   const STEP = 0.1;
 
   // Create speed control UI
+  // Positioned left of the nav hamburger menu (which is at right: 10px, ~45px wide)
   const controlDiv = document.createElement('div');
   controlDiv.id = 'speed-control';
   controlDiv.style.cssText = `
     position: fixed;
     top: 16px;
-    right: 16px;
+    right: 65px;
     z-index: 999;
     background: rgba(0, 0, 0, 0.7);
     padding: 8px 12px;
