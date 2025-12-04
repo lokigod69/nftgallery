@@ -3,22 +3,72 @@ import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockCont
 import { createLinkedPortal, animateLinkedPortal, createMultiPortalChecker } from './src/core/portal-utils.js';
 import { getRoom7ArtUrl } from './src/core/asset-utils.js';
 
-const eyeHeight = 2;
-const speed = 80.0;
-const gravity = -30;
+// ═══════════════════════════════════════════════════════════════════════
+// Room 7: "Helix Crossing" - NFT Platform Jumping Challenge
+// ═══════════════════════════════════════════════════════════════════════
+/**
+ * CONCEPT: Two intertwined helix paths of NFT platforms
+ * - Player must jump from platform to platform
+ * - Each platform displays an NFT artwork
+ * - Fall to floor = respawn at start
+ * - Navigate from spawn to portal
+ */
+
+// Room 7 Master Configuration
+const ROOM7_CONFIG = {
+  // Room dimensions
+  roomSize: 60,              // Square room 60x60
+  roomLength: 50,            // Path length (Z-axis)
+
+  // Platform settings
+  platformSize: 3.5,         // NFT platform size (can stand and view)
+  platformHeight: 2.0,       // Height above floor
+  platformThickness: 0.5,    // Platform depth
+  spawnPlatformSize: 5.0,    // Larger spawn platform
+  endPlatformSize: 5.0,      // Larger end platform
+
+  // Helix path parameters
+  helixAmplitude: 12,        // Max distance from center (reaches ~40% to edge)
+  helixWavelength: 16,       // Distance for one full S-curve
+  platformSpacing: 5.5,      // Distance between platforms along path
+
+  // Player physics
+  eyeHeight: 3.5,
+  speed: 80.0,
+  gravity: -30,
+  jumpVelocity: 12,          // Tuned for platform gaps
+
+  // Spawn and portal positions
+  spawnZ: -22,               // Start position (negative Z)
+  portalZ: 22,               // End position (positive Z)
+
+  // Floor (danger zone)
+  floorY: 0,
+  respawnOnFloorTouch: true
+};
+
+const eyeHeight = ROOM7_CONFIG.eyeHeight;
+const speed = ROOM7_CONFIG.speed;
+const gravity = ROOM7_CONFIG.gravity;
 
 let moveForward = false;
 let moveBackward = false;
 let moveLeft = false;
 let moveRight = false;
 let isJumping = false;
+let isFalling = false;
 let jumpVelocity = 0;
+let fallVelocity = 0;
+let currentPlatform = null;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x000000);
+scene.background = new THREE.Color(0x050510);  // Very dark blue-black
+scene.fog = new THREE.Fog(0x050510, 30, 80);   // Atmospheric fog
 
+// Spawn position: on spawn platform
+const spawnY = ROOM7_CONFIG.platformHeight + ROOM7_CONFIG.platformThickness / 2 + eyeHeight;
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(0, eyeHeight, 5);
+camera.position.set(0, spawnY, ROOM7_CONFIG.spawnZ);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -48,46 +98,194 @@ window.addEventListener('resize', () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+// Lighting - moody atmosphere
+const ambient = new THREE.AmbientLight(0x333355, 0.4);  // Dim blue ambient
 scene.add(ambient);
-const dir = new THREE.DirectionalLight(0xffffff, 0.6);
-dir.position.set(5, 10, 7);
+
+// Main directional light
+const dir = new THREE.DirectionalLight(0xaaaaff, 0.5);
+dir.position.set(0, 20, 0);
 scene.add(dir);
 
-// Scatter warm spotlights around the scene for better illumination
-for (let i = 0; i < 20; i++) {
-  const spot = new THREE.SpotLight(0xffaa88, 0.5, 50, Math.PI / 6, 0.5);
-  spot.position.set(
-    (Math.random() - 0.5) * 40,
-    Math.random() * 10 + 5,
-    (Math.random() - 0.5) * 40
-  );
-  spot.target.position.set(0, 0, -i * 2);
-  scene.add(spot);
-  scene.add(spot.target);
-}
-
-// Reflective black floor
-const floorSize = 100;
+// Danger floor - dark void with subtle glow
+const floorSize = ROOM7_CONFIG.roomSize;
 const floorGeo = new THREE.PlaneGeometry(floorSize, floorSize);
-const floorMat = new THREE.MeshStandardMaterial({ color: 0x000000, metalness: 0.8, roughness: 0.2 });
+const floorMat = new THREE.MeshStandardMaterial({
+  color: 0x100510,
+  metalness: 0.9,
+  roughness: 0.1,
+  emissive: 0x200020,
+  emissiveIntensity: 0.1
+});
 const floor = new THREE.Mesh(floorGeo, floorMat);
 floor.rotation.x = -Math.PI / 2;
+floor.position.y = ROOM7_CONFIG.floorY;
 scene.add(floor);
 
-// Starry ceiling
+// Starry ceiling/void
 const starGeo = new THREE.BufferGeometry();
 const starVerts = [];
-for (let i = 0; i < 1000; i++) {
-  const x = Math.random() * 100 - 50;
-  const y = Math.random() * 20 + 10;
-  const z = Math.random() * 100 - 50;
+for (let i = 0; i < 2000; i++) {
+  const x = (Math.random() - 0.5) * floorSize * 2;
+  const y = Math.random() * 30 + 15;
+  const z = (Math.random() - 0.5) * floorSize * 2;
   starVerts.push(x, y, z);
 }
 starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starVerts, 3));
-const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.2 });
+const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.15, transparent: true, opacity: 0.8 });
 const stars = new THREE.Points(starGeo, starMat);
 scene.add(stars);
+
+// ═══════════════════════════════════════════════════════════════════════
+// Helix Path Generation - Two intertwined S-curve paths
+// ═══════════════════════════════════════════════════════════════════════
+
+/**
+ * Generate helix path positions
+ * Creates two intertwined sinusoidal paths from spawn to portal
+ */
+function generateHelixPaths() {
+  const cfg = ROOM7_CONFIG;
+  const positions = [];
+
+  const startZ = cfg.spawnZ + 5;  // First platform after spawn
+  const endZ = cfg.portalZ - 5;   // Last platform before end
+  const pathLength = endZ - startZ;
+
+  // Calculate number of platforms based on spacing
+  const numPlatforms = Math.floor(pathLength / cfg.platformSpacing);
+
+  for (let i = 0; i < numPlatforms; i++) {
+    const t = i / (numPlatforms - 1);  // 0 to 1 along path
+    const z = startZ + t * pathLength;
+
+    // Sinusoidal X position - creates S-curves
+    // Path 1: starts on left (negative X), curves right
+    const phase1 = (z / cfg.helixWavelength) * Math.PI * 2;
+    const x1 = Math.sin(phase1) * cfg.helixAmplitude;
+
+    // Path 2: 180° out of phase - starts on right, curves left
+    const x2 = Math.sin(phase1 + Math.PI) * cfg.helixAmplitude;
+
+    // Alternate between paths for variety
+    // Also add some to both paths at crossing points
+    const atCrossing = Math.abs(x1) < 2;  // Near center = crossing point
+
+    if (i % 2 === 0 || atCrossing) {
+      positions.push({ x: x1, z: z, path: 1 });
+    }
+    if (i % 2 === 1 || atCrossing) {
+      positions.push({ x: x2, z: z, path: 2 });
+    }
+  }
+
+  console.log(`Generated ${positions.length} platform positions along helix paths`);
+  return positions;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Platform Creation System
+// ═══════════════════════════════════════════════════════════════════════
+
+const platforms = [];  // All platforms for collision detection
+const loader = new THREE.TextureLoader();
+
+/**
+ * Create a single NFT platform
+ */
+function createPlatform(x, y, z, size, textureUrl, isSpecial = false) {
+  const cfg = ROOM7_CONFIG;
+  const group = new THREE.Group();
+
+  // Platform base (box)
+  const baseGeo = new THREE.BoxGeometry(size, cfg.platformThickness, size);
+
+  // Glowing edge material
+  const edgeMaterial = new THREE.MeshStandardMaterial({
+    color: isSpecial ? 0x4488ff : 0x6644aa,
+    emissive: isSpecial ? 0x2244aa : 0x331166,
+    emissiveIntensity: 0.5,
+    metalness: 0.7,
+    roughness: 0.3
+  });
+
+  const base = new THREE.Mesh(baseGeo, edgeMaterial);
+  base.position.y = -cfg.platformThickness / 2;
+  group.add(base);
+
+  // NFT texture on top
+  if (textureUrl) {
+    const texture = loader.load(textureUrl);
+    texture.colorSpace = THREE.SRGBColorSpace;
+
+    const topMaterial = new THREE.MeshBasicMaterial({
+      map: texture,
+      toneMapped: false
+    });
+
+    const topGeo = new THREE.PlaneGeometry(size * 0.9, size * 0.9);
+    const top = new THREE.Mesh(topGeo, topMaterial);
+    top.rotation.x = -Math.PI / 2;
+    top.position.y = 0.01;  // Slightly above base
+    group.add(top);
+  }
+
+  // Point light under each platform for glow effect
+  const light = new THREE.PointLight(isSpecial ? 0x4488ff : 0x6644aa, 0.5, 8);
+  light.position.y = -1;
+  group.add(light);
+
+  // Position the platform
+  group.position.set(x, y, z);
+
+  // Store collision data
+  group.userData = {
+    isPlatform: true,
+    size: size,
+    isSpecial: isSpecial
+  };
+
+  scene.add(group);
+  platforms.push(group);
+
+  return group;
+}
+
+/**
+ * Create spawn platform (larger, at start)
+ */
+function createSpawnPlatform() {
+  const cfg = ROOM7_CONFIG;
+  const y = cfg.platformHeight;
+  return createPlatform(0, y, cfg.spawnZ, cfg.spawnPlatformSize, null, true);
+}
+
+/**
+ * Create end platform (larger, near portal)
+ */
+function createEndPlatform() {
+  const cfg = ROOM7_CONFIG;
+  const y = cfg.platformHeight;
+  return createPlatform(0, y, cfg.portalZ, cfg.endPlatformSize, null, true);
+}
+
+/**
+ * Create all NFT platforms along helix paths
+ */
+function createHelixPlatforms(positions, imageFiles) {
+  const cfg = ROOM7_CONFIG;
+  const y = cfg.platformHeight;
+
+  positions.forEach((pos, i) => {
+    // Cycle through available images
+    const imageIndex = i % imageFiles.length;
+    const textureUrl = getRoom7ArtUrl(imageFiles[imageIndex]);
+
+    createPlatform(pos.x, y, pos.z, cfg.platformSize, textureUrl, false);
+  });
+
+  console.log(`Created ${positions.length} NFT platforms`);
+}
 
 // Images from /assets/Room7
 const imageFiles = [
@@ -128,55 +326,74 @@ const imageFiles = [
 "lokigod69._A_female_model_whose_face_and_body_are_partially_hum_fa2abe36-bf87-489f-ad93-315bdf686727.png"
 ];
 
-const loader = new THREE.TextureLoader();
-const nftTiles = [];
-const tileSize = 2;
-imageFiles.forEach((file, index) => {
-  const texture = loader.load(getRoom7ArtUrl(file));
+// ═══════════════════════════════════════════════════════════════════════
+// Create Platforms
+// ═══════════════════════════════════════════════════════════════════════
 
-  // Main image tile
-  // MeshBasicMaterial keeps colors unaffected by scene lighting
-  const material = new THREE.MeshBasicMaterial({ map: texture });
-  const tile = new THREE.Mesh(new THREE.PlaneGeometry(tileSize, tileSize), material);
-  tile.rotation.x = -Math.PI / 2;
+// Create spawn and end platforms
+const spawnPlatform = createSpawnPlatform();
+const endPlatform = createEndPlatform();
 
-  // Mirrored base beneath the tile for a 3D effect
-  const baseHeight = 0.3;
-  const mirroredTexture = texture.clone();
-  mirroredTexture.center.set(0.5, 0.5);
-  mirroredTexture.rotation = Math.PI;
-  mirroredTexture.needsUpdate = true;
-  const sideMaterial = new THREE.MeshStandardMaterial({
-    map: mirroredTexture,
-    metalness: 1.0,
-    roughness: 0.0,
-  });
+// Generate helix paths and create NFT platforms
+const helixPositions = generateHelixPaths();
+createHelixPlatforms(helixPositions, imageFiles);
 
-  const baseMaterials = [
-    sideMaterial, // right
-    sideMaterial, // left
-    new THREE.MeshStandardMaterial({ color: 0x000000 }), // top
-    new THREE.MeshStandardMaterial({ color: 0x000000 }), // bottom
-    sideMaterial, // front
-    sideMaterial, // back
-  ];
+console.log(`✓ Room 7 initialized: ${platforms.length} total platforms`);
 
-  const base = new THREE.Mesh(new THREE.BoxGeometry(tileSize, baseHeight, tileSize), baseMaterials);
+// ═══════════════════════════════════════════════════════════════════════
+// Platform Collision Detection
+// ═══════════════════════════════════════════════════════════════════════
 
-  const halfLimit = floorSize / 2 - tileSize;
-  const x = (Math.random() - 0.5) * 2 * halfLimit;
-  const z = (Math.random() - 0.5) * 2 * halfLimit;
-  tile.position.set(x, baseHeight / 2 + 0.01, z);
-  base.position.set(x, -baseHeight / 2, z);
+/**
+ * Check if player is standing on any platform
+ */
+function detectPlatformCollision(playerPos) {
+  const cfg = ROOM7_CONFIG;
+  const feetY = playerPos.y - cfg.eyeHeight;
 
-  scene.add(base);
-  scene.add(tile);
+  for (const platform of platforms) {
+    const platformTop = platform.position.y + cfg.platformThickness / 2;
+    const platformSize = platform.userData.size;
+    const halfSize = platformSize / 2;
 
-  if (index % 5 === 0) {
-    tile.userData.isNFT = true;
-    nftTiles.push(tile);
+    // Horizontal bounds check (square platform)
+    const dx = Math.abs(playerPos.x - platform.position.x);
+    const dz = Math.abs(playerPos.z - platform.position.z);
+    const onPlatformXZ = dx <= halfSize + 0.3 && dz <= halfSize + 0.3;
+
+    // Vertical check - feet near platform top
+    const vertDist = Math.abs(feetY - platformTop);
+    const nearPlatformY = vertDist < 1.5;
+
+    if (onPlatformXZ && nearPlatformY) {
+      return platform;
+    }
   }
-});
+
+  return null;
+}
+
+/**
+ * Check if player has fallen to floor (danger zone)
+ */
+function hasFallenToFloor(playerPos) {
+  const cfg = ROOM7_CONFIG;
+  const feetY = playerPos.y - cfg.eyeHeight;
+  return feetY <= cfg.floorY + 0.5;
+}
+
+/**
+ * Respawn player at spawn platform
+ */
+function respawnPlayer() {
+  camera.position.set(0, spawnY, ROOM7_CONFIG.spawnZ);
+  isJumping = false;
+  isFalling = false;
+  jumpVelocity = 0;
+  fallVelocity = 0;
+  currentPlatform = spawnPlatform;
+  console.log('Respawned at spawn platform');
+}
 
 function onKeyDown(event) {
   switch (event.code) {
@@ -197,7 +414,10 @@ function onKeyDown(event) {
       moveRight = true;
       break;
     case 'Space':
-      if (!isJumping) { jumpVelocity = 10; isJumping = true; }
+      if (!isJumping && !isFalling) {
+        jumpVelocity = ROOM7_CONFIG.jumpVelocity;
+        isJumping = true;
+      }
       break;
   }
 }
@@ -226,14 +446,15 @@ function onKeyUp(event) {
 document.addEventListener('keydown', onKeyDown);
 document.addEventListener('keyup', onKeyUp);
 
-// Portal to Room 5
+// Portal to Room 5 - positioned on end platform
+const portalY = ROOM7_CONFIG.platformHeight + ROOM7_CONFIG.platformThickness / 2 + eyeHeight;
 const portalObj = createLinkedPortal({
   scene,
   fromRoom: '7',
   toRoom: '5',
   x: 0,
-  y: eyeHeight,
-  z: 45,
+  y: portalY,
+  z: ROOM7_CONFIG.portalZ,
   rotationY: 0,
   createLabel: true
 });
@@ -245,7 +466,7 @@ const checkPortalProximity = createMultiPortalChecker({
   camera,
   portals: [
     {
-      position: new THREE.Vector3(0, eyeHeight, 45),
+      position: new THREE.Vector3(0, portalY, ROOM7_CONFIG.portalZ),
       name: 'Eternal Eclipse (Room 5)',
       url: 'room5.html',
       showDistance: 3.0,
@@ -264,17 +485,74 @@ const clock = new THREE.Clock();
 function animate() {
   requestAnimationFrame(animate);
   const delta = clock.getDelta();
+  const cfg = ROOM7_CONFIG;
 
   if (controls.isLocked) {
+    const onPlatform = detectPlatformCollision(camera.position);
+
+    // ─────────────────────────────────────────────────────────────────
+    // Vertical Physics (Jumping, Falling, Platform Landing)
+    // ─────────────────────────────────────────────────────────────────
+
     if (isJumping) {
+      // Apply jump velocity
       camera.position.y += jumpVelocity * delta;
       jumpVelocity += gravity * delta;
-      if (camera.position.y <= eyeHeight) {
-        camera.position.y = eyeHeight;
-        isJumping = false;
-        jumpVelocity = 0;
+
+      // Check if landed on platform
+      if (onPlatform && jumpVelocity <= 0) {
+        const platformTop = onPlatform.position.y + cfg.platformThickness / 2;
+        const feetY = camera.position.y - cfg.eyeHeight;
+        if (feetY <= platformTop + 0.5) {
+          camera.position.y = platformTop + cfg.eyeHeight;
+          isJumping = false;
+          jumpVelocity = 0;
+          currentPlatform = onPlatform;
+        }
+      }
+
+      // Check if fallen to floor (respawn)
+      if (hasFallenToFloor(camera.position)) {
+        respawnPlayer();
+      }
+
+    } else if (isFalling) {
+      // Apply fall velocity
+      camera.position.y += fallVelocity * delta;
+      fallVelocity += gravity * delta * 0.8;
+
+      // Check if landed on platform
+      if (onPlatform) {
+        const platformTop = onPlatform.position.y + cfg.platformThickness / 2;
+        camera.position.y = platformTop + cfg.eyeHeight;
+        isFalling = false;
+        fallVelocity = 0;
+        currentPlatform = onPlatform;
+      }
+
+      // Check if fallen to floor (respawn)
+      if (hasFallenToFloor(camera.position)) {
+        respawnPlayer();
+      }
+
+    } else {
+      // Not jumping or falling - standing state
+      if (onPlatform) {
+        // Standing on platform - keep aligned
+        const platformTop = onPlatform.position.y + cfg.platformThickness / 2;
+        camera.position.y = platformTop + cfg.eyeHeight;
+        currentPlatform = onPlatform;
+      } else {
+        // Not on any platform - start falling
+        isFalling = true;
+        fallVelocity = 0;
+        currentPlatform = null;
       }
     }
+
+    // ─────────────────────────────────────────────────────────────────
+    // Horizontal Movement
+    // ─────────────────────────────────────────────────────────────────
 
     velocity.x -= velocity.x * 10.0 * delta;
     velocity.z -= velocity.z * 10.0 * delta;
@@ -289,24 +567,15 @@ function animate() {
     controls.moveRight(-velocity.x * delta);
     controls.moveForward(-velocity.z * delta);
 
-    const limit = floorSize / 2 - 1;
+    // Room boundary clamping
+    const limit = cfg.roomSize / 2 - 1;
     camera.position.x = THREE.MathUtils.clamp(camera.position.x, -limit, limit);
     camera.position.z = THREE.MathUtils.clamp(camera.position.z, -limit, limit);
   }
 
-  nftTiles.forEach(tile => {
-    const dx = camera.position.x - tile.position.x;
-    const dz = camera.position.z - tile.position.z;
-    const dist = Math.sqrt(dx * dx + dz * dz);
-    if (dist < 1 && !tile.userData.glowing) {
-      tile.userData.glowing = true;
-      tile.material.emissive.setHex(0x4444ff);
-      setTimeout(() => {
-        tile.material.emissive.setHex(0x000000);
-        tile.userData.glowing = false;
-      }, 1000);
-    }
-  });
+  // ─────────────────────────────────────────────────────────────────
+  // Portal & Rendering
+  // ─────────────────────────────────────────────────────────────────
 
   checkPortalProximity();
   animateLinkedPortal(portalToRoom5, portalGlow);
