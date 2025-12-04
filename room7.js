@@ -16,9 +16,9 @@ import { getRoom7ArtUrl } from './src/core/asset-utils.js';
 
 // Room 7 Master Configuration
 const ROOM7_CONFIG = {
-  // Room dimensions
-  roomSize: 60,              // Square room 60x60
-  roomLength: 50,            // Path length (Z-axis)
+  // Room dimensions - ORIGINAL large room
+  roomSize: 100,             // Original large square room
+  roomLength: 80,            // Path length (Z-axis)
 
   // Platform settings
   platformSize: 3.5,         // NFT platform size (can stand and view)
@@ -27,20 +27,20 @@ const ROOM7_CONFIG = {
   spawnPlatformSize: 5.0,    // Larger spawn platform
   endPlatformSize: 5.0,      // Larger end platform
 
-  // Helix path parameters
-  helixAmplitude: 12,        // Max distance from center (reaches ~40% to edge)
-  helixWavelength: 16,       // Distance for one full S-curve
-  platformSpacing: 5.5,      // Distance between platforms along path
+  // Helix path parameters - 3 full S-curve iterations
+  helixAmplitude: 20,        // Max distance from center (reaches halfway to edge)
+  helixWavelength: 26,       // Distance for one full S-curve (3 iterations over 80 units)
+  platformSpacing: 6.0,      // Distance between platforms along path
 
   // Player physics
-  eyeHeight: 3.5,
+  eyeHeight: 2.0,            // Original eye height
   speed: 80.0,
   gravity: -30,
   jumpVelocity: 12,          // Tuned for platform gaps
 
   // Spawn and portal positions
-  spawnZ: -22,               // Start position (negative Z)
-  portalZ: 22,               // End position (positive Z)
+  spawnZ: -40,               // Start position (negative Z)
+  portalZ: 40,               // End position (positive Z)
 
   // Floor (danger zone)
   floorY: 0,
@@ -62,8 +62,7 @@ let fallVelocity = 0;
 let currentPlatform = null;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x050510);  // Very dark blue-black
-scene.fog = new THREE.Fog(0x050510, 30, 80);   // Atmospheric fog
+scene.background = new THREE.Color(0x000000);  // Original black background
 
 // Spawn position: on spawn platform
 const spawnY = ROOM7_CONFIG.platformHeight + ROOM7_CONFIG.platformThickness / 2 + eyeHeight;
@@ -98,41 +97,45 @@ window.addEventListener('resize', () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-// Lighting - moody atmosphere
-const ambient = new THREE.AmbientLight(0x333355, 0.4);  // Dim blue ambient
+// Original lighting setup
+const ambient = new THREE.AmbientLight(0xffffff, 0.6);
 scene.add(ambient);
-
-// Main directional light
-const dir = new THREE.DirectionalLight(0xaaaaff, 0.5);
-dir.position.set(0, 20, 0);
+const dir = new THREE.DirectionalLight(0xffffff, 0.6);
+dir.position.set(5, 10, 7);
 scene.add(dir);
 
-// Danger floor - dark void with subtle glow
+// Scatter warm spotlights around the scene for better illumination (original)
 const floorSize = ROOM7_CONFIG.roomSize;
+for (let i = 0; i < 20; i++) {
+  const spot = new THREE.SpotLight(0xffaa88, 0.5, 50, Math.PI / 6, 0.5);
+  spot.position.set(
+    (Math.random() - 0.5) * 40,
+    Math.random() * 10 + 5,
+    (Math.random() - 0.5) * 40
+  );
+  spot.target.position.set(0, 0, -i * 2);
+  scene.add(spot);
+  scene.add(spot.target);
+}
+
+// Original reflective black floor
 const floorGeo = new THREE.PlaneGeometry(floorSize, floorSize);
-const floorMat = new THREE.MeshStandardMaterial({
-  color: 0x100510,
-  metalness: 0.9,
-  roughness: 0.1,
-  emissive: 0x200020,
-  emissiveIntensity: 0.1
-});
+const floorMat = new THREE.MeshStandardMaterial({ color: 0x000000, metalness: 0.8, roughness: 0.2 });
 const floor = new THREE.Mesh(floorGeo, floorMat);
 floor.rotation.x = -Math.PI / 2;
-floor.position.y = ROOM7_CONFIG.floorY;
 scene.add(floor);
 
-// Starry ceiling/void
+// Original starry ceiling
 const starGeo = new THREE.BufferGeometry();
 const starVerts = [];
-for (let i = 0; i < 2000; i++) {
-  const x = (Math.random() - 0.5) * floorSize * 2;
-  const y = Math.random() * 30 + 15;
-  const z = (Math.random() - 0.5) * floorSize * 2;
+for (let i = 0; i < 1000; i++) {
+  const x = Math.random() * 100 - 50;
+  const y = Math.random() * 20 + 10;
+  const z = Math.random() * 100 - 50;
   starVerts.push(x, y, z);
 }
 starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starVerts, 3));
-const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.15, transparent: true, opacity: 0.8 });
+const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.2 });
 const stars = new THREE.Points(starGeo, starMat);
 scene.add(stars);
 
@@ -143,43 +146,39 @@ scene.add(stars);
 /**
  * Generate helix path positions
  * Creates two intertwined sinusoidal paths from spawn to portal
+ * BOTH paths are fully visible (left AND right S-curves)
  */
 function generateHelixPaths() {
   const cfg = ROOM7_CONFIG;
   const positions = [];
 
-  const startZ = cfg.spawnZ + 5;  // First platform after spawn
-  const endZ = cfg.portalZ - 5;   // Last platform before end
+  const startZ = cfg.spawnZ + 6;  // First platform after spawn
+  const endZ = cfg.portalZ - 6;   // Last platform before end
   const pathLength = endZ - startZ;
 
-  // Calculate number of platforms based on spacing
-  const numPlatforms = Math.floor(pathLength / cfg.platformSpacing);
+  // Calculate number of platforms per path based on spacing
+  const numPlatformsPerPath = Math.floor(pathLength / cfg.platformSpacing);
 
-  for (let i = 0; i < numPlatforms; i++) {
-    const t = i / (numPlatforms - 1);  // 0 to 1 along path
+  for (let i = 0; i < numPlatformsPerPath; i++) {
+    const t = i / (numPlatformsPerPath - 1);  // 0 to 1 along path
     const z = startZ + t * pathLength;
 
     // Sinusoidal X position - creates S-curves
-    // Path 1: starts on left (negative X), curves right
-    const phase1 = (z / cfg.helixWavelength) * Math.PI * 2;
-    const x1 = Math.sin(phase1) * cfg.helixAmplitude;
+    // Phase creates 3 full S-curve iterations across the room
+    const phase = (z / cfg.helixWavelength) * Math.PI * 2;
 
-    // Path 2: 180° out of phase - starts on right, curves left
-    const x2 = Math.sin(phase1 + Math.PI) * cfg.helixAmplitude;
+    // Path 1: Right side S-curve
+    const x1 = Math.sin(phase) * cfg.helixAmplitude;
 
-    // Alternate between paths for variety
-    // Also add some to both paths at crossing points
-    const atCrossing = Math.abs(x1) < 2;  // Near center = crossing point
+    // Path 2: Left side S-curve (180° out of phase - mirrored)
+    const x2 = Math.sin(phase + Math.PI) * cfg.helixAmplitude;
 
-    if (i % 2 === 0 || atCrossing) {
-      positions.push({ x: x1, z: z, path: 1 });
-    }
-    if (i % 2 === 1 || atCrossing) {
-      positions.push({ x: x2, z: z, path: 2 });
-    }
+    // Add platforms to BOTH paths (not alternating)
+    positions.push({ x: x1, z: z, path: 1 });
+    positions.push({ x: x2, z: z, path: 2 });
   }
 
-  console.log(`Generated ${positions.length} platform positions along helix paths`);
+  console.log(`Generated ${positions.length} platform positions (${numPlatformsPerPath} per path × 2 paths)`);
   return positions;
 }
 
@@ -200,10 +199,10 @@ function createPlatform(x, y, z, size, textureUrl, isSpecial = false) {
   // Platform base (box)
   const baseGeo = new THREE.BoxGeometry(size, cfg.platformThickness, size);
 
-  // Glowing edge material
+  // Platform edge material - black borders
   const edgeMaterial = new THREE.MeshStandardMaterial({
-    color: isSpecial ? 0x4488ff : 0x6644aa,
-    emissive: isSpecial ? 0x2244aa : 0x331166,
+    color: isSpecial ? 0x4488ff : 0x000000,
+    emissive: isSpecial ? 0x2244aa : 0x000000,
     emissiveIntensity: 0.5,
     metalness: 0.7,
     roughness: 0.3
@@ -226,12 +225,13 @@ function createPlatform(x, y, z, size, textureUrl, isSpecial = false) {
     const topGeo = new THREE.PlaneGeometry(size * 0.9, size * 0.9);
     const top = new THREE.Mesh(topGeo, topMaterial);
     top.rotation.x = -Math.PI / 2;
+    top.rotation.z = Math.PI;  // Rotate 180 degrees to flip image
     top.position.y = 0.01;  // Slightly above base
     group.add(top);
   }
 
-  // Point light under each platform for glow effect
-  const light = new THREE.PointLight(isSpecial ? 0x4488ff : 0x6644aa, 0.5, 8);
+  // Point light under each platform for subtle glow effect
+  const light = new THREE.PointLight(isSpecial ? 0x4488ff : 0x222222, 0.3, 6);
   light.position.y = -1;
   group.add(light);
 
