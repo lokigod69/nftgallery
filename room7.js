@@ -154,9 +154,11 @@ const tileColors = [
 
 const wallTiles = [];
 const wallOffset = 49;
+let tileDepthCounter = 0;  // Unique depth for each tile to prevent Z-fighting
 
 /**
  * Create a small color tile on a wall
+ * Each tile gets a unique depth offset to prevent Z-fighting flicker
  */
 function createWallTile(x, y, z, rotationY, color, opacity, size, hasGlow) {
   const tileGeo = new THREE.PlaneGeometry(size, size * 0.4);  // Horizontal rectangle
@@ -164,12 +166,34 @@ function createWallTile(x, y, z, rotationY, color, opacity, size, hasGlow) {
     color: color,
     transparent: true,
     opacity: opacity,
-    side: THREE.DoubleSide
+    side: THREE.FrontSide,  // Only render front face
+    depthWrite: true,       // Write to depth buffer
+    polygonOffset: true,    // Enable polygon offset to prevent Z-fighting
+    polygonOffsetFactor: -1 - tileDepthCounter * 0.1,  // Unique offset per tile
+    polygonOffsetUnits: -1
   });
 
+  // Calculate depth offset - each tile slightly in front of previous
+  const depthOffset = tileDepthCounter * 0.02;  // Small unique offset
+  tileDepthCounter++;
+
   const tile = new THREE.Mesh(tileGeo, tileMat);
-  tile.position.set(x, y, z);
+
+  // Apply position with depth offset perpendicular to wall
+  let finalX = x, finalZ = z;
+  if (rotationY === 0) {
+    finalZ = z + depthOffset;  // Back wall - offset toward center
+  } else if (rotationY === Math.PI) {
+    finalZ = z - depthOffset;  // Front wall - offset toward center
+  } else if (rotationY === Math.PI / 2) {
+    finalX = x + depthOffset;  // Left wall - offset toward center
+  } else {
+    finalX = x - depthOffset;  // Right wall - offset toward center
+  }
+
+  tile.position.set(finalX, y, finalZ);
   tile.rotation.y = rotationY;
+  tile.renderOrder = tileDepthCounter;  // Explicit render order
   scene.add(tile);
   wallTiles.push(tile);
 
@@ -177,9 +201,9 @@ function createWallTile(x, y, z, rotationY, color, opacity, size, hasGlow) {
   if (hasGlow) {
     const glowLight = new THREE.PointLight(color, 0.08, 15, 2);
     glowLight.position.set(
-      x + (rotationY === 0 || rotationY === Math.PI ? 0 : (rotationY > 0 ? 1 : -1)),
+      finalX + (rotationY === 0 || rotationY === Math.PI ? 0 : (rotationY > 0 ? 1 : -1)),
       y,
-      z + (rotationY === 0 ? 1 : (rotationY === Math.PI ? -1 : 0))
+      finalZ + (rotationY === 0 ? 1 : (rotationY === Math.PI ? -1 : 0))
     );
     scene.add(glowLight);
   }
