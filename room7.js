@@ -104,19 +104,8 @@ const dir = new THREE.DirectionalLight(0xffffff, 0.6);
 dir.position.set(5, 10, 7);
 scene.add(dir);
 
-// Scatter warm spotlights around the scene for better illumination (original)
+// Subtle ambient fill lighting (reduced to prevent harsh reflections)
 const floorSize = ROOM7_CONFIG.roomSize;
-for (let i = 0; i < 20; i++) {
-  const spot = new THREE.SpotLight(0xffaa88, 0.5, 50, Math.PI / 6, 0.5);
-  spot.position.set(
-    (Math.random() - 0.5) * 40,
-    Math.random() * 10 + 5,
-    (Math.random() - 0.5) * 40
-  );
-  spot.target.position.set(0, 0, -i * 2);
-  scene.add(spot);
-  scene.add(spot.target);
-}
 
 // Original reflective black floor
 const floorGeo = new THREE.PlaneGeometry(floorSize, floorSize);
@@ -140,58 +129,76 @@ const stars = new THREE.Points(starGeo, starMat);
 scene.add(stars);
 
 // ═══════════════════════════════════════════════════════════════════════
-// Invisible Ambient Lighting - Only reflections visible on floor
+// Ambient Wall Strips - Colored glow panels along walls
 // ═══════════════════════════════════════════════════════════════════════
 
-const wallLights = [];
+// Color palette extracted from the artwork (warm skin tones, colorful accents)
+const wallColors = [
+  0xff9966,  // Warm peach/coral
+  0xffcc99,  // Soft skin tone
+  0x66cccc,  // Teal accent
+  0xff6699,  // Pink accent
+  0xffaa77,  // Orange warmth
+  0x99ccff,  // Light blue
+  0xffddaa,  // Cream
+  0xcc99ff   // Lavender
+];
 
 /**
- * Create an invisible point light (only reflections show on floor)
+ * Create a glowing wall strip (vertical panel with color)
  */
-function createInvisibleLight(x, y, z, intensity = 1.0, distance = 35) {
-  const light = new THREE.PointLight(0xffffff, intensity, distance);
-  light.position.set(x, y, z);
+function createWallStrip(x, z, rotationY, colorIndex) {
+  const color = wallColors[colorIndex % wallColors.length];
+
+  // Tall thin panel
+  const stripGeo = new THREE.PlaneGeometry(8, 15);
+  const stripMat = new THREE.MeshBasicMaterial({
+    color: color,
+    transparent: true,
+    opacity: 0.08,  // Very subtle
+    side: THREE.DoubleSide
+  });
+
+  const strip = new THREE.Mesh(stripGeo, stripMat);
+  strip.position.set(x, 8, z);
+  strip.rotation.y = rotationY;
+  scene.add(strip);
+
+  // Add a very soft colored light near each strip
+  const light = new THREE.PointLight(color, 0.15, 30, 2);
+  light.position.set(x, 6, z);
   scene.add(light);
-  wallLights.push(light);
-  return light;
+
+  return strip;
 }
 
-// Perimeter lights - spread around the room edges for reflections
-const edgeOffset = 45;
+const wallOffset = 49;  // Just inside room boundary
 
-// Corner lights (all 4 corners, low position for floor reflections)
-createInvisibleLight(-edgeOffset, 4, -edgeOffset, 1.5, 40);
-createInvisibleLight(edgeOffset, 4, -edgeOffset, 1.5, 40);
-createInvisibleLight(-edgeOffset, 4, edgeOffset, 1.5, 40);
-createInvisibleLight(edgeOffset, 4, edgeOffset, 1.5, 40);
-
-// Mid-edge lights (between corners)
-createInvisibleLight(0, 4, -edgeOffset, 1.2, 35);
-createInvisibleLight(0, 4, edgeOffset, 1.2, 35);
-createInvisibleLight(-edgeOffset, 4, 0, 1.2, 35);
-createInvisibleLight(edgeOffset, 4, 0, 1.2, 35);
-
-// Additional intermediate lights along edges for more reflections
-const midPoints = [-30, -15, 15, 30];
-midPoints.forEach(offset => {
-  // Along Z edges (left and right walls)
-  createInvisibleLight(-edgeOffset, 3, offset, 0.8, 30);
-  createInvisibleLight(edgeOffset, 3, offset, 0.8, 30);
-  // Along X edges (front and back walls)
-  createInvisibleLight(offset, 3, -edgeOffset, 0.8, 30);
-  createInvisibleLight(offset, 3, edgeOffset, 0.8, 30);
-});
-
-// Scattered interior lights for more reflections across the floor
-for (let i = 0; i < 12; i++) {
-  const angle = (i / 12) * Math.PI * 2;
-  const radius = 25 + Math.random() * 15;
-  const x = Math.cos(angle) * radius;
-  const z = Math.sin(angle) * radius;
-  createInvisibleLight(x, 5, z, 0.6, 25);
+// Back wall strips (Z = -wallOffset)
+for (let i = 0; i < 6; i++) {
+  const x = -40 + i * 16;
+  createWallStrip(x, -wallOffset, 0, i);
 }
 
-console.log(`✓ Added ${wallLights.length} invisible lights for floor reflections`);
+// Front wall strips (Z = +wallOffset)
+for (let i = 0; i < 6; i++) {
+  const x = -40 + i * 16;
+  createWallStrip(x, wallOffset, Math.PI, i + 2);
+}
+
+// Left wall strips (X = -wallOffset)
+for (let i = 0; i < 6; i++) {
+  const z = -40 + i * 16;
+  createWallStrip(-wallOffset, z, Math.PI / 2, i + 4);
+}
+
+// Right wall strips (X = +wallOffset)
+for (let i = 0; i < 6; i++) {
+  const z = -40 + i * 16;
+  createWallStrip(wallOffset, z, -Math.PI / 2, i + 6);
+}
+
+console.log(`✓ Added 24 ambient wall color strips`);
 
 // ═══════════════════════════════════════════════════════════════════════
 // Zigzag Path Generation - Jumpable alternating pattern
