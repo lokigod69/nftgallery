@@ -117,16 +117,177 @@ scene.add(floor);
 // Raised starry ceiling - higher and more spread out
 const starGeo = new THREE.BufferGeometry();
 const starVerts = [];
-for (let i = 0; i < 1500; i++) {
-  const x = Math.random() * 120 - 60;       // Wider spread
-  const y = Math.random() * 40 + 25;        // Much higher: 25-65 (was 10-30)
-  const z = Math.random() * 120 - 60;       // Wider spread
+for (let i = 0; i < 1200; i++) {
+  const x = Math.random() * 120 - 60;
+  const y = Math.random() * 40 + 25;
+  const z = Math.random() * 120 - 60;
   starVerts.push(x, y, z);
 }
 starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starVerts, 3));
-const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.15 });  // Slightly smaller
+const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.15 });
 const stars = new THREE.Points(starGeo, starMat);
 scene.add(stars);
+
+// ═══════════════════════════════════════════════════════════════════════
+// Real Zodiac Constellations
+// ═══════════════════════════════════════════════════════════════════════
+
+// Constellation definitions (relative star positions, scaled for the room)
+const constellations = {
+  // Orion - The Hunter (iconic and recognizable)
+  orion: {
+    name: 'Orion',
+    stars: [
+      { x: 0, y: 0, z: 0, bright: true },      // Betelgeuse (shoulder)
+      { x: 3, y: 0, z: 0.5, bright: false },   // Bellatrix (other shoulder)
+      { x: 1.5, y: -1.5, z: 0.2, bright: true }, // Alnilam (belt center)
+      { x: 0.8, y: -1.5, z: 0.3, bright: false }, // Alnitak (belt left)
+      { x: 2.2, y: -1.5, z: 0.1, bright: false }, // Mintaka (belt right)
+      { x: 0.5, y: -3, z: 0.4, bright: false },  // Saiph (knee)
+      { x: 2.5, y: -3.2, z: 0.2, bright: true }, // Rigel (foot)
+    ],
+    lines: [[0,1], [0,3], [1,4], [3,4], [4,5], [3,6], [4,6]]
+  },
+
+  // Leo - The Lion
+  leo: {
+    name: 'Leo',
+    stars: [
+      { x: 0, y: 0, z: 0, bright: true },      // Regulus (heart)
+      { x: -1.5, y: 1, z: 0.2, bright: false }, // Algieba
+      { x: -2.5, y: 2, z: 0.1, bright: false }, // Zosma
+      { x: -1, y: 2.5, z: 0.3, bright: false }, // Chertan
+      { x: 0.5, y: 2, z: 0.2, bright: false },  // Denebola (tail)
+      { x: -3, y: 0.5, z: 0.4, bright: false }, // Eta Leo
+      { x: -2, y: -0.5, z: 0.2, bright: false }, // Subra
+    ],
+    lines: [[0,1], [1,2], [2,3], [3,4], [1,5], [5,6], [6,0]]
+  },
+
+  // Scorpius - The Scorpion
+  scorpius: {
+    name: 'Scorpius',
+    stars: [
+      { x: 0, y: 0, z: 0, bright: true },      // Antares (heart - red giant!)
+      { x: -1, y: 1, z: 0.2, bright: false },  // Graffias
+      { x: -0.5, y: 2, z: 0.1, bright: false }, // Dschubba
+      { x: 0.8, y: -1, z: 0.3, bright: false }, // Tau Sco
+      { x: 1.5, y: -2, z: 0.2, bright: false }, // Epsilon Sco
+      { x: 2.5, y: -2.5, z: 0.4, bright: false }, // Shaula (stinger)
+      { x: 2.8, y: -2.2, z: 0.3, bright: false }, // Lesath (stinger)
+    ],
+    lines: [[2,1], [1,0], [0,3], [3,4], [4,5], [5,6]]
+  },
+
+  // Cassiopeia - The Queen (W shape)
+  cassiopeia: {
+    name: 'Cassiopeia',
+    stars: [
+      { x: 0, y: 0, z: 0, bright: true },      // Schedar
+      { x: 1.2, y: 0.8, z: 0.2, bright: false }, // Caph
+      { x: 2.2, y: 0.2, z: 0.1, bright: false }, // Gamma Cas
+      { x: 3.2, y: 1, z: 0.3, bright: false },  // Ruchbah
+      { x: 4, y: 0.3, z: 0.2, bright: false },  // Segin
+    ],
+    lines: [[0,1], [1,2], [2,3], [3,4]]
+  },
+
+  // Virgo - The Maiden
+  virgo: {
+    name: 'Virgo',
+    stars: [
+      { x: 0, y: 0, z: 0, bright: true },      // Spica (brightest)
+      { x: -2, y: 2, z: 0.2, bright: false },  // Porrima
+      { x: -3, y: 3.5, z: 0.1, bright: false }, // Vindemiatrix
+      { x: -1.5, y: 4, z: 0.3, bright: false }, // Epsilon Vir
+      { x: 0.5, y: 3, z: 0.2, bright: false },  // Delta Vir
+      { x: -2.5, y: 1, z: 0.4, bright: false }, // Eta Vir
+      { x: 1, y: 1.5, z: 0.2, bright: false },  // Zeta Vir
+    ],
+    lines: [[0,1], [1,2], [2,3], [3,4], [4,6], [6,0], [1,5]]
+  },
+
+  // Sagittarius - The Archer (Teapot asterism)
+  sagittarius: {
+    name: 'Sagittarius',
+    stars: [
+      { x: 0, y: 0, z: 0, bright: false },     // Kaus Media
+      { x: 1.5, y: 0.3, z: 0.2, bright: false }, // Kaus Australis
+      { x: -1, y: 0.5, z: 0.1, bright: false }, // Kaus Borealis
+      { x: 0, y: 1.5, z: 0.3, bright: true },  // Nunki (handle)
+      { x: -1.5, y: 1.8, z: 0.2, bright: false }, // Phi Sgr
+      { x: 1, y: 1.2, z: 0.4, bright: false },  // Tau Sgr
+      { x: 0.5, y: 2.2, z: 0.2, bright: false }, // Ascella
+    ],
+    lines: [[0,1], [1,5], [5,3], [3,6], [6,4], [4,2], [2,0], [0,5]]
+  }
+};
+
+// Place constellations in the sky at different positions
+const constellationPlacements = [
+  { name: 'orion', x: -35, y: 45, z: -30, scale: 3 },
+  { name: 'leo', x: 25, y: 50, z: -20, scale: 2.5 },
+  { name: 'scorpius', x: 10, y: 40, z: 35, scale: 3 },
+  { name: 'cassiopeia', x: -20, y: 55, z: 25, scale: 2.8 },
+  { name: 'virgo', x: 35, y: 48, z: 10, scale: 2.5 },
+  { name: 'sagittarius', x: -10, y: 42, z: -40, scale: 2.8 }
+];
+
+// Create constellation stars and lines
+constellationPlacements.forEach(placement => {
+  const constellation = constellations[placement.name];
+  if (!constellation) return;
+
+  const constellationStars = [];
+
+  // Create stars for this constellation
+  constellation.stars.forEach((star, idx) => {
+    const worldX = placement.x + star.x * placement.scale;
+    const worldY = placement.y + star.y * placement.scale * 0.5;  // Flatten vertically
+    const worldZ = placement.z + star.z * placement.scale;
+
+    // Bright stars are larger
+    const starSize = star.bright ? 0.5 : 0.3;
+    const starColor = star.bright ? 0xffffcc : 0xffffff;
+
+    const starGeo = new THREE.SphereGeometry(starSize, 8, 8);
+    const starMat = new THREE.MeshBasicMaterial({ color: starColor });
+    const starMesh = new THREE.Mesh(starGeo, starMat);
+    starMesh.position.set(worldX, worldY, worldZ);
+    scene.add(starMesh);
+
+    constellationStars.push(starMesh.position.clone());
+
+    // Add subtle glow for bright stars
+    if (star.bright) {
+      const glowGeo = new THREE.SphereGeometry(starSize * 2, 8, 8);
+      const glowMat = new THREE.MeshBasicMaterial({
+        color: 0xffffee,
+        transparent: true,
+        opacity: 0.15
+      });
+      const glow = new THREE.Mesh(glowGeo, glowMat);
+      glow.position.copy(starMesh.position);
+      scene.add(glow);
+    }
+  });
+
+  // Draw constellation lines (subtle)
+  const lineMaterial = new THREE.LineBasicMaterial({
+    color: 0x4466aa,
+    transparent: true,
+    opacity: 0.25
+  });
+
+  constellation.lines.forEach(([startIdx, endIdx]) => {
+    const points = [constellationStars[startIdx], constellationStars[endIdx]];
+    const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
+    const line = new THREE.Line(lineGeo, lineMaterial);
+    scene.add(line);
+  });
+});
+
+console.log(`✓ Added ${constellationPlacements.length} zodiac constellations to the sky`);
 
 // ═══════════════════════════════════════════════════════════════════════
 // Scattered Color Tiles - Random mosaic on all walls
