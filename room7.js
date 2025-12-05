@@ -24,8 +24,8 @@ const ROOM7_CONFIG = {
   platformSize: 4.0,         // NFT platform size (slightly larger for easier landing)
   platformHeight: 2.0,       // Height above floor
   platformThickness: 0.5,    // Platform depth
-  spawnPlatformSize: 5.0,    // Larger spawn platform
-  endPlatformSize: 5.0,      // Larger end platform
+  spawnPlatformSize: 6.0,    // Larger spawn platform
+  endPlatformSize: 10.0,     // Much larger end platform
 
   // Zigzag path parameters - jumpable alternating pattern
   zigzagAmplitude: 8,        // Max horizontal distance from center (reduced for jumpability)
@@ -38,8 +38,8 @@ const ROOM7_CONFIG = {
   jumpVelocity: 14,          // Increased for longer jumps
 
   // Spawn and portal positions
-  spawnZ: -40,               // Start position (negative Z)
-  portalZ: 40,               // End position (positive Z)
+  spawnZ: -45,               // Start position (negative Z)
+  portalZ: 48,               // End position - near room edge
 
   // Floor (danger zone)
   floorY: 0,
@@ -140,76 +140,58 @@ const stars = new THREE.Points(starGeo, starMat);
 scene.add(stars);
 
 // ═══════════════════════════════════════════════════════════════════════
-// Wall Ambient Lighting - Soft white glowing orbs around perimeter
+// Invisible Ambient Lighting - Only reflections visible on floor
 // ═══════════════════════════════════════════════════════════════════════
 
 const wallLights = [];
-const wallOffset = 45;  // Near the edges of the 100-unit room
-
-// Glowing orb geometry
-const orbGeometry = new THREE.SphereGeometry(0.6, 16, 16);
 
 /**
- * Create a soft white glowing light orb
+ * Create an invisible point light (only reflections show on floor)
  */
-function createWallOrb(x, y, z, intensity = 1.0) {
-  const group = new THREE.Group();
-
-  // Outer soft glow sphere
-  const outerMat = new THREE.MeshBasicMaterial({
-    color: 0xffffff,
-    transparent: true,
-    opacity: 0.4
-  });
-  const outer = new THREE.Mesh(orbGeometry, outerMat);
-  outer.scale.setScalar(1.5);
-  group.add(outer);
-
-  // Inner bright white core
-  const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-  const core = new THREE.Mesh(orbGeometry, coreMat);
-  core.scale.setScalar(0.5);
-  group.add(core);
-
-  // Soft warm white point light
-  const light = new THREE.PointLight(0xfffaf0, intensity, 45);  // Warm white
-  group.add(light);
-
-  group.position.set(x, y, z);
-  scene.add(group);
-  wallLights.push(group);
-
-  return group;
+function createInvisibleLight(x, y, z, intensity = 1.0, distance = 35) {
+  const light = new THREE.PointLight(0xffffff, intensity, distance);
+  light.position.set(x, y, z);
+  scene.add(light);
+  wallLights.push(light);
+  return light;
 }
 
-// Corner orbs (4 corners, 2 heights each)
-const cornerPositions = [
-  { x: -wallOffset, z: -wallOffset },
-  { x: wallOffset, z: -wallOffset },
-  { x: -wallOffset, z: wallOffset },
-  { x: wallOffset, z: wallOffset }
-];
+// Perimeter lights - spread around the room edges for reflections
+const edgeOffset = 45;
 
-cornerPositions.forEach(pos => {
-  // Lower corner orb
-  createWallOrb(pos.x, 6, pos.z, 1.2);
-  // Upper corner orb
-  createWallOrb(pos.x, 18, pos.z, 0.8);
+// Corner lights (all 4 corners, low position for floor reflections)
+createInvisibleLight(-edgeOffset, 4, -edgeOffset, 1.5, 40);
+createInvisibleLight(edgeOffset, 4, -edgeOffset, 1.5, 40);
+createInvisibleLight(-edgeOffset, 4, edgeOffset, 1.5, 40);
+createInvisibleLight(edgeOffset, 4, edgeOffset, 1.5, 40);
+
+// Mid-edge lights (between corners)
+createInvisibleLight(0, 4, -edgeOffset, 1.2, 35);
+createInvisibleLight(0, 4, edgeOffset, 1.2, 35);
+createInvisibleLight(-edgeOffset, 4, 0, 1.2, 35);
+createInvisibleLight(edgeOffset, 4, 0, 1.2, 35);
+
+// Additional intermediate lights along edges for more reflections
+const midPoints = [-30, -15, 15, 30];
+midPoints.forEach(offset => {
+  // Along Z edges (left and right walls)
+  createInvisibleLight(-edgeOffset, 3, offset, 0.8, 30);
+  createInvisibleLight(edgeOffset, 3, offset, 0.8, 30);
+  // Along X edges (front and back walls)
+  createInvisibleLight(offset, 3, -edgeOffset, 0.8, 30);
+  createInvisibleLight(offset, 3, edgeOffset, 0.8, 30);
 });
 
-// Mid-wall orbs (along the 4 edges)
-const midWallPositions = [
-  { x: 0, z: -wallOffset },   // Back wall center
-  { x: 0, z: wallOffset },    // Front wall center
-  { x: -wallOffset, z: 0 },   // Left wall center
-  { x: wallOffset, z: 0 }     // Right wall center
-];
+// Scattered interior lights for more reflections across the floor
+for (let i = 0; i < 12; i++) {
+  const angle = (i / 12) * Math.PI * 2;
+  const radius = 25 + Math.random() * 15;
+  const x = Math.cos(angle) * radius;
+  const z = Math.sin(angle) * radius;
+  createInvisibleLight(x, 5, z, 0.6, 25);
+}
 
-midWallPositions.forEach(pos => {
-  createWallOrb(pos.x, 10, pos.z, 1.0);
-});
-
-console.log(`✓ Added ${wallLights.length} soft white wall light orbs`);
+console.log(`✓ Added ${wallLights.length} invisible lights for floor reflections`);
 
 // ═══════════════════════════════════════════════════════════════════════
 // Zigzag Path Generation - Jumpable alternating pattern
@@ -278,13 +260,13 @@ function createPlatform(x, y, z, size, textureUrl, isSpecial = false) {
   // Platform base (box)
   const baseGeo = new THREE.BoxGeometry(size, cfg.platformThickness, size);
 
-  // Platform edge material - black borders
+  // Platform edge material - chrome black for special, matte black for regular
   const edgeMaterial = new THREE.MeshStandardMaterial({
-    color: isSpecial ? 0x4488ff : 0x000000,
-    emissive: isSpecial ? 0x2244aa : 0x000000,
-    emissiveIntensity: 0.5,
-    metalness: 0.7,
-    roughness: 0.3
+    color: isSpecial ? 0x222222 : 0x000000,
+    emissive: isSpecial ? 0x111111 : 0x000000,
+    emissiveIntensity: 0.2,
+    metalness: isSpecial ? 0.95 : 0.7,   // High metalness for chrome look
+    roughness: isSpecial ? 0.1 : 0.3     // Low roughness for reflective chrome
   });
 
   const base = new THREE.Mesh(baseGeo, edgeMaterial);
@@ -310,7 +292,7 @@ function createPlatform(x, y, z, size, textureUrl, isSpecial = false) {
   }
 
   // Point light under each platform for subtle glow effect
-  const light = new THREE.PointLight(isSpecial ? 0x4488ff : 0x222222, 0.3, 6);
+  const light = new THREE.PointLight(isSpecial ? 0xffffff : 0x222222, 0.4, 8);
   light.position.y = -1;
   group.add(light);
 
