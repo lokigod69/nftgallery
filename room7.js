@@ -140,40 +140,39 @@ const stars = new THREE.Points(starGeo, starMat);
 scene.add(stars);
 
 // ═══════════════════════════════════════════════════════════════════════
-// Wall Ambient Lighting - Visible glowing orbs around perimeter
+// Wall Ambient Lighting - Soft white glowing orbs around perimeter
 // ═══════════════════════════════════════════════════════════════════════
 
 const wallLights = [];
 const wallOffset = 45;  // Near the edges of the 100-unit room
 
-// Glowing orb material - visible emissive spheres
-const orbMaterial = new THREE.MeshBasicMaterial({
-  color: 0x6688bb,
-  transparent: true,
-  opacity: 0.8
-});
-
-const orbGeometry = new THREE.SphereGeometry(0.8, 16, 16);
+// Glowing orb geometry
+const orbGeometry = new THREE.SphereGeometry(0.6, 16, 16);
 
 /**
- * Create a visible glowing light orb with point light
+ * Create a soft white glowing light orb
  */
-function createWallOrb(x, y, z, intensity = 1.5, color = 0x4466aa) {
+function createWallOrb(x, y, z, intensity = 1.0) {
   const group = new THREE.Group();
 
-  // Visible glowing sphere
-  const orb = new THREE.Mesh(orbGeometry, orbMaterial.clone());
-  orb.material.color.setHex(color);
-  group.add(orb);
+  // Outer soft glow sphere
+  const outerMat = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    transparent: true,
+    opacity: 0.4
+  });
+  const outer = new THREE.Mesh(orbGeometry, outerMat);
+  outer.scale.setScalar(1.5);
+  group.add(outer);
 
-  // Inner brighter core
-  const coreGeo = new THREE.SphereGeometry(0.4, 12, 12);
-  const coreMat = new THREE.MeshBasicMaterial({ color: 0xaaccff });
-  const core = new THREE.Mesh(coreGeo, coreMat);
+  // Inner bright white core
+  const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const core = new THREE.Mesh(orbGeometry, coreMat);
+  core.scale.setScalar(0.5);
   group.add(core);
 
-  // Point light for actual illumination
-  const light = new THREE.PointLight(color, intensity, 50);
+  // Soft warm white point light
+  const light = new THREE.PointLight(0xfffaf0, intensity, 45);  // Warm white
   group.add(light);
 
   group.position.set(x, y, z);
@@ -193,9 +192,9 @@ const cornerPositions = [
 
 cornerPositions.forEach(pos => {
   // Lower corner orb
-  createWallOrb(pos.x, 6, pos.z, 1.5, 0x4466aa);
+  createWallOrb(pos.x, 6, pos.z, 1.2);
   // Upper corner orb
-  createWallOrb(pos.x, 18, pos.z, 1.0, 0x3355aa);
+  createWallOrb(pos.x, 18, pos.z, 0.8);
 });
 
 // Mid-wall orbs (along the 4 edges)
@@ -207,10 +206,10 @@ const midWallPositions = [
 ];
 
 midWallPositions.forEach(pos => {
-  createWallOrb(pos.x, 10, pos.z, 1.2, 0x5577bb);
+  createWallOrb(pos.x, 10, pos.z, 1.0);
 });
 
-console.log(`✓ Added ${wallLights.length} visible wall light orbs`);
+console.log(`✓ Added ${wallLights.length} soft white wall light orbs`);
 
 // ═══════════════════════════════════════════════════════════════════════
 // Zigzag Path Generation - Jumpable alternating pattern
