@@ -129,76 +129,130 @@ const stars = new THREE.Points(starGeo, starMat);
 scene.add(stars);
 
 // ═══════════════════════════════════════════════════════════════════════
-// Ambient Wall Strips - Colored glow panels along walls
+// Scattered Color Tiles - Random mosaic on all walls
 // ═══════════════════════════════════════════════════════════════════════
 
-// Color palette extracted from the artwork (warm skin tones, colorful accents)
-const wallColors = [
-  0xff9966,  // Warm peach/coral
-  0xffcc99,  // Soft skin tone
-  0x66cccc,  // Teal accent
-  0xff6699,  // Pink accent
-  0xffaa77,  // Orange warmth
-  0x99ccff,  // Light blue
-  0xffddaa,  // Cream
-  0xcc99ff   // Lavender
+// Extended color palette from the artwork
+const tileColors = [
+  // Warm skin tones
+  0xffccaa, 0xffddbb, 0xeebb99, 0xddaa88, 0xcc9977,
+  // Coral/peach
+  0xff9966, 0xff8855, 0xffaa77, 0xffbb88,
+  // Pink accents
+  0xff6699, 0xff7799, 0xee5588, 0xff88aa,
+  // Teal/cyan
+  0x66cccc, 0x55bbbb, 0x77dddd, 0x44aaaa,
+  // Blue accents
+  0x99ccff, 0x88bbee, 0x77aadd, 0x6699cc,
+  // Purple/lavender
+  0xcc99ff, 0xbb88ee, 0xaa77dd, 0x9966cc,
+  // Orange/warm
+  0xffaa55, 0xff9944, 0xee8833, 0xdd7722,
+  // Cream/white
+  0xffeecc, 0xffeedd, 0xffffee, 0xfff8e0
 ];
 
-/**
- * Create a glowing wall strip (vertical panel with color)
- */
-function createWallStrip(x, z, rotationY, colorIndex) {
-  const color = wallColors[colorIndex % wallColors.length];
+const wallTiles = [];
+const wallOffset = 49;
 
-  // Tall thin panel
-  const stripGeo = new THREE.PlaneGeometry(8, 15);
-  const stripMat = new THREE.MeshBasicMaterial({
+/**
+ * Create a small color tile on a wall
+ */
+function createWallTile(x, y, z, rotationY, color, opacity, size, hasGlow) {
+  const tileGeo = new THREE.PlaneGeometry(size, size * 0.4);  // Horizontal rectangle
+  const tileMat = new THREE.MeshBasicMaterial({
     color: color,
     transparent: true,
-    opacity: 0.08,  // Very subtle
+    opacity: opacity,
     side: THREE.DoubleSide
   });
 
-  const strip = new THREE.Mesh(stripGeo, stripMat);
-  strip.position.set(x, 8, z);
-  strip.rotation.y = rotationY;
-  scene.add(strip);
+  const tile = new THREE.Mesh(tileGeo, tileMat);
+  tile.position.set(x, y, z);
+  tile.rotation.y = rotationY;
+  scene.add(tile);
+  wallTiles.push(tile);
 
-  // Add a very soft colored light near each strip
-  const light = new THREE.PointLight(color, 0.15, 30, 2);
-  light.position.set(x, 6, z);
-  scene.add(light);
+  // Some tiles get a subtle glow light
+  if (hasGlow) {
+    const glowLight = new THREE.PointLight(color, 0.08, 15, 2);
+    glowLight.position.set(
+      x + (rotationY === 0 || rotationY === Math.PI ? 0 : (rotationY > 0 ? 1 : -1)),
+      y,
+      z + (rotationY === 0 ? 1 : (rotationY === Math.PI ? -1 : 0))
+    );
+    scene.add(glowLight);
+  }
 
-  return strip;
+  return tile;
 }
 
-const wallOffset = 49;  // Just inside room boundary
+/**
+ * Scatter tiles on a wall with random variation
+ */
+function scatterTilesOnWall(wallType, count) {
+  for (let i = 0; i < count; i++) {
+    // Random position along the wall
+    const spread = 85;  // How far tiles spread along wall
+    const pos = (Math.random() - 0.5) * spread;
+    const y = Math.random() * 12 + 2;  // Height 2-14
 
-// Back wall strips (Z = -wallOffset)
-for (let i = 0; i < 6; i++) {
-  const x = -40 + i * 16;
-  createWallStrip(x, -wallOffset, 0, i);
+    // Random color from palette
+    const color = tileColors[Math.floor(Math.random() * tileColors.length)];
+
+    // Random opacity - mostly muted, some vibrant
+    const opacityRoll = Math.random();
+    let opacity;
+    if (opacityRoll < 0.5) {
+      opacity = 0.03 + Math.random() * 0.05;  // Very muted (0.03-0.08)
+    } else if (opacityRoll < 0.85) {
+      opacity = 0.08 + Math.random() * 0.08;  // Medium (0.08-0.16)
+    } else {
+      opacity = 0.18 + Math.random() * 0.12;  // Vibrant (0.18-0.30)
+    }
+
+    // Random size
+    const size = 1.5 + Math.random() * 4;  // 1.5 to 5.5 units wide
+
+    // Some tiles glow (the more vibrant ones)
+    const hasGlow = opacity > 0.15 && Math.random() > 0.5;
+
+    let x, z, rotationY;
+
+    switch (wallType) {
+      case 'back':  // Z = -wallOffset
+        x = pos;
+        z = -wallOffset;
+        rotationY = 0;
+        break;
+      case 'front':  // Z = +wallOffset
+        x = pos;
+        z = wallOffset;
+        rotationY = Math.PI;
+        break;
+      case 'left':  // X = -wallOffset
+        x = -wallOffset;
+        z = pos;
+        rotationY = Math.PI / 2;
+        break;
+      case 'right':  // X = +wallOffset
+        x = wallOffset;
+        z = pos;
+        rotationY = -Math.PI / 2;
+        break;
+    }
+
+    createWallTile(x, y, z, rotationY, color, opacity, size, hasGlow);
+  }
 }
 
-// Front wall strips (Z = +wallOffset)
-for (let i = 0; i < 6; i++) {
-  const x = -40 + i * 16;
-  createWallStrip(x, wallOffset, Math.PI, i + 2);
-}
+// Scatter tiles on all four walls
+scatterTilesOnWall('back', 40);
+scatterTilesOnWall('front', 40);
+scatterTilesOnWall('left', 35);
+scatterTilesOnWall('right', 35);
 
-// Left wall strips (X = -wallOffset)
-for (let i = 0; i < 6; i++) {
-  const z = -40 + i * 16;
-  createWallStrip(-wallOffset, z, Math.PI / 2, i + 4);
-}
-
-// Right wall strips (X = +wallOffset)
-for (let i = 0; i < 6; i++) {
-  const z = -40 + i * 16;
-  createWallStrip(wallOffset, z, -Math.PI / 2, i + 6);
-}
-
-console.log(`✓ Added 24 ambient wall color strips`);
+console.log(`✓ Added ${wallTiles.length} scattered color tiles on walls`);
 
 // ═══════════════════════════════════════════════════════════════════════
 // Zigzag Path Generation - Jumpable alternating pattern
