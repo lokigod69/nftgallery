@@ -223,14 +223,14 @@ const constellations = {
   }
 };
 
-// Place constellations in the sky at different positions
+// Place constellations spread across the ceiling - much larger and more spaced out
 const constellationPlacements = [
-  { name: 'orion', x: -35, y: 45, z: -30, scale: 3 },
-  { name: 'leo', x: 25, y: 50, z: -20, scale: 2.5 },
-  { name: 'scorpius', x: 10, y: 40, z: 35, scale: 3 },
-  { name: 'cassiopeia', x: -20, y: 55, z: 25, scale: 2.8 },
-  { name: 'virgo', x: 35, y: 48, z: 10, scale: 2.5 },
-  { name: 'sagittarius', x: -10, y: 42, z: -40, scale: 2.8 }
+  { name: 'orion', x: -45, y: 50, z: -45, scale: 6 },
+  { name: 'leo', x: 45, y: 55, z: -40, scale: 5 },
+  { name: 'scorpius', x: 40, y: 45, z: 40, scale: 6 },
+  { name: 'cassiopeia', x: -40, y: 60, z: 35, scale: 5 },
+  { name: 'virgo', x: 0, y: 52, z: -50, scale: 5.5 },
+  { name: 'sagittarius', x: -45, y: 48, z: 0, scale: 5.5 }
 ];
 
 // Create constellation stars and lines
@@ -243,40 +243,26 @@ constellationPlacements.forEach(placement => {
   // Create stars for this constellation
   constellation.stars.forEach((star, idx) => {
     const worldX = placement.x + star.x * placement.scale;
-    const worldY = placement.y + star.y * placement.scale * 0.5;  // Flatten vertically
+    const worldY = placement.y + star.y * placement.scale * 0.6;
     const worldZ = placement.z + star.z * placement.scale;
 
-    // Bright stars are larger
-    const starSize = star.bright ? 0.5 : 0.3;
-    const starColor = star.bright ? 0xffffcc : 0xffffff;
+    // Bright stars are larger - no glow effect, just bigger and brighter
+    const starSize = star.bright ? 0.7 : 0.45;
 
-    const starGeo = new THREE.SphereGeometry(starSize, 8, 8);
-    const starMat = new THREE.MeshBasicMaterial({ color: starColor });
+    const starGeo = new THREE.SphereGeometry(starSize, 12, 12);
+    const starMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
     const starMesh = new THREE.Mesh(starGeo, starMat);
     starMesh.position.set(worldX, worldY, worldZ);
     scene.add(starMesh);
 
     constellationStars.push(starMesh.position.clone());
-
-    // Add subtle glow for bright stars
-    if (star.bright) {
-      const glowGeo = new THREE.SphereGeometry(starSize * 2, 8, 8);
-      const glowMat = new THREE.MeshBasicMaterial({
-        color: 0xffffee,
-        transparent: true,
-        opacity: 0.15
-      });
-      const glow = new THREE.Mesh(glowGeo, glowMat);
-      glow.position.copy(starMesh.position);
-      scene.add(glow);
-    }
   });
 
   // Draw constellation lines (subtle)
   const lineMaterial = new THREE.LineBasicMaterial({
-    color: 0x4466aa,
+    color: 0x6688bb,
     transparent: true,
-    opacity: 0.25
+    opacity: 0.2
   });
 
   constellation.lines.forEach(([startIdx, endIdx]) => {
