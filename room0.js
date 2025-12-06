@@ -104,6 +104,8 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   2000
 );
+// Enable layer 1 so camera can see door components (which are excluded from water reflections)
+camera.layers.enable(1);
 // Increase camera height slightly
 camera.position.set(0, groundLevel + eyeHeight + 0.5, 0);
 

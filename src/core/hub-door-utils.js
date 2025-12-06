@@ -78,6 +78,7 @@ export function createHubDoor(options) {
   base.position.y = groundLevel - pos.y + 0.15; // 0.15 = half of base height (0.3)
   base.castShadow = true;
   base.receiveShadow = true;
+  base.layers.set(1);  // Layer 1 = excluded from water reflections
   doorGroup.add(base);
 
   // ============================================================================
@@ -107,6 +108,7 @@ export function createHubDoor(options) {
   );
   leftPillar.castShadow = true;
   leftPillar.receiveShadow = true;
+  leftPillar.layers.set(1);  // Layer 1 = excluded from water reflections
   doorGroup.add(leftPillar);
 
   // Right pillar
@@ -118,6 +120,7 @@ export function createHubDoor(options) {
   );
   rightPillar.castShadow = true;
   rightPillar.receiveShadow = true;
+  rightPillar.layers.set(1);  // Layer 1 = excluded from water reflections
   doorGroup.add(rightPillar);
 
   // ============================================================================
@@ -135,6 +138,7 @@ export function createHubDoor(options) {
   );
   header.castShadow = true;
   header.receiveShadow = true;
+  header.layers.set(1);  // Layer 1 = excluded from water reflections
   doorGroup.add(header);
 
   // ============================================================================
@@ -159,6 +163,7 @@ export function createHubDoor(options) {
     groundLevel - pos.y + 0.3 + pillarHeight / 2,  // Centered vertically in frame
     0.01  // Slightly forward to avoid z-fighting
   );
+  portal.layers.set(1);  // Layer 1 = excluded from water reflections
 
   // Store metadata for navigation
   portal.userData = {
@@ -201,6 +206,7 @@ export function createHubDoor(options) {
     0.02  // In front of portal, behind player interaction plane
   );
   panel.userData.isTexturePanel = true;  // Mark for future texture application
+  panel.layers.set(1);  // Layer 1 = excluded from water reflections
   doorGroup.add(panel);
 
   // ============================================================================
@@ -319,6 +325,7 @@ function createDoorLabel(options) {
   const label = new THREE.Mesh(labelGeometry, labelMaterial);
   label.position.set(x, y, z);
   label.userData.isBillboard = false;  // Hub doors face fixed directions
+  label.layers.set(1);  // Layer 1 = excluded from water reflections
 
   return label;
 }
