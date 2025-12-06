@@ -171,22 +171,9 @@ export function createHubDoor(options) {
 
   doorGroup.add(portal);
 
-  // Portal glow effect (behind the portal)
-  const glowGeometry = new THREE.PlaneGeometry(3.5, 5.5);
-  const glowMaterial = new THREE.MeshBasicMaterial({
-    color: portalColor,
-    transparent: true,
-    opacity: 0.2,
-    side: THREE.DoubleSide
-  });
-
-  const glow = new THREE.Mesh(glowGeometry, glowMaterial);
-  glow.position.set(
-    0,
-    groundLevel - pos.y + 0.3 + pillarHeight / 2,
-    -0.05  // Behind portal
-  );
-  doorGroup.add(glow);
+  // Portal glow effect removed - was causing reflection issues in water
+  // The portal itself provides enough visual presence
+  const glow = null;
 
   // ============================================================================
   // 5. DOOR PANEL (texture-ready surface)
@@ -337,7 +324,7 @@ function createDoorLabel(options) {
 }
 
 /**
- * Animates a hub door (portal pulsing, glow rotation)
+ * Animates a hub door (portal pulsing, light effects)
  * Call in your animate() loop
  *
  * @param {Object} doorObj - Door object returned by createHubDoor()
@@ -353,10 +340,7 @@ export function animateHubDoor(doorObj, time) {
     doorObj.portal.material.opacity = basePulse + Math.sin(time * 1.5) * pulseMagnitude;
   }
 
-  // Rotate glow slowly
-  if (doorObj.glow) {
-    doorObj.glow.rotation.z = time * 0.3;
-  }
+  // Glow no longer rotates - removed to prevent spinning frame effect
 
   // Pulse accent light
   if (doorObj.light) {

@@ -223,14 +223,14 @@ const constellations = {
   }
 };
 
-// Place constellations spread across the ceiling - much larger and more spaced out
+// Place constellations spread across the ceiling - stretched out like real night sky
 const constellationPlacements = [
-  { name: 'orion', x: -45, y: 50, z: -45, scale: 6 },
-  { name: 'leo', x: 45, y: 55, z: -40, scale: 5 },
-  { name: 'scorpius', x: 40, y: 45, z: 40, scale: 6 },
-  { name: 'cassiopeia', x: -40, y: 60, z: 35, scale: 5 },
-  { name: 'virgo', x: 0, y: 52, z: -50, scale: 5.5 },
-  { name: 'sagittarius', x: -45, y: 48, z: 0, scale: 5.5 }
+  { name: 'orion', x: -35, y: 50, z: -35, scale: 14 },
+  { name: 'leo', x: 35, y: 55, z: -35, scale: 12 },
+  { name: 'scorpius', x: 30, y: 48, z: 30, scale: 14 },
+  { name: 'cassiopeia', x: -30, y: 58, z: 30, scale: 12 },
+  { name: 'virgo', x: 0, y: 52, z: -40, scale: 13 },
+  { name: 'sagittarius', x: -35, y: 50, z: 0, scale: 12 }
 ];
 
 // Create constellation stars and lines
