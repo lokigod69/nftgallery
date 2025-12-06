@@ -32,7 +32,7 @@ const ROOM7_CONFIG = {
   platformSpacingZ: 4.5,     // Z distance between platforms (closer together)
 
   // Player physics
-  eyeHeight: 2.0,            // Original eye height
+  eyeHeight: 4.0,            // Raised eye height for better view of platform photos
   speed: 80.0,
   gravity: -30,
   jumpVelocity: 14,          // Increased for longer jumps
