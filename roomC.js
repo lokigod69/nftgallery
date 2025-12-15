@@ -5,30 +5,31 @@ import { getNftUrl } from './src/core/asset-utils.js';
 // ============================================
 // Configuration
 // ============================================
-const ROOM_WIDTH = 30;
-const ROOM_DEPTH = 250;  // Extended length
+const ROOM_WIDTH = 40;           // Wider corridor for 3-column symmetric layout
+const ROOM_DEPTH = 250;          // Extended length
 const ROOM_HEIGHT = 8;
-const FLOOR_DROP = 100;  // Much deeper pit
-const EYE_HEIGHT = 4.0;  // Raised camera height for better tile view
-const MOVE_SPEED = 25.0; // Slower speed aligned with platforming
+const FLOOR_DROP = 100;          // Much deeper pit
+const EYE_HEIGHT = 4.0;          // Raised camera height for better tile view
+const MOVE_SPEED = 12.0;         // Much slower for precise platforming
 const GRAVITY = -30;
-const JUMP_FORCE = 12;
+const JUMP_FORCE = 14;           // Slightly higher jump
 
 // Platform heights
 const TILE_PLATFORM_Y = 0;         // Y level where tiles float
 const SPAWN_PLATFORM_Y = TILE_PLATFORM_Y;  // Starting platform at same level
 const FLOOR_Y = -FLOOR_DROP;       // Deep floor for falling
 
-// Tile grid configuration
-const TILE_CELL_SIZE = 8;      // Size of each grid cell
-const TILE_SIZE = 3.5;          // Size of each tile platform
-const TILE_HEIGHT = 0.4;        // Thickness of tiles
-const TILE_MOVE_DISTANCE = 2.0; // How far tiles move from center
-const TILE_MOVE_SPEED = 0.8;    // Speed of tile oscillation
+// Tile grid configuration - 3 columns with symmetric movement
+const TILE_SIZE = 5.0;           // Bigger tiles for easier platforming
+const TILE_HEIGHT = 0.5;         // Slightly thicker
+const TILE_SPACING_X = 12;       // Horizontal spacing between column centers
+const TILE_SPACING_Z = 8;        // Vertical spacing between rows
+const TILE_MOVE_DISTANCE = 3.0;  // How far tiles move (left/right meet in middle)
+const TILE_MOVE_SPEED = 0.6;     // Slower, more hypnotic oscillation
 
-// Spawn position - moved further back from tiles
+// Spawn position - further back from tiles
 const SPAWN_X = 0;
-const SPAWN_Z = ROOM_DEPTH / 2 - 6;  // Near the portal, away from tiles
+const SPAWN_Z = ROOM_DEPTH / 2 - 8;  // Near the portal, away from tiles
 
 // NFT configuration
 const NFT_START_INDEX = 50;
@@ -279,51 +280,37 @@ function createSpawnPlatform() {
 }
 
 // ============================================
-// Moving Tiles System
+// Moving Tiles System - 3 Column Symmetric Layout
 // ============================================
 const movingTiles = [];
 
 function createMovingTiles() {
-  // Calculate grid dimensions
-  const gridCols = Math.floor(ROOM_WIDTH / TILE_CELL_SIZE);
-  const gridRows = Math.floor(ROOM_DEPTH / TILE_CELL_SIZE);
-
-  // Center offset to center the grid in the room
-  const offsetX = (ROOM_WIDTH - gridCols * TILE_CELL_SIZE) / 2 - ROOM_WIDTH / 2 + TILE_CELL_SIZE / 2;
-  const offsetZ = (ROOM_DEPTH - gridRows * TILE_CELL_SIZE) / 2 - ROOM_DEPTH / 2 + TILE_CELL_SIZE / 2;
-
-  // Direction patterns - creates a connected network
-  const directions = [
-    { dx: 1, dz: -1 },   // 0: top-right
-    { dx: -1, dz: -1 },  // 1: top-left
-    { dx: 1, dz: 1 },    // 2: bottom-right
-    { dx: -1, dz: 1 }    // 3: bottom-left
+  // 3 columns: left (-TILE_SPACING_X), center (0), right (+TILE_SPACING_X)
+  const columns = [
+    { x: -TILE_SPACING_X, dirX: 1, dirZ: 0 },   // Left column moves RIGHT
+    { x: 0, dirX: 0, dirZ: 1 },                  // Center column moves FORWARD/BACK
+    { x: TILE_SPACING_X, dirX: -1, dirZ: 0 }    // Right column moves LEFT
   ];
 
-  for (let row = 0; row < gridRows; row++) {
-    for (let col = 0; col < gridCols; col++) {
-      // Skip tiles that would overlap with spawn platform
-      const centerX = offsetX + col * TILE_CELL_SIZE;
-      const centerZ = offsetZ + row * TILE_CELL_SIZE;
+  // Calculate number of rows
+  const numRows = Math.floor((ROOM_DEPTH - 30) / TILE_SPACING_Z);  // Leave space at ends
+  const startZ = -ROOM_DEPTH / 2 + 15;  // Start from north end
 
-      // Check if this tile overlaps spawn platform area
-      const spawnHalfSize = 5;
-      if (Math.abs(centerX - SPAWN_X) < spawnHalfSize && Math.abs(centerZ - SPAWN_Z) < spawnHalfSize) {
-        continue;  // Skip this tile
-      }
+  for (let row = 0; row < numRows; row++) {
+    const rowZ = startZ + row * TILE_SPACING_Z;
 
-      // Determine direction based on checkerboard pattern
-      let dirIndex;
-      if (row % 2 === 0) {
-        dirIndex = col % 2 === 0 ? 0 : 1;
-      } else {
-        dirIndex = col % 2 === 0 ? 2 : 3;
-      }
+    // Skip rows that would overlap with spawn platform
+    if (Math.abs(rowZ - SPAWN_Z) < 6) {
+      continue;
+    }
 
-      const dir = directions[dirIndex];
+    for (let colIdx = 0; colIdx < columns.length; colIdx++) {
+      const col = columns[colIdx];
+      const centerX = col.x;
+      const centerZ = rowZ;
 
-      // Pick a color from the palette
-      const colorIndex = (row * gridCols + col) % TILE_COLORS.length;
+      // Pick a color - alternating pattern for visual variety
+      const colorIndex = (row * 3 + colIdx) % TILE_COLORS.length;
       const tileColor = TILE_COLORS[colorIndex];
 
       // Create tile geometry and material
@@ -342,11 +329,22 @@ function createMovingTiles() {
       tile.receiveShadow = true;
 
       // Add subtle point light under each tile
-      const tileLight = new THREE.PointLight(tileColor, 0.3, 6);
+      const tileLight = new THREE.PointLight(tileColor, 0.2, 8);
       tileLight.position.set(centerX, TILE_PLATFORM_Y + TILE_HEIGHT + 0.5, centerZ);
       scene.add(tileLight);
 
       scene.add(tile);
+
+      // Phase offset creates wave pattern down the corridor
+      // Left and right columns have opposite phase so they move toward each other
+      let phase;
+      if (colIdx === 0) {
+        phase = row * 0.4;  // Left column
+      } else if (colIdx === 2) {
+        phase = row * 0.4;  // Right column - same phase, opposite direction
+      } else {
+        phase = row * 0.4 + Math.PI / 2;  // Center column - offset by 90 degrees
+      }
 
       // Store tile data for animation
       movingTiles.push({
@@ -354,16 +352,18 @@ function createMovingTiles() {
         light: tileLight,
         centerX,
         centerZ,
-        dirX: dir.dx,
-        dirZ: dir.dz,
-        phase: (row + col) * 0.3,
+        dirX: col.dirX,
+        dirZ: col.dirZ,
+        phase,
         prevX: centerX,
-        prevZ: centerZ
+        prevZ: centerZ,
+        velocityX: 0,
+        velocityZ: 0
       });
     }
   }
 
-  console.log(`Created ${movingTiles.length} moving tiles`);
+  console.log(`Created ${movingTiles.length} moving tiles in 3-column symmetric layout`);
 }
 
 // Store previous tile positions before animation update
