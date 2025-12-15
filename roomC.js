@@ -7,7 +7,7 @@ import { getNftUrl } from './src/core/asset-utils.js';
 // ============================================
 const ROOM_WIDTH = 48;           // Widened by 20% for more tile movement range
 const ROOM_DEPTH = 250;          // Extended length
-const ROOM_HEIGHT = 16;          // Doubled ceiling height
+const ROOM_HEIGHT = 28;          // Tall ceiling for large NFT display
 const FLOOR_DROP = 100;          // Much deeper pit
 const EYE_HEIGHT = 4.0;          // Raised camera height for better tile view
 const MOVE_SPEED = 12.0;         // Much slower for precise platforming
@@ -234,52 +234,56 @@ function createRoomStructure() {
 // Mirror Ceiling with Frosted Glass Effect
 // ============================================
 let mirrorCeiling = null;
+let reflectionGroup = null;
 
 function createMirrorCeiling() {
   // Create a frosted mirror surface that reflects tiles below
-  // Using a semi-transparent, reflective material
   const mirrorGeometry = new THREE.PlaneGeometry(ROOM_WIDTH - 2, ROOM_DEPTH - 2);
 
-  // Frosted glass effect with subtle color tint
+  // Frosted glass effect - semi-transparent to see reflections through
   const mirrorMaterial = new THREE.MeshStandardMaterial({
-    color: 0xaabbcc,           // Cool blue-grey tint
-    roughness: 0.4,            // Frosted effect (not perfectly smooth)
-    metalness: 0.85,           // Highly reflective
+    color: 0x8899aa,           // Cool blue-grey tint
+    roughness: 0.3,            // Slightly frosted
+    metalness: 0.9,            // Highly reflective
     transparent: true,
-    opacity: 0.6,              // Semi-transparent frosted glass
-    side: THREE.DoubleSide,
-    envMapIntensity: 1.5       // Enhanced reflection
+    opacity: 0.4,              // More transparent to see reflections
+    side: THREE.DoubleSide
   });
 
   mirrorCeiling = new THREE.Mesh(mirrorGeometry, mirrorMaterial);
   mirrorCeiling.rotation.x = Math.PI / 2;
   mirrorCeiling.position.y = ROOM_HEIGHT;
   scene.add(mirrorCeiling);
-
-  // Note: Mirror reflections are created after tiles exist (see initialization section)
 }
 
 function createMirrorReflections() {
-  // Create inverted/mirrored copies of tile positions at ceiling level
-  // These will appear as reflections in the frosted mirror
-  const reflectionGroup = new THREE.Group();
-  reflectionGroup.position.y = ROOM_HEIGHT * 2;  // Mirror position
-  reflectionGroup.scale.y = -1;  // Invert vertically
+  // Create inverted tile copies above the mirror ceiling
+  // Position them so they appear as reflections when looking up
+  reflectionGroup = new THREE.Group();
 
-  // Create simple reflection meshes for each tile
+  // Create reflection meshes for each tile
   movingTiles.forEach((tileData, index) => {
     const tileColor = TILE_COLORS[index % TILE_COLORS.length];
 
-    // Reflection geometry (slightly smaller and muted)
-    const reflectionGeo = new THREE.BoxGeometry(TILE_SIZE * 0.9, TILE_HEIGHT, TILE_SIZE * 0.9);
+    // Reflection geometry (same size as tiles)
+    const reflectionGeo = new THREE.BoxGeometry(TILE_SIZE, TILE_HEIGHT, TILE_SIZE);
     const reflectionMat = new THREE.MeshBasicMaterial({
       color: tileColor,
       transparent: true,
-      opacity: 0.25,  // Faint reflection
+      opacity: 0.35,  // Visible reflection
     });
 
     const reflection = new THREE.Mesh(reflectionGeo, reflectionMat);
-    reflection.position.copy(tileData.mesh.position);
+
+    // Position reflection above ceiling - mirrored from tile position
+    // Mirror formula: reflection_y = 2 * mirror_y - object_y
+    const mirrorY = ROOM_HEIGHT;
+    const reflectedY = 2 * mirrorY - tileData.mesh.position.y;
+    reflection.position.set(
+      tileData.mesh.position.x,
+      reflectedY,
+      tileData.mesh.position.z
+    );
 
     // Store reference for animation sync
     tileData.reflection = reflection;
@@ -469,11 +473,12 @@ function animateMovingTiles(time) {
     tile.light.position.x = x;
     tile.light.position.z = z;
 
-    // Sync reflection position (if exists)
+    // Sync reflection position (mirrored above ceiling)
     if (tile.reflection) {
       tile.reflection.position.x = x;
       tile.reflection.position.z = z;
-      tile.reflection.position.y = tile.mesh.position.y;
+      // Mirror formula: reflection_y = 2 * mirror_y - object_y
+      tile.reflection.position.y = 2 * ROOM_HEIGHT - tile.mesh.position.y;
     }
 
     // Calculate velocity for this frame
@@ -483,8 +488,12 @@ function animateMovingTiles(time) {
 }
 
 // ============================================
-// NFT Display on Side Walls
+// NFT Display on Side Walls - Large format, no lighting effects
 // ============================================
+const NFT_FRAME_HEIGHT = 10;   // Large NFT frames
+const NFT_FRAME_WIDTH = 7;     // Wide frames
+const NFT_Y_POSITION = ROOM_HEIGHT / 2;  // Centered vertically on wall
+
 function createNFTFrames() {
   const textureLoader = new THREE.TextureLoader();
 
@@ -495,13 +504,13 @@ function createNFTFrames() {
   // West wall NFTs (left side) - facing into the room
   for (let i = 0; i < nftCount; i++) {
     const z = -ROOM_DEPTH / 2 + 10 + i * NFT_SPACING;
-    createNFTFrame(textureLoader, -ROOM_WIDTH / 2 + 0.5, 4, z, 'west', nftIndex++);
+    createNFTFrame(textureLoader, -ROOM_WIDTH / 2 + 0.5, NFT_Y_POSITION, z, 'west', nftIndex++);
   }
 
   // East wall NFTs (right side) - facing into the room
   for (let i = 0; i < nftCount; i++) {
     const z = -ROOM_DEPTH / 2 + 10 + i * NFT_SPACING;
-    createNFTFrame(textureLoader, ROOM_WIDTH / 2 - 0.5, 4, z, 'east', nftIndex++);
+    createNFTFrame(textureLoader, ROOM_WIDTH / 2 - 0.5, NFT_Y_POSITION, z, 'east', nftIndex++);
   }
 
   console.log(`Created ${(nftIndex - NFT_START_INDEX)} NFT frames on side walls`);
@@ -510,13 +519,13 @@ function createNFTFrames() {
 function createNFTFrame(textureLoader, x, y, z, wall, nftIndex) {
   const frameGroup = new THREE.Group();
 
-  // Frame backing - oriented to lie flat against wall
+  // Frame backing - oriented to lie flat against wall (larger size)
   const frameBox = new THREE.Mesh(
-    new THREE.BoxGeometry(0.15, 3.5, 2.5),
+    new THREE.BoxGeometry(0.2, NFT_FRAME_HEIGHT + 0.5, NFT_FRAME_WIDTH + 0.5),
     new THREE.MeshStandardMaterial({
-      color: 0x333333,
-      roughness: 0.6,
-      metalness: 0.4
+      color: 0x1a1a1a,  // Dark frame
+      roughness: 0.8,
+      metalness: 0.2
     })
   );
   frameGroup.add(frameBox);
@@ -527,16 +536,20 @@ function createNFTFrame(textureLoader, x, y, z, wall, nftIndex) {
   textureLoader.load(
     imageUrl,
     (texture) => {
+      // Use MeshBasicMaterial for true original colors (no lighting influence)
       const picturePlane = new THREE.Mesh(
-        new THREE.PlaneGeometry(2.2, 3.2),
-        new THREE.MeshBasicMaterial({ map: texture })
+        new THREE.PlaneGeometry(NFT_FRAME_WIDTH, NFT_FRAME_HEIGHT),
+        new THREE.MeshBasicMaterial({
+          map: texture,
+          toneMapped: false  // Preserve original colors
+        })
       );
       // Position picture on the frame, facing into the room
       if (wall === 'west') {
-        picturePlane.position.x = 0.09;  // Offset from frame center
+        picturePlane.position.x = 0.12;  // Offset from frame center
         picturePlane.rotation.y = Math.PI / 2;  // Face right (into room)
       } else {
-        picturePlane.position.x = -0.09;  // Offset from frame center
+        picturePlane.position.x = -0.12;  // Offset from frame center
         picturePlane.rotation.y = -Math.PI / 2;  // Face left (into room)
       }
       frameGroup.add(picturePlane);
@@ -545,14 +558,14 @@ function createNFTFrame(textureLoader, x, y, z, wall, nftIndex) {
     (error) => {
       console.warn(`NFT ${nftIndex} failed to load, using placeholder`);
       const placeholderPlane = new THREE.Mesh(
-        new THREE.PlaneGeometry(2.2, 3.2),
-        new THREE.MeshBasicMaterial({ color: 0x666666 })
+        new THREE.PlaneGeometry(NFT_FRAME_WIDTH, NFT_FRAME_HEIGHT),
+        new THREE.MeshBasicMaterial({ color: 0x333333 })
       );
       if (wall === 'west') {
-        placeholderPlane.position.x = 0.09;
+        placeholderPlane.position.x = 0.12;
         placeholderPlane.rotation.y = Math.PI / 2;
       } else {
-        placeholderPlane.position.x = -0.09;
+        placeholderPlane.position.x = -0.12;
         placeholderPlane.rotation.y = -Math.PI / 2;
       }
       frameGroup.add(placeholderPlane);
@@ -562,13 +575,7 @@ function createNFTFrame(textureLoader, x, y, z, wall, nftIndex) {
   frameGroup.position.set(x, y, z);
   scene.add(frameGroup);
 
-  // Add spotlight for each NFT
-  const spotlightX = wall === 'west' ? x + 4 : x - 4;
-  const spotlight = new THREE.SpotLight(0xffffff, 0.8, 15, Math.PI / 8);
-  spotlight.position.set(spotlightX, y + 2, z);
-  spotlight.target.position.set(x, y, z);
-  scene.add(spotlight);
-  scene.add(spotlight.target);
+  // No spotlights - NFTs display in original brightness/contrast
 }
 
 // ============================================
