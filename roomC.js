@@ -6,11 +6,11 @@ import { getNftUrl } from './src/core/asset-utils.js';
 // Configuration
 // ============================================
 const ROOM_WIDTH = 30;
-const ROOM_DEPTH = 200;  // 5x longer than original
+const ROOM_DEPTH = 250;  // Extended length
 const ROOM_HEIGHT = 8;
-const FLOOR_DROP = 50;   // How far down the floor is (deep pit)
+const FLOOR_DROP = 100;  // Much deeper pit
 const EYE_HEIGHT = 4.0;  // Raised camera height for better tile view
-const MOVE_SPEED = 60.0;
+const MOVE_SPEED = 25.0; // Slower speed aligned with platforming
 const GRAVITY = -30;
 const JUMP_FORCE = 12;
 
@@ -26,9 +26,9 @@ const TILE_HEIGHT = 0.4;        // Thickness of tiles
 const TILE_MOVE_DISTANCE = 2.0; // How far tiles move from center
 const TILE_MOVE_SPEED = 0.8;    // Speed of tile oscillation
 
-// Spawn position
+// Spawn position - moved further back from tiles
 const SPAWN_X = 0;
-const SPAWN_Z = ROOM_DEPTH / 2 - 10;  // Near the portal end
+const SPAWN_Z = ROOM_DEPTH / 2 - 6;  // Near the portal, away from tiles
 
 // NFT configuration
 const NFT_START_INDEX = 50;
@@ -83,7 +83,6 @@ let isJumping = false;
 let jumpVelocity = 0;
 let isFalling = false;
 let fallTimer = 0;
-let currentTile = null;  // Track which tile player is on
 
 document.addEventListener('keydown', (e) => {
   switch(e.code) {
@@ -128,7 +127,6 @@ function resetToSpawn() {
   isJumping = false;
   isFalling = false;
   fallTimer = 0;
-  currentTile = null;
 }
 
 // Initialize camera position
@@ -236,7 +234,8 @@ let spawnPlatform = null;
 function createSpawnPlatform() {
   // Large fixed platform at spawn point
   const platformSize = 8;
-  const platformGeo = new THREE.BoxGeometry(platformSize, TILE_HEIGHT * 2, platformSize);
+  const platformThickness = 1.0;  // Thicker platform
+  const platformGeo = new THREE.BoxGeometry(platformSize, platformThickness, platformSize);
   const platformMat = new THREE.MeshStandardMaterial({
     color: 0x4a4a6a,
     roughness: 0.3,
@@ -246,22 +245,21 @@ function createSpawnPlatform() {
   });
 
   spawnPlatform = new THREE.Mesh(platformGeo, platformMat);
-  spawnPlatform.position.set(SPAWN_X, SPAWN_PLATFORM_Y, SPAWN_Z);
+  spawnPlatform.position.set(SPAWN_X, SPAWN_PLATFORM_Y - platformThickness / 2 + TILE_HEIGHT, SPAWN_Z);
   scene.add(spawnPlatform);
 
-  // Add edge glow
-  const edgeGeo = new THREE.BoxGeometry(platformSize + 0.2, TILE_HEIGHT * 2 + 0.1, platformSize + 0.2);
+  // Edge glow ring around platform (below, no overlap)
+  const edgeGeo = new THREE.BoxGeometry(platformSize + 0.4, 0.2, platformSize + 0.4);
   const edgeMat = new THREE.MeshBasicMaterial({
     color: 0x6666aa,
     transparent: true,
-    opacity: 0.3
+    opacity: 0.4
   });
   const edge = new THREE.Mesh(edgeGeo, edgeMat);
-  edge.position.copy(spawnPlatform.position);
-  edge.position.y -= 0.05;
+  edge.position.set(SPAWN_X, SPAWN_PLATFORM_Y - platformThickness + TILE_HEIGHT - 0.1, SPAWN_Z);
   scene.add(edge);
 
-  // Label
+  // Label floating above platform
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   canvas.width = 256;
@@ -275,7 +273,7 @@ function createSpawnPlatform() {
   const labelMat = new THREE.MeshBasicMaterial({ map: labelTex, transparent: true });
   const labelGeo = new THREE.PlaneGeometry(3, 0.75);
   const label = new THREE.Mesh(labelGeo, labelMat);
-  label.position.set(SPAWN_X, SPAWN_PLATFORM_Y + TILE_HEIGHT + 0.5, SPAWN_Z);
+  label.position.set(SPAWN_X, SPAWN_PLATFORM_Y + TILE_HEIGHT + 1.5, SPAWN_Z);
   label.rotation.x = -Math.PI / 2;
   scene.add(label);
 }
@@ -368,12 +366,16 @@ function createMovingTiles() {
   console.log(`Created ${movingTiles.length} moving tiles`);
 }
 
-function animateMovingTiles(time) {
+// Store previous tile positions before animation update
+function storeTilePreviousPositions() {
   movingTiles.forEach(tile => {
-    // Store previous position for delta calculation
     tile.prevX = tile.mesh.position.x;
     tile.prevZ = tile.mesh.position.z;
+  });
+}
 
+function animateMovingTiles(time) {
+  movingTiles.forEach(tile => {
     // Oscillate between center and corner
     const t = Math.sin(time * TILE_MOVE_SPEED + tile.phase) * 0.5 + 0.5;
 
@@ -386,6 +388,10 @@ function animateMovingTiles(time) {
     // Move the light with the tile
     tile.light.position.x = x;
     tile.light.position.z = z;
+
+    // Calculate velocity for this frame
+    tile.velocityX = tile.mesh.position.x - tile.prevX;
+    tile.velocityZ = tile.mesh.position.z - tile.prevZ;
   });
 }
 
@@ -585,44 +591,41 @@ function checkTileCollision() {
   let onPlatform = false;
   let platformY = null;
   let activeTile = null;
-  let tileVelocityX = 0;
-  let tileVelocityZ = 0;
 
-  // Check spawn platform first
+  // Check spawn platform first (thicker platform, top is at TILE_HEIGHT level)
   if (spawnPlatform) {
     const spawnHalfSize = 4;
-    const spawnTop = spawnPlatform.position.y + TILE_HEIGHT;
+    const spawnTop = SPAWN_PLATFORM_Y + TILE_HEIGHT;  // Top surface of spawn platform
     if (Math.abs(playerX - spawnPlatform.position.x) < spawnHalfSize &&
         Math.abs(playerZ - spawnPlatform.position.z) < spawnHalfSize) {
-      if (feetY >= spawnTop - 0.5 && feetY <= spawnTop + 1.0) {
+      if (feetY >= spawnTop - 1.0 && feetY <= spawnTop + 2.0) {
         onPlatform = true;
         platformY = spawnTop;
       }
     }
   }
 
-  // Check moving tiles
+  // Check moving tiles - use slightly larger hitbox for better feel
   for (const tile of movingTiles) {
     const tileX = tile.mesh.position.x;
     const tileZ = tile.mesh.position.z;
     const tileTop = tile.mesh.position.y + TILE_HEIGHT / 2;
 
-    const halfSize = TILE_SIZE / 2;
+    // Slightly larger collision area for forgiving platforming
+    const halfSize = TILE_SIZE / 2 + 0.2;
     if (Math.abs(playerX - tileX) < halfSize && Math.abs(playerZ - tileZ) < halfSize) {
-      if (feetY >= tileTop - 0.5 && feetY <= tileTop + 1.5) {
+      // Check if feet are near tile top (generous vertical range)
+      if (feetY >= tileTop - 1.0 && feetY <= tileTop + 2.0) {
         if (!onPlatform || tileTop > platformY) {
           platformY = tileTop;
           onPlatform = true;
           activeTile = tile;
-          // Calculate tile velocity for moving player with tile
-          tileVelocityX = tile.mesh.position.x - tile.prevX;
-          tileVelocityZ = tile.mesh.position.z - tile.prevZ;
         }
       }
     }
   }
 
-  return { onPlatform, platformY, activeTile, tileVelocityX, tileVelocityZ };
+  return { onPlatform, platformY, activeTile };
 }
 
 // ============================================
@@ -636,11 +639,23 @@ function animate() {
   const delta = clock.getDelta();
   const time = clock.getElapsedTime();
 
-  // Animate tiles
+  // Store previous positions BEFORE animating
+  storeTilePreviousPositions();
+
+  // Animate tiles (calculates velocities)
   animateMovingTiles(time);
 
   if (controls.isLocked) {
-    // Movement
+    // Check tile collision FIRST to get tile movement
+    const collision = checkTileCollision();
+
+    // If standing on a moving tile, apply tile movement to player FIRST
+    if (collision.onPlatform && collision.activeTile) {
+      camera.position.x += collision.activeTile.velocityX;
+      camera.position.z += collision.activeTile.velocityZ;
+    }
+
+    // Then apply player's own movement
     const speedDelta = MOVE_SPEED * delta;
     const velocity = new THREE.Vector3();
     const direction = new THREE.Vector3();
@@ -655,17 +670,11 @@ function animate() {
     controls.moveRight(-velocity.x);
     controls.moveForward(-velocity.z);
 
-    // Check tile collision
-    const collision = checkTileCollision();
+    // Re-check collision after player movement (in case they walked off)
+    const finalCollision = checkTileCollision();
 
-    if (collision.onPlatform) {
-      const groundLevel = collision.platformY + EYE_HEIGHT;
-
-      // Move player with tile if on a moving tile
-      if (collision.activeTile) {
-        camera.position.x += collision.tileVelocityX;
-        camera.position.z += collision.tileVelocityZ;
-      }
+    if (finalCollision.onPlatform) {
+      const groundLevel = finalCollision.platformY + EYE_HEIGHT;
 
       // Gravity and jumping
       if (isJumping) {
