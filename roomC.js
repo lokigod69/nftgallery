@@ -5,9 +5,9 @@ import { getNftUrl } from './src/core/asset-utils.js';
 // ============================================
 // Configuration
 // ============================================
-const ROOM_WIDTH = 40;           // Wider corridor for 3-column symmetric layout
+const ROOM_WIDTH = 48;           // Widened by 20% for more tile movement range
 const ROOM_DEPTH = 250;          // Extended length
-const ROOM_HEIGHT = 8;
+const ROOM_HEIGHT = 16;          // Doubled ceiling height
 const FLOOR_DROP = 100;          // Much deeper pit
 const EYE_HEIGHT = 4.0;          // Raised camera height for better tile view
 const MOVE_SPEED = 12.0;         // Much slower for precise platforming
@@ -27,9 +27,9 @@ const TILE_SPACING_Z = 8;        // Vertical spacing between rows
 const TILE_MOVE_DISTANCE = 3.0;  // How far tiles move (left/right meet in middle)
 const TILE_MOVE_SPEED = 0.6;     // Slower, more hypnotic oscillation
 
-// Spawn position - further back from tiles
+// Spawn position - moved closer to tiles (halfway)
 const SPAWN_X = 0;
-const SPAWN_Z = ROOM_DEPTH / 2 - 8;  // Near the portal, away from tiles
+const SPAWN_Z = ROOM_DEPTH / 4;  // Halfway into the room, closer to tiles
 
 // NFT configuration
 const NFT_START_INDEX = 50;
@@ -212,7 +212,7 @@ function createRoomStructure() {
   westWall.rotation.y = Math.PI / 2;
   scene.add(westWall);
 
-  // Ceiling
+  // Dark ceiling backing
   const ceilingMaterial = new THREE.MeshStandardMaterial({
     color: 0x0f0f1e,
     roughness: 0.9,
@@ -223,8 +223,70 @@ function createRoomStructure() {
     ceilingMaterial
   );
   ceiling.rotation.x = Math.PI / 2;
-  ceiling.position.y = ROOM_HEIGHT;
+  ceiling.position.y = ROOM_HEIGHT + 0.1;  // Slightly above mirror
   scene.add(ceiling);
+
+  // Mirror ceiling with frosted glass effect
+  createMirrorCeiling();
+}
+
+// ============================================
+// Mirror Ceiling with Frosted Glass Effect
+// ============================================
+let mirrorCeiling = null;
+
+function createMirrorCeiling() {
+  // Create a frosted mirror surface that reflects tiles below
+  // Using a semi-transparent, reflective material
+  const mirrorGeometry = new THREE.PlaneGeometry(ROOM_WIDTH - 2, ROOM_DEPTH - 2);
+
+  // Frosted glass effect with subtle color tint
+  const mirrorMaterial = new THREE.MeshStandardMaterial({
+    color: 0xaabbcc,           // Cool blue-grey tint
+    roughness: 0.4,            // Frosted effect (not perfectly smooth)
+    metalness: 0.85,           // Highly reflective
+    transparent: true,
+    opacity: 0.6,              // Semi-transparent frosted glass
+    side: THREE.DoubleSide,
+    envMapIntensity: 1.5       // Enhanced reflection
+  });
+
+  mirrorCeiling = new THREE.Mesh(mirrorGeometry, mirrorMaterial);
+  mirrorCeiling.rotation.x = Math.PI / 2;
+  mirrorCeiling.position.y = ROOM_HEIGHT;
+  scene.add(mirrorCeiling);
+
+  // Note: Mirror reflections are created after tiles exist (see initialization section)
+}
+
+function createMirrorReflections() {
+  // Create inverted/mirrored copies of tile positions at ceiling level
+  // These will appear as reflections in the frosted mirror
+  const reflectionGroup = new THREE.Group();
+  reflectionGroup.position.y = ROOM_HEIGHT * 2;  // Mirror position
+  reflectionGroup.scale.y = -1;  // Invert vertically
+
+  // Create simple reflection meshes for each tile
+  movingTiles.forEach((tileData, index) => {
+    const tileColor = TILE_COLORS[index % TILE_COLORS.length];
+
+    // Reflection geometry (slightly smaller and muted)
+    const reflectionGeo = new THREE.BoxGeometry(TILE_SIZE * 0.9, TILE_HEIGHT, TILE_SIZE * 0.9);
+    const reflectionMat = new THREE.MeshBasicMaterial({
+      color: tileColor,
+      transparent: true,
+      opacity: 0.25,  // Faint reflection
+    });
+
+    const reflection = new THREE.Mesh(reflectionGeo, reflectionMat);
+    reflection.position.copy(tileData.mesh.position);
+
+    // Store reference for animation sync
+    tileData.reflection = reflection;
+    reflectionGroup.add(reflection);
+  });
+
+  scene.add(reflectionGroup);
 }
 
 // ============================================
@@ -283,18 +345,22 @@ function createSpawnPlatform() {
 // Moving Tiles System - 3 Column Symmetric Layout
 // ============================================
 const movingTiles = [];
+const OUTSIDE_CURVATURE = 0.3;  // 30% curvature for outside tiles
 
 function createMovingTiles() {
   // 3 columns: left (-TILE_SPACING_X), center (0), right (+TILE_SPACING_X)
+  // Outside columns have curvature (curved movement path)
   const columns = [
-    { x: -TILE_SPACING_X, dirX: 1, dirZ: 0 },   // Left column moves RIGHT
-    { x: 0, dirX: 0, dirZ: 1 },                  // Center column moves FORWARD/BACK
-    { x: TILE_SPACING_X, dirX: -1, dirZ: 0 }    // Right column moves LEFT
+    { x: -TILE_SPACING_X, dirX: 1, dirZ: 0, hasCurvature: true },   // Left column moves RIGHT with curve
+    { x: 0, dirX: 0, dirZ: 1, hasCurvature: false },                 // Center column moves FORWARD/BACK
+    { x: TILE_SPACING_X, dirX: -1, dirZ: 0, hasCurvature: true }    // Right column moves LEFT with curve
   ];
 
   // Calculate number of rows
   const numRows = Math.floor((ROOM_DEPTH - 30) / TILE_SPACING_Z);  // Leave space at ends
   const startZ = -ROOM_DEPTH / 2 + 15;  // Start from north end
+
+  let tileCounter = 0;  // For alternating (every second tile removal)
 
   for (let row = 0; row < numRows; row++) {
     const rowZ = startZ + row * TILE_SPACING_Z;
@@ -305,6 +371,12 @@ function createMovingTiles() {
     }
 
     for (let colIdx = 0; colIdx < columns.length; colIdx++) {
+      // Remove every second tile from all columns
+      tileCounter++;
+      if (tileCounter % 2 === 0) {
+        continue;  // Skip every second tile
+      }
+
       const col = columns[colIdx];
       const centerX = col.x;
       const centerZ = rowZ;
@@ -354,6 +426,7 @@ function createMovingTiles() {
         centerZ,
         dirX: col.dirX,
         dirZ: col.dirZ,
+        hasCurvature: col.hasCurvature,
         phase,
         prevX: centerX,
         prevZ: centerZ,
@@ -363,7 +436,7 @@ function createMovingTiles() {
     }
   }
 
-  console.log(`Created ${movingTiles.length} moving tiles in 3-column symmetric layout`);
+  console.log(`Created ${movingTiles.length} moving tiles in 3-column symmetric layout (every second removed)`);
 }
 
 // Store previous tile positions before animation update
@@ -379,8 +452,15 @@ function animateMovingTiles(time) {
     // Oscillate between center and corner
     const t = Math.sin(time * TILE_MOVE_SPEED + tile.phase) * 0.5 + 0.5;
 
-    const x = tile.centerX + tile.dirX * TILE_MOVE_DISTANCE * t;
-    const z = tile.centerZ + tile.dirZ * TILE_MOVE_DISTANCE * t;
+    let x = tile.centerX + tile.dirX * TILE_MOVE_DISTANCE * t;
+    let z = tile.centerZ + tile.dirZ * TILE_MOVE_DISTANCE * t;
+
+    // Add curvature to outside tiles (30% Z offset based on sine of X movement)
+    if (tile.hasCurvature) {
+      // Create curved path by adding perpendicular movement
+      const curveOffset = Math.sin(t * Math.PI) * TILE_MOVE_DISTANCE * OUTSIDE_CURVATURE;
+      z += curveOffset;
+    }
 
     tile.mesh.position.x = x;
     tile.mesh.position.z = z;
@@ -388,6 +468,13 @@ function animateMovingTiles(time) {
     // Move the light with the tile
     tile.light.position.x = x;
     tile.light.position.z = z;
+
+    // Sync reflection position (if exists)
+    if (tile.reflection) {
+      tile.reflection.position.x = x;
+      tile.reflection.position.z = z;
+      tile.reflection.position.y = tile.mesh.position.y;
+    }
 
     // Calculate velocity for this frame
     tile.velocityX = tile.mesh.position.x - tile.prevX;
@@ -741,6 +828,7 @@ createRoomStructure();
 createWIPSign();
 createSpawnPlatform();
 createMovingTiles();
+createMirrorReflections();  // Create reflections after tiles exist
 createNFTFrames();
 createPortal();
 
