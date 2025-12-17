@@ -282,8 +282,8 @@ function createMirrorReflections() {
 let spawnPlatform = null;
 
 function createSpawnPlatform() {
-  // Large fixed platform at spawn point
-  const platformSize = 8;
+  // Large fixed platform at spawn point - increased by 25% for easier first jump
+  const platformSize = 10;
   const platformThickness = 1.0;  // Thicker platform
   const platformGeo = new THREE.BoxGeometry(platformSize, platformThickness, platformSize);
   const platformMat = new THREE.MeshStandardMaterial({
@@ -673,7 +673,7 @@ function checkTileCollision() {
 
   // Check spawn platform first (thicker platform, top is at TILE_HEIGHT level)
   if (spawnPlatform) {
-    const spawnHalfSize = 4;
+    const spawnHalfSize = 5;  // Half of platformSize (10)
     const spawnTop = SPAWN_PLATFORM_Y + TILE_HEIGHT;  // Top surface of spawn platform
     if (Math.abs(playerX - spawnPlatform.position.x) < spawnHalfSize &&
         Math.abs(playerZ - spawnPlatform.position.z) < spawnHalfSize) {
