@@ -7,7 +7,7 @@ import { getNftUrl } from './src/core/asset-utils.js';
 // ============================================
 const ROOM_WIDTH = 96;           // Double width for spacious feel
 const ROOM_DEPTH = 250;          // Extended length
-const ROOM_HEIGHT = 28;          // Tall ceiling for large NFT display
+const ROOM_HEIGHT = 56;          // Very tall ceiling for open vertical space
 const FLOOR_DROP = 100;          // Much deeper pit
 const EYE_HEIGHT = 4.0;          // Raised camera height for better tile view
 const MOVE_SPEED = 12.0;         // Much slower for precise platforming
@@ -24,7 +24,7 @@ const TILE_SIZE = 6.0;           // Slightly larger tiles for wider room
 const TILE_HEIGHT = 0.5;         // Slightly thicker
 const TILE_SPACING_X = 24;       // Doubled horizontal spacing between column centers
 const TILE_SPACING_Z = 10;       // Slightly more vertical spacing
-const TILE_MOVE_DISTANCE = 6.0;  // Doubled movement range for wider room
+const TILE_MOVE_DISTANCE = 12.0; // Large movement range - tiles come much closer together
 const TILE_MOVE_SPEED = 0.6;     // Same speed
 
 // Spawn position - at portal end (south wall), player faces INTO the room
@@ -226,11 +226,11 @@ function createMirrorCeiling() {
   // Create a reflective mirror ceiling - very thin transparent layer
   const mirrorGeometry = new THREE.PlaneGeometry(ROOM_WIDTH - 2, ROOM_DEPTH - 2);
 
-  // Subtle tinted glass - mostly transparent to see reflections
+  // Subtle dark glass - mostly transparent to see reflections
   const mirrorMaterial = new THREE.MeshBasicMaterial({
-    color: 0x334455,
+    color: 0x111122,
     transparent: true,
-    opacity: 0.15,  // Very transparent
+    opacity: 0.1,  // Very transparent, no glow
     side: THREE.DoubleSide
   });
 
@@ -238,13 +238,6 @@ function createMirrorCeiling() {
   mirrorCeiling.rotation.x = Math.PI / 2;
   mirrorCeiling.position.y = ROOM_HEIGHT;
   scene.add(mirrorCeiling);
-
-  // Add a subtle grid pattern to ceiling for depth perception
-  const gridHelper = new THREE.GridHelper(Math.max(ROOM_WIDTH, ROOM_DEPTH), 20, 0x222244, 0x111133);
-  gridHelper.position.y = ROOM_HEIGHT - 0.1;
-  gridHelper.material.transparent = true;
-  gridHelper.material.opacity = 0.2;
-  scene.add(gridHelper);
 }
 
 function createMirrorReflections() {
@@ -339,7 +332,7 @@ function createSpawnPlatform() {
 // Moving Tiles System - 3 Column Symmetric Layout
 // ============================================
 const movingTiles = [];
-const OUTSIDE_CURVATURE = 0.3;  // 30% curvature for outside tiles
+const OUTSIDE_CURVATURE = 0.5;  // 50% curvature for pronounced S-curve on outside tiles
 
 function createMovingTiles() {
   // 3 columns: left (-TILE_SPACING_X), center (0), right (+TILE_SPACING_X)
