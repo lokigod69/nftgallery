@@ -5,7 +5,7 @@ import { getNftUrl } from './src/core/asset-utils.js';
 // ============================================
 // Configuration
 // ============================================
-const ROOM_WIDTH = 48;           // Widened by 20% for more tile movement range
+const ROOM_WIDTH = 96;           // Double width for spacious feel
 const ROOM_DEPTH = 250;          // Extended length
 const ROOM_HEIGHT = 28;          // Tall ceiling for large NFT display
 const FLOOR_DROP = 100;          // Much deeper pit
@@ -19,21 +19,21 @@ const TILE_PLATFORM_Y = 0;         // Y level where tiles float
 const SPAWN_PLATFORM_Y = TILE_PLATFORM_Y;  // Starting platform at same level
 const FLOOR_Y = -FLOOR_DROP;       // Deep floor for falling
 
-// Tile grid configuration - 3 columns with symmetric movement
-const TILE_SIZE = 5.0;           // Bigger tiles for easier platforming
+// Tile grid configuration - 3 columns with symmetric movement (scaled for double width)
+const TILE_SIZE = 6.0;           // Slightly larger tiles for wider room
 const TILE_HEIGHT = 0.5;         // Slightly thicker
-const TILE_SPACING_X = 12;       // Horizontal spacing between column centers
-const TILE_SPACING_Z = 8;        // Vertical spacing between rows
-const TILE_MOVE_DISTANCE = 3.0;  // How far tiles move (left/right meet in middle)
-const TILE_MOVE_SPEED = 0.6;     // Slower, more hypnotic oscillation
+const TILE_SPACING_X = 24;       // Doubled horizontal spacing between column centers
+const TILE_SPACING_Z = 10;       // Slightly more vertical spacing
+const TILE_MOVE_DISTANCE = 6.0;  // Doubled movement range for wider room
+const TILE_MOVE_SPEED = 0.6;     // Same speed
 
-// Spawn position - moved closer to tiles (halfway)
+// Spawn position - at portal end (south wall), player faces INTO the room
 const SPAWN_X = 0;
-const SPAWN_Z = ROOM_DEPTH / 4;  // Halfway into the room, closer to tiles
+const SPAWN_Z = ROOM_DEPTH / 2 - 10;  // Near south wall/portal, facing forward into room
 
 // NFT configuration
 const NFT_START_INDEX = 50;
-const NFT_SPACING = 12;  // Space between NFTs along the walls
+const NFT_SPACING = 30;  // Wider spacing for larger room
 
 // Fall reset configuration
 const FALL_RESET_TIME = 3.0;  // Seconds before reset when falling
@@ -212,21 +212,7 @@ function createRoomStructure() {
   westWall.rotation.y = Math.PI / 2;
   scene.add(westWall);
 
-  // Dark ceiling backing
-  const ceilingMaterial = new THREE.MeshStandardMaterial({
-    color: 0x0f0f1e,
-    roughness: 0.9,
-    metalness: 0.1
-  });
-  const ceiling = new THREE.Mesh(
-    new THREE.PlaneGeometry(ROOM_WIDTH, ROOM_DEPTH),
-    ceilingMaterial
-  );
-  ceiling.rotation.x = Math.PI / 2;
-  ceiling.position.y = ROOM_HEIGHT + 0.1;  // Slightly above mirror
-  scene.add(ceiling);
-
-  // Mirror ceiling with frosted glass effect
+  // Mirror ceiling with frosted glass effect (no dark backing - allows reflections to show)
   createMirrorCeiling();
 }
 
@@ -237,16 +223,14 @@ let mirrorCeiling = null;
 let reflectionGroup = null;
 
 function createMirrorCeiling() {
-  // Create a frosted mirror surface that reflects tiles below
+  // Create a reflective mirror ceiling - very thin transparent layer
   const mirrorGeometry = new THREE.PlaneGeometry(ROOM_WIDTH - 2, ROOM_DEPTH - 2);
 
-  // Frosted glass effect - semi-transparent to see reflections through
-  const mirrorMaterial = new THREE.MeshStandardMaterial({
-    color: 0x8899aa,           // Cool blue-grey tint
-    roughness: 0.3,            // Slightly frosted
-    metalness: 0.9,            // Highly reflective
+  // Subtle tinted glass - mostly transparent to see reflections
+  const mirrorMaterial = new THREE.MeshBasicMaterial({
+    color: 0x334455,
     transparent: true,
-    opacity: 0.4,              // More transparent to see reflections
+    opacity: 0.15,  // Very transparent
     side: THREE.DoubleSide
   });
 
@@ -254,11 +238,17 @@ function createMirrorCeiling() {
   mirrorCeiling.rotation.x = Math.PI / 2;
   mirrorCeiling.position.y = ROOM_HEIGHT;
   scene.add(mirrorCeiling);
+
+  // Add a subtle grid pattern to ceiling for depth perception
+  const gridHelper = new THREE.GridHelper(Math.max(ROOM_WIDTH, ROOM_DEPTH), 20, 0x222244, 0x111133);
+  gridHelper.position.y = ROOM_HEIGHT - 0.1;
+  gridHelper.material.transparent = true;
+  gridHelper.material.opacity = 0.2;
+  scene.add(gridHelper);
 }
 
 function createMirrorReflections() {
-  // Create inverted tile copies above the mirror ceiling
-  // Position them so they appear as reflections when looking up
+  // Create inverted tile copies BELOW the mirror ceiling (visible when looking up)
   reflectionGroup = new THREE.Group();
 
   // Create reflection meshes for each tile
@@ -270,18 +260,18 @@ function createMirrorReflections() {
     const reflectionMat = new THREE.MeshBasicMaterial({
       color: tileColor,
       transparent: true,
-      opacity: 0.35,  // Visible reflection
+      opacity: 0.5,  // More visible reflection
     });
 
     const reflection = new THREE.Mesh(reflectionGeo, reflectionMat);
 
-    // Position reflection above ceiling - mirrored from tile position
-    // Mirror formula: reflection_y = 2 * mirror_y - object_y
-    const mirrorY = ROOM_HEIGHT;
-    const reflectedY = 2 * mirrorY - tileData.mesh.position.y;
+    // Position reflection just below ceiling - mirrored vertically
+    // Distance from tile to ceiling = ROOM_HEIGHT - tile.y
+    // Reflection should be at ceiling - small offset, appearing "inside" the mirror
+    const distanceFromCeiling = ROOM_HEIGHT - tileData.mesh.position.y;
     reflection.position.set(
       tileData.mesh.position.x,
-      reflectedY,
+      ROOM_HEIGHT - 1 - (distanceFromCeiling * 0.1),  // Compressed near ceiling
       tileData.mesh.position.z
     );
 
@@ -360,18 +350,19 @@ function createMovingTiles() {
     { x: TILE_SPACING_X, dirX: -1, dirZ: 0, hasCurvature: true }    // Right column moves LEFT with curve
   ];
 
-  // Calculate number of rows
-  const numRows = Math.floor((ROOM_DEPTH - 30) / TILE_SPACING_Z);  // Leave space at ends
-  const startZ = -ROOM_DEPTH / 2 + 15;  // Start from north end
+  // Calculate number of rows - tiles go from north wall towards spawn (but not too close)
+  const numRows = Math.floor((ROOM_DEPTH - 40) / TILE_SPACING_Z);  // Leave space at ends
+  const startZ = -ROOM_DEPTH / 2 + 20;  // Start from north end
+  const endZ = SPAWN_Z - 15;  // Stop before spawn platform
 
   let tileCounter = 0;  // For alternating (every second tile removal)
 
   for (let row = 0; row < numRows; row++) {
     const rowZ = startZ + row * TILE_SPACING_Z;
 
-    // Skip rows that would overlap with spawn platform
-    if (Math.abs(rowZ - SPAWN_Z) < 6) {
-      continue;
+    // Stop creating tiles near spawn platform area
+    if (rowZ > endZ) {
+      break;
     }
 
     for (let colIdx = 0; colIdx < columns.length; colIdx++) {
@@ -473,12 +464,13 @@ function animateMovingTiles(time) {
     tile.light.position.x = x;
     tile.light.position.z = z;
 
-    // Sync reflection position (mirrored above ceiling)
+    // Sync reflection position (just below ceiling)
     if (tile.reflection) {
       tile.reflection.position.x = x;
       tile.reflection.position.z = z;
-      // Mirror formula: reflection_y = 2 * mirror_y - object_y
-      tile.reflection.position.y = 2 * ROOM_HEIGHT - tile.mesh.position.y;
+      // Position near ceiling with compressed distance
+      const distanceFromCeiling = ROOM_HEIGHT - tile.mesh.position.y;
+      tile.reflection.position.y = ROOM_HEIGHT - 1 - (distanceFromCeiling * 0.1);
     }
 
     // Calculate velocity for this frame
@@ -692,24 +684,25 @@ function checkTileCollision() {
     const spawnTop = SPAWN_PLATFORM_Y + TILE_HEIGHT;  // Top surface of spawn platform
     if (Math.abs(playerX - spawnPlatform.position.x) < spawnHalfSize &&
         Math.abs(playerZ - spawnPlatform.position.z) < spawnHalfSize) {
-      if (feetY >= spawnTop - 1.0 && feetY <= spawnTop + 2.0) {
+      // Tighter vertical check - only when feet are close to platform top
+      if (feetY >= spawnTop - 0.5 && feetY <= spawnTop + 1.5) {
         onPlatform = true;
         platformY = spawnTop;
       }
     }
   }
 
-  // Check moving tiles - use slightly larger hitbox for better feel
+  // Check moving tiles
   for (const tile of movingTiles) {
     const tileX = tile.mesh.position.x;
     const tileZ = tile.mesh.position.z;
     const tileTop = tile.mesh.position.y + TILE_HEIGHT / 2;
 
-    // Slightly larger collision area for forgiving platforming
-    const halfSize = TILE_SIZE / 2 + 0.2;
+    // Collision area matching tile size
+    const halfSize = TILE_SIZE / 2;
     if (Math.abs(playerX - tileX) < halfSize && Math.abs(playerZ - tileZ) < halfSize) {
-      // Check if feet are near tile top (generous vertical range)
-      if (feetY >= tileTop - 1.0 && feetY <= tileTop + 2.0) {
+      // Tighter vertical check
+      if (feetY >= tileTop - 0.5 && feetY <= tileTop + 1.5) {
         if (!onPlatform || tileTop > platformY) {
           platformY = tileTop;
           onPlatform = true;
