@@ -848,8 +848,9 @@ function addFloorStalagmites() {
 
   // Calculate NFT Z positions to avoid
   const nftZPositions = [];
-  const nftSpacing = corridorLength / (nftCount + 1);
-  for (let i = 0; i < nftCount; i++) {
+  const localNftCount = 14; // Local copy to avoid TDZ with global nftCount
+  const nftSpacing = corridorLength / (localNftCount + 1);
+  for (let i = 0; i < localNftCount; i++) {
     nftZPositions.push(-nftSpacing * (i + 1));
   }
 
