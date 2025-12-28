@@ -808,6 +808,10 @@ function createCenterParticles() {
 // ----------------------------------------------------------------------
 // Generate & Build Maze
 // ----------------------------------------------------------------------
+// Collision detection state (declared before assignment)
+let collisionGrid = null;
+let collisionObelisks = [];
+
 const mazeGrid = createMazeGrid();
 const { grid, path } = generateSpiralPath(mazeGrid);
 
@@ -942,10 +946,6 @@ document.addEventListener('keyup', onKeyUp);
 const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
 const clock = new THREE.Clock();
-
-// Collision detection state
-let collisionGrid = null;
-let collisionObelisks = [];
 
 /**
  * Convert world position to grid coordinates
