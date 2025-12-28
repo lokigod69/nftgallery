@@ -550,7 +550,7 @@ function buildMazeGeometry(grid) {
   
   // Merge geometries for performance (single draw call)
   if (cfg.mergeWallGeometry && wallGeometries.length > 0) {
-    const mergedGeometry = THREE.BufferGeometryUtils.mergeGeometries(wallGeometries);
+    const mergedGeometry = BufferGeometryUtils.mergeGeometries(wallGeometries);
     const mergedWalls = new THREE.Mesh(mergedGeometry, wallMaterial);
     scene.add(mergedWalls);
     console.log(`✓ Built maze with ${wallGeometries.length} walls (merged into 1 mesh)`);
@@ -828,12 +828,12 @@ const obelisks = placeObelisksInCenter(); // Ancient tech archive terminus marke
 collisionObelisks = obelisks; // Store for collision checking
 
 // ----------------------------------------------------------------------
-// Portal to Room 5
+// Portal to Room 10 (The Ascent)
 // ----------------------------------------------------------------------
 const portalObj = createLinkedPortal({
   scene,
   fromRoom: '9',
-  toRoom: '5',
+  toRoom: '10',
   x: 0,
   y: eyeHeight,
   z: 3,  // Just beyond center chamber
@@ -841,7 +841,7 @@ const portalObj = createLinkedPortal({
   createLabel: true
 });
 
-const portalToRoom5 = portalObj.portal;
+const portalToRoom10 = portalObj.portal;
 const portalGlow = portalObj.glow;
 
 const checkPortalProximity = createMultiPortalChecker({
@@ -849,8 +849,8 @@ const checkPortalProximity = createMultiPortalChecker({
   portals: [
     {
       position: new THREE.Vector3(0, eyeHeight, 3),
-      name: 'Eternal Eclipse (Room 5)',
-      url: 'room5.html',
+      name: 'The Ascent (Room 10)',
+      url: 'room10.html',
       showDistance: 3.0,
       triggerDistance: 1.8
     }
@@ -1127,7 +1127,7 @@ function animate() {
   }
 
   // Animate portal
-  animateLinkedPortal(portalToRoom5, portalGlow);
+  animateLinkedPortal(portalToRoom10, portalGlow);
 
   renderer.render(scene, camera);
 }

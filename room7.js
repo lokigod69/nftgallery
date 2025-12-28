@@ -739,9 +739,9 @@ function onKeyUp(event) {
 document.addEventListener('keydown', onKeyDown);
 document.addEventListener('keyup', onKeyUp);
 
-// Portal to Room 8 - positioned on end platform
+// Portal to Room 8 - positioned on end platform (forward direction)
 const portalY = ROOM7_CONFIG.platformHeight + ROOM7_CONFIG.platformThickness / 2 + eyeHeight;
-const portalObj = createLinkedPortal({
+const portal8Obj = createLinkedPortal({
   scene,
   fromRoom: '7',
   toRoom: '8',
@@ -752,16 +752,38 @@ const portalObj = createLinkedPortal({
   createLabel: true
 });
 
-const portalToRoom8 = portalObj.portal;
-const portalGlow = portalObj.glow;
+const portalToRoom8 = portal8Obj.portal;
+const portal8Glow = portal8Obj.glow;
+
+// Portal to Room 6 - positioned on spawn platform (back to Lava Corridor)
+const portal6Obj = createLinkedPortal({
+  scene,
+  fromRoom: '7',
+  toRoom: '6',
+  x: 0,
+  y: portalY,
+  z: ROOM7_CONFIG.spawnZ + 2,  // In front of spawn position (visible when player spawns)
+  rotationY: Math.PI,  // Face toward player spawn (player looks at front of portal)
+  createLabel: true
+});
+
+const portalToRoom6 = portal6Obj.portal;
+const portal6Glow = portal6Obj.glow;
 
 const checkPortalProximity = createMultiPortalChecker({
   camera,
   portals: [
     {
       position: new THREE.Vector3(0, portalY, ROOM7_CONFIG.portalZ),
-      name: 'The Ascent (Room 8)',
+      name: 'Ancient Ascension (Room 8)',
       url: 'room8.html',
+      showDistance: 3.0,
+      triggerDistance: 1.8
+    },
+    {
+      position: new THREE.Vector3(0, portalY, ROOM7_CONFIG.spawnZ + 2),
+      name: 'Lava Corridor (Room 6)',
+      url: 'room6.html',
       showDistance: 3.0,
       triggerDistance: 1.8
     }
@@ -871,7 +893,8 @@ function animate() {
   // ─────────────────────────────────────────────────────────────────
 
   checkPortalProximity();
-  animateLinkedPortal(portalToRoom8, portalGlow);
+  animateLinkedPortal(portalToRoom8, portal8Glow);
+  animateLinkedPortal(portalToRoom6, portal6Glow);
 
   renderer.render(scene, camera);
 }

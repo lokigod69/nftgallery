@@ -520,8 +520,16 @@ function createHubDoors() {
       toRoom: 'C',
       destination: 'roomC.html',
       name: 'Frame Waterfall Gallery'
+    },
+    // Levels - northwest (0→6) - Rooms 6-10 gallery path
+    {
+      x: -15.56, z: 15.56,
+      rotation: Math.PI - Math.PI / 4,
+      fromRoom: '0',
+      toRoom: '6',
+      destination: 'room6.html',
+      name: 'Levels'
     }
-    // Room D excluded (not functional yet)
   ];
 
   // Create each door using the premium hub door system

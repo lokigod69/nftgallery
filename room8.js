@@ -1180,25 +1180,25 @@ const dustParticles = createDustParticles();
 const ancientLamps = placeAncientLamps(); // Ancient Egyptian wall lamps
 
 // ----------------------------------------------------------------------
-// Portal to Room 5
+// Portal to Room 9 (Archive Spiral)
 // ----------------------------------------------------------------------
-// Portal positioned at inner edge of Platform 7 (angle 0° = positive Z direction)
-// Platform 7 center is at (0, 42.0, 6), radius 3.6, so inner edge is at z ≈ 2.4
-// Player on P7: feet at ~42.3, eyes at ~44.8 - portal at eye level
-const portalY = 43.5;  // Comfortable walk-through height from P7 (Y=42)
-const portalZ = 3.0;   // Inner edge of Platform 7, toward shaft center
+// Portal positioned ON Platform 7 (the exit platform)
+// Platform 7 center is at (0, 42.0, 6), radius 3.6
+// Player on P7: feet at ~42.5, eyes at ~45 - portal at standing height
+const portalY = 44.5;  // Comfortable walk-through height on P7 (standing eye level)
+const portalZ = 6.0;   // Center of Platform 7
 const portalObj = createLinkedPortal({
   scene,
   fromRoom: '8',
-  toRoom: '5',
+  toRoom: '9',
   x: 0,
   y: portalY,
   z: portalZ,
-  rotationY: Math.PI,  // Face toward platform (player walks forward into it)
+  rotationY: 0,  // Face toward approaching player (from center toward platform)
   createLabel: true
 });
 
-const portalToRoom5 = portalObj.portal;
+const portalToRoom9 = portalObj.portal;
 const portalGlow = portalObj.glow;
 
 const checkPortalProximity = createMultiPortalChecker({
@@ -1206,10 +1206,10 @@ const checkPortalProximity = createMultiPortalChecker({
   portals: [
     {
       position: new THREE.Vector3(0, portalY, portalZ),
-      name: 'Eternal Eclipse (Room 5)',
-      url: 'room5.html',
-      showDistance: 3.0,
-      triggerDistance: 1.8
+      name: 'Archive Spiral (Room 9)',
+      url: 'room9.html',
+      showDistance: 4.0,
+      triggerDistance: 2.5
     }
   ],
   controlsId: 'controls-description',
@@ -1464,7 +1464,7 @@ function animate() {
   }
 
   // Animate portal
-  animateLinkedPortal(portalToRoom5, portalGlow);
+  animateLinkedPortal(portalToRoom9, portalGlow);
 
   renderer.render(scene, camera);
 }

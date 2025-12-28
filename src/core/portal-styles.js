@@ -154,53 +154,65 @@ export const PORTAL_STYLES = {
     description: 'Deep progression to bonus hub'
   },
 
-  // Bonus hub connections: Room 5 ↔ Rooms 6, 7, 8, 9
-  '5-6': {
-    color: PORTAL_COLORS.LIGHT_BLUE,
-    orientation: 'vertical',
-    size: 1.5,
-    fxType: 'bonus',
-    label: {
-      from5: 'Room 6 (Video Corridor) ⬆',
-      from6: '← Eternal Eclipse (Room 5)'
-    },
-    description: 'Bonus: Video corridor'
-  },
-
-  '5-7': {
+  // Levels path: Sequential connections for Rooms 6-10
+  '6-7': {
     color: PORTAL_COLORS.GOLD,
     orientation: 'vertical',
     size: 1.5,
     fxType: 'bonus',
     label: {
-      from5: 'Room 7 (Starry Gallery) ➡',
-      from7: '← Eternal Eclipse (Room 5)'
+      from6: 'Helix Crossing (Room 7) →',
+      from7: '← Lava Corridor (Room 6)'
     },
-    description: 'Bonus: Starry gallery'
+    description: 'Levels path: Room 6 to Room 7'
   },
 
-  '5-8': {
-    color: PORTAL_COLORS.SILVER,
+  '7-8': {
+    color: PORTAL_COLORS.GOLD,
     orientation: 'vertical',
     size: 1.5,
     fxType: 'bonus',
     label: {
-      from5: 'Room 8 (Abstract Art) ⬅',
-      from8: '← Eternal Eclipse (Room 5)'
+      from7: 'Ancient Ascension (Room 8) →',
+      from8: '← Helix Crossing (Room 7)'
     },
-    description: 'Bonus: Abstract art space'
+    description: 'Levels path: Room 7 to Room 8'
   },
 
-  '5-9': {
-    color: PORTAL_COLORS.LAVENDER,
+  '8-9': {
+    color: PORTAL_COLORS.GOLD,
     orientation: 'vertical',
     size: 1.5,
     fxType: 'bonus',
     label: {
-      from5: 'Room 9 (Tunnel) ↗',
-      from9: '← Eternal Eclipse (Room 5)'
+      from8: 'Archive Spiral (Room 9) →',
+      from9: '← Ancient Ascension (Room 8)'
     },
-    description: 'Bonus: Cylindrical tunnel'
+    description: 'Levels path: Room 8 to Room 9'
+  },
+
+  '9-10': {
+    color: PORTAL_COLORS.GOLD,
+    orientation: 'vertical',
+    size: 1.5,
+    fxType: 'bonus',
+    label: {
+      from9: 'The Ascent (Room 10) →',
+      from10: '← Archive Spiral (Room 9)'
+    },
+    description: 'Levels path: Room 9 to Room 10'
+  },
+
+  '10-0': {
+    color: PORTAL_COLORS.GOLD,
+    orientation: 'vertical',
+    size: 1.8,
+    fxType: 'hub',
+    label: {
+      from10: '← Ocean Hub (Complete!)',
+      from0: 'The Ascent (Room 10)'
+    },
+    description: 'Return from Room 10 to Ocean Hub'
   },
 
   // Special connections
@@ -250,6 +262,30 @@ export const PORTAL_STYLES = {
       fromB: '← Ocean Hub'
     },
     description: 'Hub to Musical Journey - audiovisual world'
+  },
+
+  '0-6': {
+    color: PORTAL_COLORS.GOLD,
+    orientation: 'vertical',
+    size: 1.8,
+    fxType: 'hub',
+    label: {
+      from0: 'Levels',
+      from6: '← Ocean Hub'
+    },
+    description: 'Hub to Levels - Rooms 6-10 gallery path'
+  },
+
+  '0-5': {
+    color: PORTAL_COLORS.PURPLE,
+    orientation: 'vertical',
+    size: 1.5,
+    fxType: 'special',
+    label: {
+      from0: 'Eternal Eclipse',
+      from5: '← Ocean Hub'
+    },
+    description: 'Return from Room 5 to Ocean Hub'
   }
 };
 

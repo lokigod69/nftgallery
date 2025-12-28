@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
-import { createLinkedPortal, animateLinkedPortal } from './src/core/portal-utils.js';
+import { createLinkedPortal, animateLinkedPortal, createMultiPortalChecker } from './src/core/portal-utils.js';
 import { getRoomXNftUrl } from './src/core/asset-utils.js';
 
 // Room X: "The Ascent" (Challenge Arena)
@@ -396,31 +396,95 @@ function generatePlatforms() {
 }
 
 // ----------------------------------------------------------------------
-// Create Visual Portal at Top (Non-functional)
+// Create Exit Platform (Final platform at the top of the spiral)
 // ----------------------------------------------------------------------
-function createTopPortal() {
-  const portalY = -SPHERE_RADIUS + PLAYER_HEIGHT + VERTICAL_CLIMB_HEIGHT + 8;
+const EXIT_PLATFORM_SIZE = 6.0;  // Larger than regular platforms (2.5)
+
+function createExitPlatform(platforms) {
+  // Calculate position continuing the spiral from the last platform
+  const lastPlatform = platforms[platforms.length - 1];
+
+  // Continue the spiral one more step
+  const progress = 1.0 + (1 / (PLATFORM_COUNT - 1));  // One step beyond the end
+  const angle = progress * SPIRAL_ROTATIONS * Math.PI * 2;
+  const radiusOffset = 15 - progress * 8;  // Continue the same spiral pattern
+
+  // Position slightly above and continuing the spiral
+  const x = Math.cos(angle) * radiusOffset;
+  const z = Math.sin(angle) * radiusOffset;
+  const y = lastPlatform.position.y + MAX_VERTICAL_STEP * 0.7;  // Reasonable jump from last platform
+
+  // Create larger hexagonal exit platform
+  const geometry = new THREE.CylinderGeometry(EXIT_PLATFORM_SIZE, EXIT_PLATFORM_SIZE, 0.6, 6);
+  const material = new THREE.MeshStandardMaterial({
+    color: 0xffaa00,  // Gold color matching Levels path theme
+    metalness: 0.6,
+    roughness: 0.3,
+    emissive: 0xff8800,
+    emissiveIntensity: 0.4
+  });
+
+  const platform = new THREE.Mesh(geometry, material);
+  platform.position.set(x, y, z);
+  scene.add(platform);
+
+  // Add a glowing rim
+  const rimGeometry = new THREE.TorusGeometry(EXIT_PLATFORM_SIZE, 0.3, 8, 6);
+  const rimMaterial = new THREE.MeshStandardMaterial({
+    color: 0xffcc00,
+    emissive: 0xffaa00,
+    emissiveIntensity: 0.8
+  });
+  const rim = new THREE.Mesh(rimGeometry, rimMaterial);
+  rim.position.set(x, y + 0.3, z);
+  rim.rotation.x = Math.PI / 2;
+  scene.add(rim);
+
+  // Add bright point light
+  const light = new THREE.PointLight(0xffaa00, 2, 20);
+  light.position.set(x, y + 3, z);
+  scene.add(light);
+
+  // Add to platforms array for collision detection
+  platforms.push({
+    position: new THREE.Vector3(x, y, z),
+    radius: EXIT_PLATFORM_SIZE,
+    mesh: platform,
+    index: PLATFORM_COUNT  // Exit platform index
+  });
+
+  console.log(`Exit platform created at (${x.toFixed(1)}, ${y.toFixed(1)}, ${z.toFixed(1)})`);
+
+  return { x, y, z };
+}
+
+// ----------------------------------------------------------------------
+// Create Portal at Top - Returns to Ocean Hub (Room 0)
+// ----------------------------------------------------------------------
+function createTopPortal(exitPlatformPos) {
+  // Portal positioned on the exit platform
+  const portalY = exitPlatformPos.y + PLAYER_HEIGHT;  // Eye level above platform
 
   const portalObj = createLinkedPortal({
     scene,
     fromRoom: '10',
-    toRoom: '???',
-    x: 0,
+    toRoom: '0',
+    x: exitPlatformPos.x,
     y: portalY,
-    z: 0,
+    z: exitPlatformPos.z,
     rotationY: 0,
-    createLabel: false
+    createLabel: true
   });
 
-  // Add a floating "ESCAPE" text above portal
+  // Add a floating "COMPLETE!" text above portal
   const textCanvas = document.createElement('canvas');
   textCanvas.width = 512;
   textCanvas.height = 128;
   const textCtx = textCanvas.getContext('2d');
-  textCtx.fillStyle = '#ffffff';
+  textCtx.fillStyle = '#ffaa00';  // Gold color to match Levels path theme
   textCtx.font = 'bold 80px Arial';
   textCtx.textAlign = 'center';
-  textCtx.fillText('ESCAPE', 256, 90);
+  textCtx.fillText('COMPLETE!', 256, 90);
 
   const textTexture = new THREE.CanvasTexture(textCanvas);
   const textMaterial = new THREE.SpriteMaterial({
@@ -431,10 +495,10 @@ function createTopPortal() {
 
   const textSprite = new THREE.Sprite(textMaterial);
   textSprite.scale.set(10, 2.5, 1);
-  textSprite.position.set(0, portalY + 4, 0);
+  textSprite.position.set(exitPlatformPos.x, portalY + 4, exitPlatformPos.z);
   scene.add(textSprite);
 
-  return { portal: portalObj.portal, glow: portalObj.glow, textSprite };
+  return { portal: portalObj.portal, glow: portalObj.glow, textSprite, portalY, position: exitPlatformPos };
 }
 
 // ----------------------------------------------------------------------
@@ -755,7 +819,25 @@ const hiveLight = new THREE.PointLight(0x5674ff, 1.15, 85, 2);
 hiveLight.position.set(0, startingPlatform.y + 12, 0);
 scene.add(hiveLight);
 const { platforms, platformMeshes } = generatePlatforms();
-const topPortal = createTopPortal();
+const exitPlatformPos = createExitPlatform(platforms);  // Add final exit platform
+const topPortal = createTopPortal(exitPlatformPos);      // Portal on exit platform
+
+// Portal proximity checker for Room 10 to Room 0
+const checkPortalProximity = createMultiPortalChecker({
+  camera,
+  portals: [
+    {
+      position: new THREE.Vector3(exitPlatformPos.x, topPortal.portalY, exitPlatformPos.z),
+      name: 'Ocean Hub (Complete!)',
+      url: 'room0.html',
+      showDistance: 5.0,
+      triggerDistance: 2.5
+    }
+  ],
+  controlsId: 'controls-description',
+  overlayId: 'loading-overlay',
+  loadingDelay: 500
+});
 
 // Calculate platform Y range for sphere positioning
 const startingPlatformTop = -SPHERE_RADIUS + 8 + 0.5;
@@ -1369,8 +1451,9 @@ function animate() {
 
   // Animate portal
   animateLinkedPortal(topPortal.portal, topPortal.glow);
+  checkPortalProximity();
 
-  // Pulse the "ESCAPE" text
+  // Pulse the "COMPLETE!" text
   topPortal.textSprite.material.opacity = 0.7 + Math.sin(time * 2) * 0.2;
 
   // Subtle star twinkle

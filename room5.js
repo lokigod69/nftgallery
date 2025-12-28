@@ -656,22 +656,22 @@ function createAllPortals() {
   });
   portals.push({ ...portal4, name: 'Room 4', url: 'room4.html', position: new THREE.Vector3(0, groundLevel + eyeHeight, roomRadius - 5) });
 
-  // Portal to Room 6 (Video Corridor) - North - White theme
-  const portal6 = createLinkedPortal({
+  // Portal to Room 0 (Ocean Hub) - North - Return to hub
+  const portal0 = createLinkedPortal({
     scene,
     fromRoom: '5',
-    toRoom: '6',
+    toRoom: '0',
     x: 0,
     y: eyeHeight,
     z: -(roomRadius - 5),
     rotationX: 0.1,
     createLabel: true,
-    overrideColor: 0xffffff      // Pure white
+    overrideColor: 0x8844aa      // Purple to match 0-5 style
   });
-  portals.push({ ...portal6, name: 'Room 6', url: 'room6.html', position: new THREE.Vector3(0, eyeHeight, -(roomRadius - 5)) });
+  portals.push({ ...portal0, name: 'Ocean Hub', url: 'room0.html', position: new THREE.Vector3(0, eyeHeight, -(roomRadius - 5)) });
 
-  // REMOVED: Portals to Room 7, 8, 9
-  // Room 5 is NO LONGER a bonus hub - just simple progression: 4 ↔ 5 ↔ 6
+  // Room 5 is the END of the main gallery path (1-5)
+  // Rooms 6-10 are now accessed via the "Levels" door from Room 0
 
   return portals;
 }

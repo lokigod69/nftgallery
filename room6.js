@@ -1248,12 +1248,12 @@ document.addEventListener('keydown', onKeyDown);
 document.addEventListener('keyup', onKeyUp);
 
 // ============================================
-// Portal to Room 5
+// Portal to Room 7 (forward - at far end of corridor)
 // ============================================
-const portalObj = createLinkedPortal({
+const portal7Obj = createLinkedPortal({
   scene,
   fromRoom: '6',
-  toRoom: '5',
+  toRoom: '7',
   x: 0,
   y: eyeHeight,
   z: -corridorLength + 2,
@@ -1261,16 +1261,40 @@ const portalObj = createLinkedPortal({
   createLabel: true
 });
 
-const portalToRoom5 = portalObj.portal;
-const portalGlow = portalObj.glow;
+const portalToRoom7 = portal7Obj.portal;
+const portalGlow7 = portal7Obj.glow;
+
+// ============================================
+// Portal to Room 0 (back to hub - at spawn end)
+// ============================================
+const portal0Obj = createLinkedPortal({
+  scene,
+  fromRoom: '6',
+  toRoom: '0',
+  x: 0,
+  y: eyeHeight,
+  z: 2,
+  rotationY: Math.PI,  // Face opposite direction
+  createLabel: true
+});
+
+const portalToRoom0 = portal0Obj.portal;
+const portalGlow0 = portal0Obj.glow;
 
 const checkPortalProximity = createMultiPortalChecker({
   camera: controls.getObject(), // Use player position, not camera
   portals: [
     {
       position: new THREE.Vector3(0, eyeHeight, -corridorLength + 2),
-      name: 'Eternal Eclipse (Room 5)',
-      url: 'room5.html',
+      name: 'Helix Crossing (Room 7)',
+      url: 'room7.html',
+      showDistance: 3.0,
+      triggerDistance: 1.8
+    },
+    {
+      position: new THREE.Vector3(0, eyeHeight, 2),
+      name: 'Ocean Hub',
+      url: 'room0.html',
       showDistance: 3.0,
       triggerDistance: 1.8
     }
@@ -1452,7 +1476,8 @@ function animate() {
   }
 
   // Animate portals
-  animateLinkedPortal(portalToRoom5, portalGlow);
+  animateLinkedPortal(portalToRoom0, portalGlow0);
+  animateLinkedPortal(portalToRoom7, portalGlow7);
 
   renderer.render(scene, camera);
 }
