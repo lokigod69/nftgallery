@@ -1180,14 +1180,14 @@ const dustParticles = createDustParticles();
 const ancientLamps = placeAncientLamps(); // Ancient Egyptian wall lamps
 
 // ----------------------------------------------------------------------
-// Portal to Room 9 (Archive Spiral)
+// Portal to Room 9 (Archive Spiral) - Forward portal at top
 // ----------------------------------------------------------------------
 // Portal positioned ON Platform 7 (the exit platform)
 // Platform 7 center is at (0, 42.0, 6), radius 3.6
 // Player on P7: feet at ~42.5, eyes at ~45 - portal at standing height
 const portalY = 44.5;  // Comfortable walk-through height on P7 (standing eye level)
 const portalZ = 6.0;   // Center of Platform 7
-const portalObj = createLinkedPortal({
+const portal9Obj = createLinkedPortal({
   scene,
   fromRoom: '8',
   toRoom: '9',
@@ -1198,8 +1198,27 @@ const portalObj = createLinkedPortal({
   createLabel: true
 });
 
-const portalToRoom9 = portalObj.portal;
-const portalGlow = portalObj.glow;
+const portalToRoom9 = portal9Obj.portal;
+const portal9Glow = portal9Obj.glow;
+
+// ----------------------------------------------------------------------
+// Portal to Room 7 (Helix Crossing) - Back portal at spawn
+// ----------------------------------------------------------------------
+// Portal positioned BEHIND spawn platform (Platform 0 at angle 0° = south)
+// Spawn is at (0, spawnY, 6.0), portal behind at z = 10
+const portal7Obj = createLinkedPortal({
+  scene,
+  fromRoom: '8',
+  toRoom: '7',
+  x: 0,
+  y: spawnY,
+  z: spawnZ + 4,  // Behind spawn platform
+  rotationY: Math.PI,  // Face -Z (toward player at spawn)
+  createLabel: true
+});
+
+const portalToRoom7 = portal7Obj.portal;
+const portal7Glow = portal7Obj.glow;
 
 const checkPortalProximity = createMultiPortalChecker({
   camera: controls.getObject(),  // Use player position like Room 6
@@ -1210,6 +1229,13 @@ const checkPortalProximity = createMultiPortalChecker({
       url: 'room9.html',
       showDistance: 4.0,
       triggerDistance: 2.5
+    },
+    {
+      position: new THREE.Vector3(0, spawnY, spawnZ + 4),
+      name: 'Helix Crossing (Room 7)',
+      url: 'room7.html',
+      showDistance: 3.0,
+      triggerDistance: 1.8
     }
   ],
   controlsId: 'controls-description',
@@ -1463,8 +1489,9 @@ function animate() {
     });
   }
 
-  // Animate portal
-  animateLinkedPortal(portalToRoom9, portalGlow);
+  // Animate portals
+  animateLinkedPortal(portalToRoom9, portal9Glow);
+  animateLinkedPortal(portalToRoom7, portal7Glow);
 
   renderer.render(scene, camera);
 }

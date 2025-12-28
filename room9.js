@@ -828,9 +828,9 @@ const obelisks = placeObelisksInCenter(); // Ancient tech archive terminus marke
 collisionObelisks = obelisks; // Store for collision checking
 
 // ----------------------------------------------------------------------
-// Portal to Room 10 (The Ascent)
+// Portal to Room 10 (The Ascent) - Forward portal at center
 // ----------------------------------------------------------------------
-const portalObj = createLinkedPortal({
+const portal10Obj = createLinkedPortal({
   scene,
   fromRoom: '9',
   toRoom: '10',
@@ -841,8 +841,26 @@ const portalObj = createLinkedPortal({
   createLabel: true
 });
 
-const portalToRoom10 = portalObj.portal;
-const portalGlow = portalObj.glow;
+const portalToRoom10 = portal10Obj.portal;
+const portal10Glow = portal10Obj.glow;
+
+// ----------------------------------------------------------------------
+// Portal to Room 8 (Ancient Ascension) - Back portal at entrance
+// ----------------------------------------------------------------------
+// Entrance is at left edge (x = -roomSize/2 + 3)
+const portal8Obj = createLinkedPortal({
+  scene,
+  fromRoom: '9',
+  toRoom: '8',
+  x: entranceX - 2,  // Behind entrance position
+  y: eyeHeight,
+  z: entranceZ,
+  rotationY: Math.PI / 2,  // Face +X (toward player at entrance)
+  createLabel: true
+});
+
+const portalToRoom8 = portal8Obj.portal;
+const portal8Glow = portal8Obj.glow;
 
 const checkPortalProximity = createMultiPortalChecker({
   camera: controls.getObject(),  // FIX: Use getObject() for player position like Room 6
@@ -851,6 +869,13 @@ const checkPortalProximity = createMultiPortalChecker({
       position: new THREE.Vector3(0, eyeHeight, 3),
       name: 'The Ascent (Room 10)',
       url: 'room10.html',
+      showDistance: 3.0,
+      triggerDistance: 1.8
+    },
+    {
+      position: new THREE.Vector3(entranceX - 2, eyeHeight, entranceZ),
+      name: 'Ancient Ascension (Room 8)',
+      url: 'room8.html',
       showDistance: 3.0,
       triggerDistance: 1.8
     }
@@ -1126,8 +1151,9 @@ function animate() {
     centerParticles.particles.geometry.attributes.position.needsUpdate = true;
   }
 
-  // Animate portal
-  animateLinkedPortal(portalToRoom10, portalGlow);
+  // Animate portals
+  animateLinkedPortal(portalToRoom10, portal10Glow);
+  animateLinkedPortal(portalToRoom8, portal8Glow);
 
   renderer.render(scene, camera);
 }

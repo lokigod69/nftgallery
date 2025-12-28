@@ -822,7 +822,22 @@ const { platforms, platformMeshes } = generatePlatforms();
 const exitPlatformPos = createExitPlatform(platforms);  // Add final exit platform
 const topPortal = createTopPortal(exitPlatformPos);      // Portal on exit platform
 
-// Portal proximity checker for Room 10 to Room 0
+// Portal to Room 9 (Archive Spiral) - Back portal at spawn
+const spawnPortalY = startingPlatform.y + PLAYER_HEIGHT;
+const portal9Obj = createLinkedPortal({
+  scene,
+  fromRoom: '10',
+  toRoom: '9',
+  x: 0,
+  y: spawnPortalY,
+  z: -4,  // Behind spawn position
+  rotationY: 0,  // Face +Z (toward player when they turn around)
+  createLabel: true
+});
+const portalToRoom9 = portal9Obj.portal;
+const portal9Glow = portal9Obj.glow;
+
+// Portal proximity checker for Room 10
 const checkPortalProximity = createMultiPortalChecker({
   camera,
   portals: [
@@ -832,6 +847,13 @@ const checkPortalProximity = createMultiPortalChecker({
       url: 'room0.html',
       showDistance: 5.0,
       triggerDistance: 2.5
+    },
+    {
+      position: new THREE.Vector3(0, spawnPortalY, -4),
+      name: 'Archive Spiral',
+      url: 'room9.html',
+      showDistance: 4.0,
+      triggerDistance: 2.0
     }
   ],
   controlsId: 'controls-description',
@@ -1449,8 +1471,9 @@ function animate() {
     sphere.rotation.y += delta * sphereParams.rotationSpeed;
   });
 
-  // Animate portal
+  // Animate portals
   animateLinkedPortal(topPortal.portal, topPortal.glow);
+  animateLinkedPortal(portalToRoom9, portal9Glow);
   checkPortalProximity();
 
   // Pulse the "COMPLETE!" text

@@ -755,15 +755,15 @@ const portal8Obj = createLinkedPortal({
 const portalToRoom8 = portal8Obj.portal;
 const portal8Glow = portal8Obj.glow;
 
-// Portal to Room 6 - positioned on spawn platform (back to Lava Corridor)
+// Portal to Room 6 - positioned BEHIND spawn (back to Lava Corridor)
 const portal6Obj = createLinkedPortal({
   scene,
   fromRoom: '7',
   toRoom: '6',
   x: 0,
   y: portalY,
-  z: ROOM7_CONFIG.spawnZ + 2,  // In front of spawn position (visible when player spawns)
-  rotationY: Math.PI,  // Face toward player spawn (player looks at front of portal)
+  z: ROOM7_CONFIG.spawnZ - 5,  // Behind spawn position (player must turn around to see it)
+  rotationY: 0,  // Face +Z direction (toward player when they turn around)
   createLabel: true
 });
 
@@ -781,7 +781,7 @@ const checkPortalProximity = createMultiPortalChecker({
       triggerDistance: 1.8
     },
     {
-      position: new THREE.Vector3(0, portalY, ROOM7_CONFIG.spawnZ + 2),
+      position: new THREE.Vector3(0, portalY, ROOM7_CONFIG.spawnZ - 5),
       name: 'Lava Corridor (Room 6)',
       url: 'room6.html',
       showDistance: 3.0,
