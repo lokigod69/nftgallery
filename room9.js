@@ -357,10 +357,9 @@ scene.background = new THREE.Color(0x0a0f1a); // Deep midnight blue
 scene.fog = new THREE.Fog(0x0a0f1a, 18, 40);
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-// Start at entrance (left edge, middle of room)
+// Entrance position (left edge, middle of room)
 const entranceX = -ROOM9_CONFIG.roomSize / 2 + 3;
 const entranceZ = 0;
-camera.position.set(entranceX, eyeHeight, entranceZ);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -368,6 +367,11 @@ document.body.appendChild(renderer.domElement);
 
 const controls = new PointerLockControls(camera, document.body);
 scene.add(controls.getObject());
+
+// CRITICAL: Set camera local position to (0,0,0) so it doesn't orbit when rotating
+// Then set the yaw object (controls.getObject()) to the actual spawn position
+camera.position.set(0, 0, 0);
+controls.getObject().position.set(entranceX, eyeHeight, entranceZ);
 
 document.addEventListener('click', () => {
   if (!controls.isLocked) controls.lock();
