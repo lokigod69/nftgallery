@@ -1047,14 +1047,21 @@ function animate() {
   const time = clock.getElapsedTime();
 
   if (controls.isLocked) {
+    // Get player object reference
+    const player = controls.getObject();
+
+    // Handle jumping with gravity
     if (isJumping) {
-      camera.position.y += jumpVelocity * delta;
+      player.position.y += jumpVelocity * delta;
       jumpVelocity += gravity * delta;
-      if (camera.position.y <= eyeHeight) {
-        camera.position.y = eyeHeight;
+      if (player.position.y <= eyeHeight) {
+        player.position.y = eyeHeight;
         isJumping = false;
         jumpVelocity = 0;
       }
+    } else {
+      // Not jumping - ensure Y is locked to floor level
+      player.position.y = eyeHeight;
     }
 
     velocity.x -= velocity.x * 10.0 * delta;
@@ -1068,7 +1075,6 @@ function animate() {
     if (moveLeft || moveRight) velocity.x -= direction.x * speed * delta;
 
     // Store position before movement for collision detection
-    const player = controls.getObject();
     const prevX = player.position.x;
     const prevZ = player.position.z;
 
@@ -1122,6 +1128,12 @@ function animate() {
     const halfSize = ROOM9_CONFIG.roomSize / 2 - 1;
     player.position.x = THREE.MathUtils.clamp(player.position.x, -halfSize, halfSize);
     player.position.z = THREE.MathUtils.clamp(player.position.z, -halfSize, halfSize);
+
+    // CRITICAL: Lock Y position to eyeHeight when not jumping
+    // PointerLockControls moveForward/moveRight can affect Y when looking up/down
+    if (!isJumping) {
+      player.position.y = eyeHeight;
+    }
 
     // Check portal proximity
     checkPortalProximity();
