@@ -91,6 +91,10 @@ document.body.appendChild(renderer.domElement);
 const controls = new PointerLockControls(camera, document.body);
 scene.add(controls.getObject());
 
+// CRITICAL: Camera must be at (0,0,0) local position within yaw object
+// Otherwise rotating the camera causes it to orbit instead of rotate in place
+camera.position.set(0, 0, 0);
+
 // Spawn position will be set after starting platform is created
 // (see after scene element creation)
 
@@ -1060,7 +1064,8 @@ document.addEventListener('keydown', (event) => {
 
 // Set spawn position on safe tile (Ring 1) instead of hole
 // Move forward to the first tile in front of center
-controls.getObject().position.set(0, startingPlatform.y + PLAYER_HEIGHT, 0); // Centered spawn (Solution 1: Avoids hive tile conflict)
+camera.position.set(0, 0, 0); // CRITICAL: Camera local position must be (0,0,0)
+controls.getObject().position.set(0, startingPlatform.y + PLAYER_HEIGHT, 0); // Centered spawn
 velocity.set(0, 0, 0); // Start with zero velocity
 canJump = true; // Start grounded
 lastSafePosition.copy(controls.getObject().position);
