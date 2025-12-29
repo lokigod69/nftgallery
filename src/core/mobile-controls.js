@@ -84,28 +84,28 @@ export function initMobileControls(config) {
   // Mobile detected - notify caller
   config.onMobileDetected?.();
 
-  // Parse configuration with defaults
+  // Parse configuration with defaults - OPTIMIZED for smooth controls
   const sensitivity = {
-    look: config.sensitivity?.look ?? 0.04,
+    look: config.sensitivity?.look ?? 0.05,    // Increased for more responsive camera
     move: config.sensitivity?.move ?? 1.0
   };
 
   const pitchLimits = {
-    min: config.pitchLimits?.min ?? -Math.PI / 3,  // -60°
-    max: config.pitchLimits?.max ?? Math.PI / 4     // +45°
+    min: config.pitchLimits?.min ?? -Math.PI / 2.5,  // -72° (more range to look down)
+    max: config.pitchLimits?.max ?? Math.PI / 3       // +60° (more range to look up)
   };
 
   const autoLevelConfig = {
     enabled: config.autoLevel?.enabled ?? true,
-    speed: config.autoLevel?.speed ?? 0.3,
-    threshold: config.autoLevel?.threshold ?? 0.1
+    speed: config.autoLevel?.speed ?? 0.2,     // Slower auto-level for smoother feel
+    threshold: config.autoLevel?.threshold ?? 0.08
   };
 
   const joystickOptions = {
     color: config.joystickOptions?.color ?? 'white',
     size: config.joystickOptions?.size ?? 120,
-    moveDeadZone: config.joystickOptions?.moveDeadZone ?? 0.3,
-    lookDeadZone: config.joystickOptions?.lookDeadZone ?? 0.05
+    moveDeadZone: config.joystickOptions?.moveDeadZone ?? 0.15,  // Lower for smoother movement start
+    lookDeadZone: config.joystickOptions?.lookDeadZone ?? 0.08   // Slightly higher to prevent drift
   };
 
   // State
@@ -307,16 +307,22 @@ function injectMobileUI(joystickOptions) {
 
 /**
  * Get CSS for mobile controls (injected into <head>)
+ * Supports both portrait and landscape orientations
  */
 function getMobileControlsCSS(joystickOptions) {
+  const size = joystickOptions.size || 120;
+  const smallSize = Math.round(size * 0.85);  // Slightly smaller for portrait
+
   return `
     /* Mobile joystick containers */
     .mobile-joystick {
       position: fixed;
-      width: ${joystickOptions.size}px;
-      height: ${joystickOptions.size}px;
+      width: ${size}px;
+      height: ${size}px;
       z-index: 1500;
       pointer-events: auto;
+      touch-action: none;
+      transition: width 0.2s, height 0.2s, bottom 0.2s, left 0.2s, right 0.2s;
     }
 
     .mobile-joystick-left {
@@ -329,24 +335,30 @@ function getMobileControlsCSS(joystickOptions) {
       bottom: 20px;
     }
 
-    /* Orientation warning overlay */
+    /* Portrait mode adjustments - stack joysticks vertically on sides */
+    @media (orientation: portrait) {
+      .mobile-joystick {
+        width: ${smallSize}px;
+        height: ${smallSize}px;
+      }
+
+      .mobile-joystick-left {
+        left: 15px;
+        bottom: 120px;
+      }
+
+      .mobile-joystick-right {
+        right: 15px;
+        bottom: 120px;
+      }
+    }
+
+    /* Orientation warning overlay - hidden by default */
     .rotate-message {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.95);
-      color: white;
-      font-size: 24px;
-      font-family: Arial, sans-serif;
-      text-align: center;
-      align-items: center;
-      justify-content: center;
-      z-index: 3000;
-      padding: 20px;
-      box-sizing: border-box;
+      display: none !important;
+      visibility: hidden !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
     }
 
     /* Mobile crosshair (subtle center indicator) */
@@ -375,6 +387,25 @@ function getMobileControlsCSS(joystickOptions) {
         right: calc(env(safe-area-inset-right) + 20px);
         bottom: calc(env(safe-area-inset-bottom) + 20px);
       }
+
+      @media (orientation: portrait) {
+        .mobile-joystick-left {
+          left: calc(env(safe-area-inset-left) + 15px);
+          bottom: calc(env(safe-area-inset-bottom) + 120px);
+        }
+
+        .mobile-joystick-right {
+          right: calc(env(safe-area-inset-right) + 15px);
+          bottom: calc(env(safe-area-inset-bottom) + 120px);
+        }
+      }
+    }
+
+    /* Prevent text selection and callouts on mobile */
+    .mobile-joystick * {
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
     }
   `;
 }
@@ -434,6 +465,36 @@ function createJoysticks(options) {
   const TAP_MAX_DURATION = 200;   // ms
   const TAP_MAX_DISTANCE = 10;    // nipplejs distance units
 
+  // Smooth movement state - store analog values for smoother movement
+  window.mobileMovementX = 0;  // -1 to 1 for left/right
+  window.mobileMovementY = 0;  // -1 to 1 for backward/forward
+  let targetMovementX = 0;
+  let targetMovementY = 0;
+  const MOVEMENT_SMOOTHING = 0.15;  // Lower = smoother but slower response
+
+  // Smoothing update function (called from animation loop via updateMovementSmoothing)
+  function updateMovementSmoothing() {
+    // Lerp toward target values for smooth acceleration/deceleration
+    window.mobileMovementX += (targetMovementX - window.mobileMovementX) * MOVEMENT_SMOOTHING;
+    window.mobileMovementY += (targetMovementY - window.mobileMovementY) * MOVEMENT_SMOOTHING;
+
+    // Snap to zero when very close (prevents drift)
+    if (Math.abs(window.mobileMovementX) < 0.01) window.mobileMovementX = 0;
+    if (Math.abs(window.mobileMovementY) < 0.01) window.mobileMovementY = 0;
+
+    // Update boolean flags for compatibility with existing room code
+    const threshold = 0.1;
+    window.moveForward = window.mobileMovementY > threshold;
+    window.moveBackward = window.mobileMovementY < -threshold;
+    window.moveLeft = window.mobileMovementX < -threshold;
+    window.moveRight = window.mobileMovementX > threshold;
+  }
+
+  // Expose smoothing update function
+  if (options.exposeSmoothing) {
+    options.exposeSmoothing(updateMovementSmoothing);
+  }
+
   moveJoystick.on('start', (evt, data) => {
     tapStartTime = performance.now();
     maxDistance = 0;
@@ -448,16 +509,35 @@ function createJoysticks(options) {
       maxDistance = dist;
     }
 
-    // Apply dead zone and set movement flags
-    // Note: nipplejs Y-axis: positive = up, negative = down
-    window.moveForward = data.vector.y > deadZone;    // Positive Y = forward (up)
-    window.moveBackward = data.vector.y < -deadZone;  // Negative Y = backward (down)
-    window.moveLeft = data.vector.x < -deadZone;      // Negative X = left
-    window.moveRight = data.vector.x > deadZone;      // Positive X = right
+    // Get analog values with dead zone applied
+    // nipplejs Y-axis: positive = up (forward), negative = down (backward)
+    let moveX = data.vector.x;
+    let moveY = data.vector.y;
+
+    // Apply dead zone with smooth ramp
+    if (Math.abs(moveX) < deadZone) moveX = 0;
+    else moveX = (moveX - Math.sign(moveX) * deadZone) / (1 - deadZone);
+
+    if (Math.abs(moveY) < deadZone) moveY = 0;
+    else moveY = (moveY - Math.sign(moveY) * deadZone) / (1 - deadZone);
+
+    // Set target values (smoothing happens in updateMovementSmoothing)
+    targetMovementX = moveX;
+    targetMovementY = moveY;
+
+    // Also set boolean flags immediately for responsiveness
+    window.moveForward = moveY > 0.1;
+    window.moveBackward = moveY < -0.1;
+    window.moveLeft = moveX < -0.1;
+    window.moveRight = moveX > 0.1;
   });
 
   moveJoystick.on('end', () => {
     const duration = performance.now() - tapStartTime;
+
+    // Set target to zero - smoothing will gradually stop movement
+    targetMovementX = 0;
+    targetMovementY = 0;
 
     // Reset all movement flags when stick released
     window.moveForward = false;
@@ -473,9 +553,13 @@ function createJoysticks(options) {
     }
   });
 
-  // Look joystick event handlers
+  // Look joystick event handlers with momentum
   let currentYaw = 0;
   let currentPitch = 0;
+  let yawVelocity = 0;
+  let pitchVelocity = 0;
+  const LOOK_SMOOTHING = 0.2;  // Smoothing factor for camera
+  const LOOK_MOMENTUM = 0.85;  // Momentum decay when stick released
 
   lookJoystick.on('move', (evt, data) => {
     const deadZone = joystickOptions.lookDeadZone;
@@ -484,14 +568,22 @@ function createJoysticks(options) {
     const deflection = Math.sqrt(data.vector.x * data.vector.x + data.vector.y * data.vector.y);
     setLookDeflection(deflection);
 
-    // Apply dead zone
-    if (Math.abs(data.vector.x) > deadZone) {
-      currentYaw -= data.vector.x * sensitivity.look;
-    }
+    // Get analog values with smooth dead zone
+    let lookX = data.vector.x;
+    let lookY = data.vector.y;
 
-    if (Math.abs(data.vector.y) > deadZone) {
-      currentPitch += data.vector.y * sensitivity.look;  // Changed from -= to += to fix inverted Y
-    }
+    if (Math.abs(lookX) < deadZone) lookX = 0;
+    else lookX = (lookX - Math.sign(lookX) * deadZone) / (1 - deadZone);
+
+    if (Math.abs(lookY) < deadZone) lookY = 0;
+    else lookY = (lookY - Math.sign(lookY) * deadZone) / (1 - deadZone);
+
+    // Apply with smoothing for fluid camera movement
+    yawVelocity = -lookX * sensitivity.look * 2;  // Increased sensitivity
+    pitchVelocity = lookY * sensitivity.look * 2;
+
+    currentYaw += yawVelocity;
+    currentPitch += pitchVelocity;
 
     // Clamp pitch to limits
     currentPitch = Math.max(pitchLimits.min, Math.min(pitchLimits.max, currentPitch));
@@ -508,6 +600,9 @@ function createJoysticks(options) {
       setAutoLeveling(true);
     }
     setLookDeflection(0);
+    // Reset velocities
+    yawVelocity = 0;
+    pitchVelocity = 0;
   });
 
   // Cleanup
@@ -592,18 +687,41 @@ function createInteractionHandler(options) {
 // ============================================================================
 
 /**
- * Setup orientation warning (shows in portrait mode)
+ * Setup orientation warning (disabled by default - portrait mode now supported)
+ * @param {HTMLElement} rotateMessageElement - The warning element
+ * @param {boolean} showWarning - Whether to show the warning (default: false)
  */
-function setupOrientationWarning(rotateMessageElement) {
-  function checkOrientation() {
-    // Resolve rotate element fresh each time to avoid stale refs
+function setupOrientationWarning(rotateMessageElement, showWarning = false) {
+  // Always hide the warning element - portrait mode is now supported
+  function hideWarning() {
     const el = document.getElementById('rotate-warning')
       || document.querySelector('.rotate-warning')
       || rotateMessageElement;
 
     if (!el) return;
 
-    // Never show orientation warning while NFT viewer is open
+    el.style.display = 'none';
+    el.style.visibility = 'hidden';
+    el.style.opacity = '0';
+    el.style.pointerEvents = 'none';
+  }
+
+  // If warnings are disabled (default), always hide
+  if (!showWarning) {
+    hideWarning();
+    window.addEventListener('load', hideWarning);
+    window.addEventListener('resize', hideWarning);
+    return;
+  }
+
+  // Legacy behavior for rooms that still want orientation warning
+  function checkOrientation() {
+    const el = document.getElementById('rotate-warning')
+      || document.querySelector('.rotate-warning')
+      || rotateMessageElement;
+
+    if (!el) return;
+
     const isViewerOpen = !!window.__NFT_VIEWER_OPEN || document.body.classList.contains('nft-viewer-open');
     if (isViewerOpen) {
       el.style.display = 'none';
@@ -613,7 +731,6 @@ function setupOrientationWarning(rotateMessageElement) {
       return;
     }
 
-    // Show warning if in portrait mode (only when viewer is closed)
     if (window.innerWidth < window.innerHeight) {
       el.style.display = 'flex';
       el.style.visibility = 'visible';
@@ -627,7 +744,6 @@ function setupOrientationWarning(rotateMessageElement) {
     }
   }
 
-  // Check on load and various resize events
   window.addEventListener('load', checkOrientation);
   window.addEventListener('resize', checkOrientation);
   window.addEventListener('orientationchange', checkOrientation);
@@ -636,6 +752,5 @@ function setupOrientationWarning(rotateMessageElement) {
     screen.orientation.addEventListener('change', checkOrientation);
   }
 
-  // Initial check
   setTimeout(checkOrientation, 100);
 }
