@@ -1328,12 +1328,18 @@ function animate() {
     direction.x = Number(moveRight) - Number(moveLeft);
     direction.normalize();
 
+    // Save Y before horizontal movement - PointerLockControls can affect Y when looking up/down
+    const savedY = playerPos.y;
+
     if (moveForward || moveBackward) {
       controls.moveForward(direction.z * moveSpeed);
     }
     if (moveLeft || moveRight) {
       controls.moveRight(direction.x * moveSpeed);
     }
+
+    // Restore Y after horizontal movement - only gravity/grounding should affect Y
+    playerPos.y = savedY;
 
     // 3. Integrate vertical velocity
     playerPos.y += velocity.y * delta;
