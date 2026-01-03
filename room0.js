@@ -485,50 +485,55 @@ function createHubDoors() {
 
   // Door configurations - positioned at platform edge (radius 22), facing inward
   const doorConfigs = [
-    // Main Gallery - north edge (0→1)
+    // XXX Gallery - north edge (Rooms 1-5)
     {
       x: 0, z: 22,
       rotation: Math.PI,
       fromRoom: '0',
       toRoom: '1',
       destination: 'room1.html',
-      name: 'Main Gallery'
+      name: 'XXX Gallery (1-5)',
+      label: null  // No extra label needed
     },
-    // Undersea Observatory - northeast (0→A)
+    // Ocean Conservatory - northeast (Room A)
     {
       x: 15.56, z: 15.56,
       rotation: Math.PI + Math.PI / 4,
       fromRoom: '0',
       toRoom: 'A',
       destination: 'roomA.html',
-      name: 'Undersea Observatory'
+      name: 'Ocean Conservatory',
+      label: null  // No extra label needed
     },
-    // NFT Gallery Room - southeast (0→B)
+    // Room B - southeast
     {
       x: 15.56, z: -15.56,
       rotation: Math.PI + Math.PI / 1.25,
       fromRoom: '0',
       toRoom: 'B',
       destination: 'roomB.html',
-      name: 'NFT Gallery Room'
+      name: 'Room B',
+      label: 'B'  // Add letter label above door
     },
-    // Frame Waterfall Gallery - southwest (0→C)
+    // Room C - southwest
     {
       x: -15.56, z: -15.56,
       rotation: Math.PI - Math.PI / 1.25,
       fromRoom: '0',
       toRoom: 'C',
       destination: 'roomC.html',
-      name: 'Frame Waterfall Gallery'
+      name: 'Room C',
+      label: 'C'  // Add letter label above door
     },
-    // Levels - northwest (0→6) - Rooms 6-10 gallery path
+    // Levels - northwest (Rooms 6-10)
     {
       x: -15.56, z: 15.56,
       rotation: Math.PI - Math.PI / 4,
       fromRoom: '0',
       toRoom: '6',
       destination: 'room6.html',
-      name: 'Levels'
+      name: 'Levels (6-10)',
+      label: null  // No extra label needed
     }
   ];
 
@@ -545,6 +550,36 @@ function createHubDoors() {
       groundLevel: waterLevel,  // Doors sit on platform at waterLevel
       createLabel: true
     });
+
+    // Add letter label above door if specified (e.g., "B", "C")
+    if (config.label) {
+      const labelCanvas = document.createElement('canvas');
+      labelCanvas.width = 128;
+      labelCanvas.height = 128;
+      const ctx = labelCanvas.getContext('2d');
+
+      // Draw letter with glow effect
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 100px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = '#00ffff';
+      ctx.shadowBlur = 15;
+      ctx.fillText(config.label, 64, 64);
+
+      const labelTexture = new THREE.CanvasTexture(labelCanvas);
+      const labelMaterial = new THREE.SpriteMaterial({
+        map: labelTexture,
+        transparent: true,
+        opacity: 0.9
+      });
+
+      const labelSprite = new THREE.Sprite(labelMaterial);
+      labelSprite.scale.set(3, 3, 1);
+      // Position above the door (door is ~5 units tall from waterLevel)
+      labelSprite.position.set(config.x, waterLevel + 6.5, config.z);
+      scene.add(labelSprite);
+    }
 
     // Store door object with location info for proximity checking
     doors.push({

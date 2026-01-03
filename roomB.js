@@ -18,7 +18,6 @@
 // - Randomized NFT placement and mixed with copper tiles while preventing overlaps
 
 import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { loadTextureWithDiagnostics, logTextureLoadingSummary, getTextureUrl, getRoomBNftUrl } from './src/core/asset-utils.js';
@@ -44,13 +43,9 @@ const roomHeight = 60;
 const groundLevel = 0;
 const eyeHeight = 8.0; // Increased from 5.5 to give a higher viewpoint
 let isJumping = false;
-let isFloating = false; // New state for floating camera mode
 let jumpVelocity = 0;
-const gravity = -10; // Reduced further from -15 to create even slower descent
-const initialJumpVelocity = 35; // Increased from 20 to reach near ceiling
-const bounceCoefficient = 0.3; // Reduced from 0.5 for softer bounces
-const hoverZoneHeight = roomHeight - 3; // Define hover zone 3 units from ceiling
-const hoverGravity = -2; // Much weaker gravity in the hover zone
+const gravity = -25; // Normal gravity
+const initialJumpVelocity = 15; // Normal jump velocity
 const speed = 60.0;
 
 // Movement and controls
@@ -71,60 +66,13 @@ let mirrorCubeCamera = null;
 let mirrorCubeRenderTarget = null;
 let ceilingMirror = null;
 
-// Create both control types
+// Create controls
 const controls = new PointerLockControls(camera, document.body);
-const orbitControls = new OrbitControls(camera, document.body);
-orbitControls.enabled = false; // Start with orbit controls disabled
-orbitControls.enableZoom = false; // Disable zooming
-orbitControls.enablePan = false; // Disable panning
-orbitControls.enableDamping = true; // Enable smooth damping
-orbitControls.dampingFactor = 0.05;
-
-// Add constraints to orbit controls
-orbitControls.maxDistance = 20; // Limit how far you can orbit from the point
-orbitControls.minDistance = 1; // Limit how close you can get
-orbitControls.maxPolarAngle = Math.PI * 0.85; // Limit vertical rotation
-orbitControls.minPolarAngle = Math.PI * 0.15; // Limit vertical rotation
-
-// Store camera position and rotation for switching between control modes
-let savedCameraPosition = new THREE.Vector3();
-let savedCameraRotation = new THREE.Euler();
-let savedOrbitTarget = new THREE.Vector3();
 
 scene.add(controls.getObject());
 
-// Add state variables for storing jump state
-let savedJumpVelocity = 0;
-let wasJumpingBeforeFloat = false;
-
-// Modified key handlers
+// Key handlers
 const onKeyDown = function (event) {
-    if (event.code === 'Escape' && isFloating) {
-        // When pressing ESC in floating mode:
-        // - Stop the music
-        // - Keep current camera position and state
-        // - Resume jump from saved state
-        audioPlayer.pause();
-        isFloating = false;
-        orbitControls.enabled = false;
-        
-        // Restore complete jump state
-        isJumping = wasJumpingBeforeFloat;
-        jumpVelocity = savedJumpVelocity;
-        
-        // Lock controls to return to normal movement mode
-    controls.lock();
-        return;
-    }
-
-    if (isFloating && event.code === 'Space') {
-        // Resume normal movement
-        isFloating = false;
-        orbitControls.enabled = false;
-        controls.lock();
-        return;
-    }
-
   switch (event.code) {
     case 'ArrowUp':
     case 'KeyW':
@@ -143,8 +91,8 @@ const onKeyDown = function (event) {
       moveRight = true;
       break;
     case 'Space':
-            if (!isJumping && !isFloating) {
-                jumpVelocity = initialJumpVelocity;
+      if (!isJumping) {
+        jumpVelocity = initialJumpVelocity;
         isJumping = true;
       }
       break;
@@ -175,60 +123,6 @@ const onKeyUp = function (event) {
 // Add the event listeners for movement controls
 document.addEventListener('keydown', onKeyDown);
 document.addEventListener('keyup', onKeyUp);
-
-// Add audio player
-const audioPlayer = new Audio('/assets/songroomB.mp3');
-audioPlayer.loop = true; // Optional: make the song loop when it ends
-
-// Modified pointer lock change handler
-document.addEventListener('pointerlockchange', () => {
-    if (document.pointerLockElement === null && isJumping) {
-        // When exiting pointer lock while jumping, enter floating mode
-        isFloating = true;
-        
-        // Save complete jump state
-        wasJumpingBeforeFloat = isJumping;
-        savedJumpVelocity = jumpVelocity;
-        savedCameraPosition.copy(camera.position);
-        savedCameraRotation.copy(camera.rotation);
-        
-        // Set orbit controls target to a point in front of the camera
-        const direction = new THREE.Vector3(0, 0, -1);
-        direction.applyEuler(camera.rotation);
-        savedOrbitTarget.copy(camera.position).add(direction.multiplyScalar(10));
-        orbitControls.target.copy(savedOrbitTarget);
-        
-        // Enable orbit controls from current position
-        orbitControls.enabled = true;
-        orbitControls.update();
-        
-        // Play audio from where it was paused
-        audioPlayer.play();
-    }
-});
-
-// Add right-click handler
-document.addEventListener('contextmenu', (event) => {
-  if (isFloating) {
-    event.preventDefault(); // Prevent default right-click menu
-  }
-});
-
-// Add mouse button handlers
-document.addEventListener('mousedown', (event) => {
-  if (isFloating && event.button === 2) { // Right click
-    orbitControls.enabled = true;
-  }
-});
-
-document.addEventListener('mouseup', (event) => {
-  if (isFloating && event.button === 2) { // Right click release
-    orbitControls.enabled = false;
-    // Preserve the last position and rotation
-    savedCameraPosition.copy(camera.position);
-    savedCameraRotation.copy(camera.rotation);
-  }
-});
 
 // Window resize handler
 window.addEventListener('resize', function () {
@@ -1697,33 +1591,12 @@ function animate() {
     ceilingMirror.visible = true;
   }
   
-  if (isFloating) {
-    // Update orbit controls if enabled
-    if (orbitControls.enabled) {
-      orbitControls.update();
-      
-      // Keep camera within room bounds
-      const halfWidth = roomWidth / 2 - 2;
-      const halfLength = roomLength / 2 - 2;
-      
-      camera.position.x = Math.max(-halfWidth, Math.min(halfWidth, camera.position.x));
-      camera.position.z = Math.max(-halfLength, Math.min(halfLength, camera.position.z));
-      camera.position.y = Math.max(eyeHeight, Math.min(roomHeight - 1, camera.position.y));
-      
-      // Update saved position to current constrained position
-      savedCameraPosition.copy(camera.position);
-      savedCameraRotation.copy(camera.rotation);
-    } else {
-      // Keep the camera in place when not orbiting
-      camera.position.copy(savedCameraPosition);
-      camera.rotation.copy(savedCameraRotation);
-    }
-  } else if (controls.isLocked) {
+  if (controls.isLocked) {
     const delta = clock.getDelta();
-    
+
     // Get time delta for smooth movement
     const speedDelta = speed * delta;
-    
+
     // Apply movement in the direction the camera is facing
     if (moveForward) {
       controls.moveForward(speedDelta);
@@ -1737,55 +1610,41 @@ function animate() {
     if (moveRight) {
       controls.moveRight(speedDelta);
     }
-    
+
     // Handle jumping and gravity
     if (isJumping) {
-      // Apply gravity based on height
-      if (camera.position.y >= hoverZoneHeight) {
-        // In hover zone - apply much weaker gravity
-        jumpVelocity += hoverGravity * delta;
-      } else {
-        // Normal gravity below hover zone
       jumpVelocity += gravity * delta;
-      }
-      
+
       // Update position based on velocity
       let newY = camera.position.y + jumpVelocity * delta;
-      
-      // Check for ceiling collision (leave 1 unit gap from ceiling)
-      if (newY >= roomHeight - 1) {
-        newY = roomHeight - 1;
-        // Gentler bounce near ceiling
-        jumpVelocity = -jumpVelocity * bounceCoefficient;
-      }
-      
+
       if (newY <= groundLevel + eyeHeight) {
         // If we're at ground level
         newY = groundLevel + eyeHeight;
         isJumping = false;
         jumpVelocity = 0;
       }
-      
+
       camera.position.y = newY;
     }
-    
+
     // Add boundary check to keep player inside the room
     const boundaryBuffer = 2;
-    
+
     // Keep X position inside room boundaries
     if (camera.position.x < -roomWidth/2 + boundaryBuffer) {
       camera.position.x = -roomWidth/2 + boundaryBuffer;
     } else if (camera.position.x > roomWidth/2 - boundaryBuffer) {
       camera.position.x = roomWidth/2 - boundaryBuffer;
     }
-    
+
     // Keep Z position inside room boundaries
     if (camera.position.z < -roomLength/2 + boundaryBuffer) {
       camera.position.z = -roomLength/2 + boundaryBuffer;
     } else if (camera.position.z > roomLength/2 - boundaryBuffer) {
       camera.position.z = roomLength/2 - boundaryBuffer;
     }
-    
+
     // Check portal proximity
     checkPortalProximity();
   }
@@ -1838,7 +1697,7 @@ camera.lookAt(0, groundLevel + eyeHeight, 10);
 
 // Click handler to lock controls
 window.addEventListener('click', () => {
-  if (!controls.isLocked && !isFloating) {
+  if (!controls.isLocked) {
     controls.lock();
   }
 }); 
