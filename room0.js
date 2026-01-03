@@ -607,13 +607,27 @@ const doors = createHubDoors();
 
 // Set up multi-portal proximity checker using standardized system
 // All 5 doors are included - walk through any door to teleport to that room
-const portalConfigs = doors.map(door => ({
-  position: new THREE.Vector3(door.location.x, door.location.y, door.location.z),
-  name: door.location.name,
-  url: door.location.destination,
-  showDistance: 5.0,   // Show prompt when 5 units away
-  triggerDistance: 2.5 // Teleport when walking through door (2.5 units)
-}));
+// Portal trigger positions are BEYOND the doors (on the water side)
+// so player walks through the door first, then triggers teleport on the water
+const portalConfigs = doors.map(door => {
+  // Calculate direction from center to door
+  const doorX = door.location.x;
+  const doorZ = door.location.z;
+  const distFromCenter = Math.sqrt(doorX * doorX + doorZ * doorZ);
+
+  // Move portal position 4 units further out from door (onto the water)
+  const offsetDistance = 4;
+  const portalX = doorX + (doorX / distFromCenter) * offsetDistance;
+  const portalZ = doorZ + (doorZ / distFromCenter) * offsetDistance;
+
+  return {
+    position: new THREE.Vector3(portalX, door.location.y, portalZ),
+    name: door.location.name,
+    url: door.location.destination,
+    showDistance: 5.0,   // Show prompt when near door
+    triggerDistance: 2.5 // Teleport when reaching the portal point on the water
+  };
+});
 
 const checkPortalProximity = createMultiPortalChecker({
   camera,

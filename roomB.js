@@ -872,14 +872,15 @@ function addMixedDecorationsToWalls() {
     nftFiles.push(`RoomB/b${i}`);
   }
 
-  // Batched NFT loading
+  // Batched NFT loading - load ALL textures first, then place them
   function loadNFTBatch(startIndex) {
     const endIndex = Math.min(startIndex + BATCH_SIZE, nftFiles.length);
 
     for (let i = startIndex; i < endIndex; i++) {
       const filename = nftFiles[i];
       const texture = textureLoader.load(getTextureUrl(filename), function(tex) {
-        tex.encoding = THREE.sRGBEncoding;
+        // Use colorSpace instead of deprecated encoding
+        tex.colorSpace = THREE.SRGBColorSpace;
 
         // Store the actual dimensions of the loaded texture
         const dimensions = {
@@ -890,10 +891,23 @@ function addMixedDecorationsToWalls() {
         nftDimensions[i] = dimensions;
 
         console.log(`Loaded NFT ${i+1}/${nftFiles.length}: ${filename} (${dimensions.width}x${dimensions.height})`);
+
+        // Check if all NFTs are loaded - then place them
+        const loadedCount = Object.keys(nftDimensions).length;
+        if (loadedCount === nftFiles.length) {
+          console.log('All NFT textures loaded, placing artwork...');
+          placeAllNFTsOnWalls();
+        }
       }, undefined, function(error) {
         console.error(`Error loading NFT texture ${filename}:`, error);
         // Push a default dimension in case of error
         nftDimensions[i] = { width: 512, height: 512, aspectRatio: 1 };
+
+        // Still check if all done
+        const loadedCount = Object.keys(nftDimensions).length;
+        if (loadedCount === nftFiles.length) {
+          placeAllNFTsOnWalls();
+        }
       });
       nftImages[i] = texture;
     }
@@ -904,112 +918,93 @@ function addMixedDecorationsToWalls() {
     }
   }
 
-  // Start the batched loading process
-  loadCopperBatch(0);
-  
-  // Define the range for the NFT and copper tile placement
-  const minHeight = 5; // Minimum height from floor (meters)
-  const maxHeight = roomHeight - 5; // Maximum height from floor (meters)
-  
-  // Define wall types
-  const wallTypes = ['front', 'back', 'left', 'right'];
-  
-  // 1. Randomly distribute NFTs across all four walls
-  const nftsPerWall = Math.ceil(60 / 4); // Equal distribution by default
-  let nftIndex = 0;
-  
-  // For each wall type, place NFTs first (they're more important)
-  wallTypes.forEach(wallType => {
-    const nftsForThisWall = Math.min(nftsPerWall, 60 - nftIndex);
-    
-    for (let i = 0; i < nftsForThisWall && nftIndex < 60; i++) {
-      // Get the current NFT
+  // Function to place all NFTs after textures are loaded
+  function placeAllNFTsOnWalls() {
+    const minHeight = 5;
+    const maxHeight = roomHeight - 5;
+    const wallTypes = ['front', 'back', 'left', 'right'];
+    const nftsPerWall = Math.ceil(60 / 4);
+    let nftIndex = 0;
+
+    // Place NFTs on each wall
+    wallTypes.forEach(wallType => {
+      const nftsForThisWall = Math.min(nftsPerWall, 60 - nftIndex);
+
+      for (let i = 0; i < nftsForThisWall && nftIndex < 60; i++) {
+        const currentTexture = nftImages[nftIndex];
+        const dimensions = nftDimensions[nftIndex] || { width: 512, height: 512, aspectRatio: 1 };
+
+        const baseSize = 7 + (Math.random() * 6);
+        let frameWidth, frameHeight;
+
+        if (dimensions.aspectRatio >= 1) {
+          frameWidth = baseSize * Math.sqrt(dimensions.aspectRatio);
+          frameHeight = baseSize / Math.sqrt(dimensions.aspectRatio);
+        } else {
+          frameWidth = baseSize * dimensions.aspectRatio;
+          frameHeight = baseSize / dimensions.aspectRatio;
+        }
+
+        const position = findUnoccupiedPosition(wallType, frameWidth, frameHeight, minHeight, maxHeight);
+
+        if (position) {
+          placeArtFrameOnWall(wallType, currentTexture, dimensions, frameWidth, frameHeight, position.x, position.y);
+          nftIndex++;
+        } else {
+          break;
+        }
+      }
+    });
+
+    // Place remaining NFTs on any wall with space
+    while (nftIndex < 60) {
+      const randomWallType = wallTypes[Math.floor(Math.random() * wallTypes.length)];
       const currentTexture = nftImages[nftIndex];
       const dimensions = nftDimensions[nftIndex] || { width: 512, height: 512, aspectRatio: 1 };
-      
-      // Calculate frame size based on a reasonable base size
-      const baseSize = 7 + (Math.random() * 6); // Random size between 7 and 13
+
+      const baseSize = 7 + (Math.random() * 6);
       let frameWidth, frameHeight;
-      
-      // Calculate dimensions based on aspect ratio
+
       if (dimensions.aspectRatio >= 1) {
-        // Wider than tall
         frameWidth = baseSize * Math.sqrt(dimensions.aspectRatio);
         frameHeight = baseSize / Math.sqrt(dimensions.aspectRatio);
       } else {
-        // Taller than wide
         frameWidth = baseSize * dimensions.aspectRatio;
         frameHeight = baseSize / dimensions.aspectRatio;
       }
-      
-      // Find an unoccupied position for this NFT
-      const position = findUnoccupiedPosition(wallType, frameWidth, frameHeight, minHeight, maxHeight);
-      
+
+      const position = findUnoccupiedPosition(randomWallType, frameWidth, frameHeight, minHeight, maxHeight);
+
       if (position) {
-        // Place the NFT at this position
-        placeArtFrameOnWall(
-          wallType,
-          currentTexture,
-          dimensions,
-          frameWidth,
-      frameHeight,
-          position.x,
-          position.y
-        );
-        
+        placeArtFrameOnWall(randomWallType, currentTexture, dimensions, frameWidth, frameHeight, position.x, position.y);
         nftIndex++;
       } else {
-        // Couldn't find a position on this wall, try another wall
-        break;
+        // Try a few more times before giving up
+        let attempts = 0;
+        while (attempts < 10 && nftIndex < 60) {
+          const tryWall = wallTypes[Math.floor(Math.random() * wallTypes.length)];
+          const tryPos = findUnoccupiedPosition(tryWall, frameWidth, frameHeight, minHeight, maxHeight);
+          if (tryPos) {
+            placeArtFrameOnWall(tryWall, currentTexture, dimensions, frameWidth, frameHeight, tryPos.x, tryPos.y);
+            nftIndex++;
+            break;
+          }
+          attempts++;
+        }
+        if (attempts >= 10) nftIndex++; // Skip this NFT if no space
       }
     }
-  });
-  
-  // If we still have NFTs left, distribute them anywhere we can find space
-  while (nftIndex < 60) {
-    // Choose a random wall
-    const randomWallType = wallTypes[Math.floor(Math.random() * wallTypes.length)];
-    
-    // Get the current NFT
-    const currentTexture = nftImages[nftIndex];
-    const dimensions = nftDimensions[nftIndex] || { width: 512, height: 512, aspectRatio: 1 };
-    
-    // Calculate frame size
-    const baseSize = 7 + (Math.random() * 6); // Random size between 7 and 13
-    let frameWidth, frameHeight;
-    
-    // Calculate dimensions based on aspect ratio
-    if (dimensions.aspectRatio >= 1) {
-      frameWidth = baseSize * Math.sqrt(dimensions.aspectRatio);
-      frameHeight = baseSize / Math.sqrt(dimensions.aspectRatio);
-    } else {
-      frameWidth = baseSize * dimensions.aspectRatio;
-      frameHeight = baseSize / dimensions.aspectRatio;
-    }
-    
-    // Find an unoccupied position
-    const position = findUnoccupiedPosition(randomWallType, frameWidth, frameHeight, minHeight, maxHeight);
-    
-    if (position) {
-      // Place the NFT at this position
-      placeArtFrameOnWall(
-        randomWallType,
-        currentTexture,
-        dimensions,
-        frameWidth,
-        frameHeight,
-        position.x,
-        position.y
-      );
-      
-      nftIndex++;
-    } else {
-      // Try another wall if we can't place it on this one
-      continue;
-    }
+
+    console.log(`Placed ${nftIndex} NFTs on walls`);
   }
-  
-  // 2. Now add copper tiles where there are still free spaces
+
+  // Start the batched loading process
+  // NFTs will be placed automatically when all textures are loaded (see placeAllNFTsOnWalls)
+  loadCopperBatch(0);
+
+  // Add copper tiles to walls (copper textures load quickly, no need to wait)
+  const wallTypes = ['front', 'back', 'left', 'right'];
+
   // Define copper tile dimensions
   const tileWidth = 3.5;
   const tileHeight = 3.5;
