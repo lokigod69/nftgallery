@@ -606,37 +606,14 @@ const platform = createPlatform();
 const doors = createHubDoors();
 
 // Set up multi-portal proximity checker using standardized system
-const portalConfigs = [
-  {
-    position: new THREE.Vector3(doors[0].location.x, doors[0].location.y, doors[0].location.z),
-    name: doors[0].location.name,
-    url: doors[0].location.destination,
-    showDistance: 4.0,
-    triggerDistance: 2.0
-  },
-  {
-    position: new THREE.Vector3(doors[1].location.x, doors[1].location.y, doors[1].location.z),
-    name: doors[1].location.name,
-    url: doors[1].location.destination,
-    showDistance: 4.0,
-    triggerDistance: 2.0
-  },
-  {
-    position: new THREE.Vector3(doors[2].location.x, doors[2].location.y, doors[2].location.z),
-    name: doors[2].location.name,
-    url: doors[2].location.destination,
-    showDistance: 4.0,
-    triggerDistance: 2.0
-  },
-  {
-    position: new THREE.Vector3(doors[3].location.x, doors[3].location.y, doors[3].location.z),
-    name: doors[3].location.name,
-    url: doors[3].location.destination,
-    showDistance: 4.0,
-    triggerDistance: 2.0
-  }
-  // Note: Excluding door 4 (Room D) as it's not functional yet
-];
+// All 5 doors are included - walk through any door to teleport to that room
+const portalConfigs = doors.map(door => ({
+  position: new THREE.Vector3(door.location.x, door.location.y, door.location.z),
+  name: door.location.name,
+  url: door.location.destination,
+  showDistance: 5.0,   // Show prompt when 5 units away
+  triggerDistance: 2.5 // Teleport when walking through door (2.5 units)
+}));
 
 const checkPortalProximity = createMultiPortalChecker({
   camera,
@@ -722,19 +699,20 @@ function animate() {
     controls.moveForward(-velocity.z * delta);
     
     // Check if player is too far from the platform
+    // Extended boundary allows walking through doors onto the water before teleporting
     const distanceFromCenter = Math.sqrt(
-      camera.position.x * camera.position.x + 
+      camera.position.x * camera.position.x +
       camera.position.z * camera.position.z
     );
-    
-    // Updated: If too far from platform (beyond 21 units from center), move back
-    // Using 21 instead of 22 to give a small buffer from the edge
-    if (distanceFromCenter > 21) {
+
+    // Allow walking up to 28 units from center (doors at 22, teleport triggers ~24-25)
+    // This lets players walk through the door "onto the water" before portal activates
+    if (distanceFromCenter > 28) {
       // Calculate normalized direction from center
       const angle = Math.atan2(camera.position.z, camera.position.x);
-      // Move back inside
-      camera.position.x = 21 * Math.cos(angle);
-      camera.position.z = 21 * Math.sin(angle);
+      // Move back to the edge
+      camera.position.x = 28 * Math.cos(angle);
+      camera.position.z = 28 * Math.sin(angle);
     }
     
     // Check if near doors using standardized portal system
