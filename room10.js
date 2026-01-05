@@ -1373,9 +1373,28 @@ function animate() {
     const dx = playerPos.x;
     const dz = playerPos.z;
     const horizDist = Math.sqrt(dx * dx + dz * dz);
-    if (horizDist < startingPlatform.radius + 0.5) {
+    const mainPlatformFloorY = startingPlatform.y + PLAYER_HEIGHT;
+
+    // CRITICAL: Hard floor constraint for starting platform
+    // If player is horizontally within platform radius, NEVER allow falling below floor
+    if (horizDist < startingPlatform.radius) {
+      // Enforce absolute minimum Y - prevents falling through platform
+      if (playerPos.y < mainPlatformFloorY) {
+        playerPos.y = mainPlatformFloorY;
+        velocity.y = 0;
+        canJump = true;
+        grounded = true;
+        lastSafePosition.copy(playerPos);
+      }
+
       potentialGrounds.push({
-        targetY: startingPlatform.y + PLAYER_HEIGHT,
+        targetY: mainPlatformFloorY,
+        type: 'main'
+      });
+    } else if (horizDist < startingPlatform.radius + 0.5) {
+      // Edge zone - still consider it as ground candidate
+      potentialGrounds.push({
+        targetY: mainPlatformFloorY,
         type: 'main'
       });
     }
@@ -1385,10 +1404,26 @@ function animate() {
       const hdx = playerPos.x - hiveTile.position.x;
       const hdz = playerPos.z - hiveTile.position.z;
       const hDist = Math.sqrt(hdx * hdx + hdz * hdz);
-      
-      if (hDist < hiveTile.radius + 0.1) {
+      const hiveTileFloorY = hiveTile.topY + PLAYER_HEIGHT;
+
+      if (hDist < hiveTile.radius) {
+        // CRITICAL: Hard floor constraint for hive tiles
+        // Prevent falling through individual tiles
+        if (playerPos.y < hiveTileFloorY) {
+          playerPos.y = hiveTileFloorY;
+          velocity.y = 0;
+          canJump = true;
+          grounded = true;
+          lastSafePosition.copy(playerPos);
+        }
+
         potentialGrounds.push({
-          targetY: hiveTile.topY + PLAYER_HEIGHT,
+          targetY: hiveTileFloorY,
+          type: 'hive'
+        });
+      } else if (hDist < hiveTile.radius + 0.1) {
+        potentialGrounds.push({
+          targetY: hiveTileFloorY,
           type: 'hive'
         });
       }

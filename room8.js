@@ -67,8 +67,8 @@ const ROOM8_CONFIG = {
   jumpVelocity: 10,
   
   // Content
-  nftCount: 48,           // 6 rings × 8 NFTs = 48 total
-  nftStartIndex: 1,       // Start from nft1 (plenty available as placeholders)
+  nftCount: 48,           // 48 NFT images in Room8 folder (6 rings × 8)
+  nftStartIndex: 1,       // Not used - loading by filename
   nftSize: 2.0,
   
   // VFX
@@ -1020,12 +1020,65 @@ function updatePlatforms(time) {
 // Each NFT is a child of a Group that rotates around the Y axis
 // IMPORTANT: Must account for tapered cylinder (wall narrows at top)
 // ----------------------------------------------------------------------
+
+// Room 8 NFT files - 48 cinematic photographs
+const room8NftFiles = [
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_00a5c654-5d7f-4c5a-9c7d-4bd5e276d027',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_0b33bfb9-53b5-48ac-8a5b-c730653099c6',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_0fa4ceb6-cf59-4b6b-a3ee-bdf52c11c615',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_100487d5-5647-4f1c-ad70-d8d043f9f76d',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_105b0630-c217-416d-a61f-8bc3c81cc8ec',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_31fb93bb-5ebe-4524-9cb4-0c9be9b7e9cd',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_3600b200-2f91-4f71-a7e0-fe0d7dc78a49',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_3a2d99a5-9a7a-4ed6-aa77-962d0b78a64a',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_3ce70c9a-91d7-412e-bcfe-248f79547b0c',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_4073fbe7-cee4-40e4-bb88-70a344e9c322',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_4091511a-3aba-4f10-bbbb-cc754e3a7e19',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_4cf13a40-933e-4e5b-a407-c9de02a677b7',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_531cd012-cac1-4617-961d-2e08585aeeeb',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_5b69ffa5-09e5-4dc7-a2f4-f3f7ee50333d',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_5b81084a-3977-478e-8b59-b93a50ecc5a4',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_5e171c24-3a90-4f6c-83c7-09c50233a24d',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_6031042c-e531-4472-9dba-1abda1d8c428',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_685ec5c5-242c-47db-9314-7bf878992d7a',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_7205f7cc-174a-468d-91c6-60c0a662c43d',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_75dea23e-48e5-4537-8bb6-b52fd3416440',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_7f67fb46-d396-4a5b-827c-57557e396c3d',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_8661906c-4fd5-4616-babd-bcc08764e292',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_87b1ca7d-450c-4067-b445-f20027211edc',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_8885cf72-67d2-49dc-9964-d9b5532485ef',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_8acb88b5-4926-4db6-a560-7abbc4c88da7',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_94877618-fc48-4c38-b809-686a76a4664d',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_9fdaf54f-ca10-4d93-af21-4d920906768e',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_a0dd37ed-9898-4981-8c58-dd9855901d8a',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_b0b72765-4ba6-4263-8348-1bb5cdb27245',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_b6093728-c0bc-4ae6-bc5c-d82b796a953b',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_b7415f6b-4fe8-4d00-b1bc-8d914d7252bd',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_b8e2ca39-0497-4c4a-80b7-8dff53788c83',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_b94cc53f-2686-4278-a11a-d467c5fd9429',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_bb9a4efc-3ee6-4e62-ac64-47ed27c150b4',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_c32252cf-a116-4677-845b-c5ec468d17bc',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_c4d7ae2e-4870-4be0-a5e1-f4a898342506',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_c8101667-2e22-4d80-a3b9-43fa4cbd8999',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_d479bc35-18ab-404b-86f7-aaea5add79b9',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_dc2942df-c691-4334-82d4-ceeff59453a2',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_e52099f7-49e5-48ae-a999-3303df0ec3d2',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_e92e9db1-e5cb-449c-9edc-cb1f4e53c0c8',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_ea48a5fc-7258-41f7-9f64-a8e75da2f032',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_ea4bcda4-c69b-4303-9e74-bf2ff8c5755e',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_fb12a165-83f2-40aa-b061-90c14bb12fae',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_fbdc547d-1e7f-43be-a1c6-bbbaec9a91cd',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_fbe633a3-b841-4b5c-ba7c-0d0eab4cfaad',
+  'lokigod69._Cinematic_analog-style_photograph_with_warm_golden-h_fc5d1d0b-faed-41db-8e53-75f6ff622d7f',
+  'lokigod69._Mixed-media_artwork_in_the_style_of_SN._The_base_is__916d2919-b572-42f8-b2e2-9b9fc6a8698b'
+];
+
 function createWallNFTs() {
   const cfg = ROOM8_CONFIG;
   const textureLoader = new THREE.TextureLoader();
   const nftGroups = [];
 
-  // 6 rings, 8 NFTs per ring = 48 total
+  // 6 rings × 8 NFTs = 48 total
   const ringHeights = [6, 14, 22, 30, 38, 46];
   const perRing = 8;
   const nftSize = cfg.nftSize;
@@ -1050,11 +1103,9 @@ function createWallNFTs() {
       pivot.position.set(0, h, 0);  // Position at ring height
       pivot.rotation.y = angle;     // Rotate to slot position
 
-      // NFT texture number (1 through 48)
-      const texNum = cfg.nftStartIndex + count;
-
-      // Load texture
-      const tex = textureLoader.load(getNftUrl(texNum), (t) => {
+      // Load texture from Room8 folder
+      const filename = room8NftFiles[count];
+      const tex = textureLoader.load(`/assets/Room8/${filename}.png`, (t) => {
         t.colorSpace = THREE.SRGBColorSpace;
       });
 
@@ -1082,7 +1133,7 @@ function createWallNFTs() {
       count++;
     }
 
-    console.log(`Ring ${r + 1}/6 at Y=${h}: 8 NFTs (wallRadius=${wallRadius.toFixed(2)}, dist=${wallDist.toFixed(2)})`);
+    console.log(`Ring ${r + 1}/6 at Y=${h}: ${perRing} NFTs (wallRadius=${wallRadius.toFixed(2)}, dist=${wallDist.toFixed(2)})`);
   }
 
   console.log(`✓ Total: ${count} NFTs in 6 rings (accounting for tapered wall)`);

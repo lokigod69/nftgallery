@@ -846,11 +846,9 @@ function addMixedDecorationsToWalls() {
     copperMaterials[index].needsUpdate = true;
   });
 
-  // NFT Progressive Loading System
-  // Place all 60 NFT frames IMMEDIATELY with placeholder textures
-  // Then load real textures progressively and update materials when ready
+  // NFT Loading System - Load images first to get dimensions, then place with correct aspect ratio
+  // This ensures all artwork is displayed in its original proportions
 
-  const nftMaterials = []; // Store materials so we can update them when textures load
   // Room B2 NFT files (60 PNG images with descriptive names)
   const nftFiles = [
     'A_chess_game_between_a_mannequin_and_a_mirror_pieces_sculpted_2fb2d847-0753-454c-9353-dba90ba264c7_0',
@@ -915,157 +913,131 @@ function addMixedDecorationsToWalls() {
     'Street-fashion_capture_of_a_woman_crossing_zebra_stripes_fabr_34b3d99c-065e-4f18-ab38-186e8562ab3b_0'
   ].map(name => `RoomB2/${name}`);
 
-  // STEP 1: Place all 60 NFT frames immediately with placeholder (loading) appearance
   const minHeight = 5;
   const maxHeight = roomHeight - 5;
   const wallTypes = ['front', 'back', 'left', 'right'];
+  const maxFrameDimension = 12; // Maximum size for any dimension
+  const minFrameDimension = 6;  // Minimum size for any dimension
 
-  // Pre-calculate positions for all 60 NFTs using a fixed size initially
-  const nftPositions = [];
-  const baseFrameSize = 9; // Fixed size for initial placement
+  let loadedCount = 0;
+  let currentWallIndex = 0;
 
-  console.log('Placing 60 NFT frames with placeholders...');
+  console.log('Loading NFTs with proper aspect ratios...');
 
-  // Distribute NFTs evenly across walls
-  const nftsPerWall = 15; // 60 / 4 = 15 per wall
-  let nftIndex = 0;
+  // Load each NFT, get its dimensions, then place it with correct aspect ratio
+  function loadAndPlaceNFT(index) {
+    if (index >= nftFiles.length) {
+      console.log(`Finished loading ${loadedCount} NFTs with proper aspect ratios`);
+      return;
+    }
 
-  wallTypes.forEach(wallType => {
-    for (let i = 0; i < nftsPerWall && nftIndex < 60; i++) {
-      const frameWidth = baseFrameSize;
-      const frameHeight = baseFrameSize;
+    const filename = nftFiles[index];
+    const img = new Image();
 
+    img.onload = function() {
+      // Calculate aspect ratio and frame dimensions
+      const aspectRatio = img.width / img.height;
+      let frameWidth, frameHeight;
+
+      if (aspectRatio >= 1) {
+        // Wider than tall (landscape or square)
+        frameWidth = maxFrameDimension;
+        frameHeight = maxFrameDimension / aspectRatio;
+        if (frameHeight < minFrameDimension) {
+          frameHeight = minFrameDimension;
+          frameWidth = frameHeight * aspectRatio;
+        }
+      } else {
+        // Taller than wide (portrait)
+        frameHeight = maxFrameDimension;
+        frameWidth = maxFrameDimension * aspectRatio;
+        if (frameWidth < minFrameDimension) {
+          frameWidth = minFrameDimension;
+          frameHeight = frameWidth / aspectRatio;
+        }
+      }
+
+      // Distribute across walls evenly
+      const wallType = wallTypes[currentWallIndex % 4];
+      currentWallIndex++;
+
+      // Find position for this NFT
       const position = findUnoccupiedPosition(wallType, frameWidth, frameHeight, minHeight, maxHeight);
 
       if (position) {
-        nftPositions[nftIndex] = {
-          wallType,
-          x: position.x,
-          y: position.y,
-          width: frameWidth,
-          height: frameHeight
-        };
+        // Load the actual texture
+        textureLoader.load(
+          `/assets/${filename}.png`,
+          function(tex) {
+            tex.colorSpace = THREE.SRGBColorSpace;
 
-        // Create placeholder material (dark gray with loading indicator)
-        const placeholderMaterial = new THREE.MeshBasicMaterial({
-          color: 0x333333,
-          side: THREE.DoubleSide
-        });
-        nftMaterials[nftIndex] = placeholderMaterial;
+            const artMaterial = new THREE.MeshBasicMaterial({
+              map: tex,
+              side: THREE.DoubleSide
+            });
 
-        // Place the frame with placeholder
-        placeArtFrameOnWallWithMaterial(wallType, placeholderMaterial, frameWidth, frameHeight, position.x, position.y);
-        nftIndex++;
-      }
-    }
-  });
+            placeArtFrameOnWallWithMaterial(wallType, artMaterial, frameWidth, frameHeight, position.x, position.y);
+            loadedCount++;
+            console.log(`Placed NFT ${loadedCount}/${nftFiles.length}: ${filename} (${img.width}x${img.height} -> ${frameWidth.toFixed(1)}x${frameHeight.toFixed(1)})`);
 
-  // Place remaining NFTs if any walls were full
-  while (nftIndex < 60) {
-    const randomWallType = wallTypes[Math.floor(Math.random() * wallTypes.length)];
-    const frameWidth = baseFrameSize;
-    const frameHeight = baseFrameSize;
-
-    const position = findUnoccupiedPosition(randomWallType, frameWidth, frameHeight, minHeight, maxHeight);
-
-    if (position) {
-      nftPositions[nftIndex] = {
-        wallType: randomWallType,
-        x: position.x,
-        y: position.y,
-        width: frameWidth,
-        height: frameHeight
-      };
-
-      const placeholderMaterial = new THREE.MeshBasicMaterial({
-        color: 0x333333,
-        side: THREE.DoubleSide
-      });
-      nftMaterials[nftIndex] = placeholderMaterial;
-
-      placeArtFrameOnWallWithMaterial(randomWallType, placeholderMaterial, frameWidth, frameHeight, position.x, position.y);
-      nftIndex++;
-    } else {
-      // Try other walls
-      let found = false;
-      for (const tryWall of wallTypes) {
-        const tryPos = findUnoccupiedPosition(tryWall, frameWidth, frameHeight, minHeight, maxHeight);
-        if (tryPos) {
-          nftPositions[nftIndex] = {
-            wallType: tryWall,
-            x: tryPos.x,
-            y: tryPos.y,
-            width: frameWidth,
-            height: frameHeight
-          };
-
-          const placeholderMaterial = new THREE.MeshBasicMaterial({
-            color: 0x333333,
-            side: THREE.DoubleSide
-          });
-          nftMaterials[nftIndex] = placeholderMaterial;
-
-          placeArtFrameOnWallWithMaterial(tryWall, placeholderMaterial, frameWidth, frameHeight, tryPos.x, tryPos.y);
-          nftIndex++;
-          found = true;
-          break;
+            // Load next NFT
+            setTimeout(() => loadAndPlaceNFT(index + 1), 30);
+          },
+          undefined,
+          function(error) {
+            console.error(`Error loading NFT texture ${filename}:`, error);
+            setTimeout(() => loadAndPlaceNFT(index + 1), 30);
+          }
+        );
+      } else {
+        // Try other walls if first choice didn't work
+        let placed = false;
+        for (const tryWall of wallTypes) {
+          const tryPos = findUnoccupiedPosition(tryWall, frameWidth, frameHeight, minHeight, maxHeight);
+          if (tryPos) {
+            textureLoader.load(
+              `/assets/${filename}.png`,
+              function(tex) {
+                tex.colorSpace = THREE.SRGBColorSpace;
+                const artMaterial = new THREE.MeshBasicMaterial({
+                  map: tex,
+                  side: THREE.DoubleSide
+                });
+                placeArtFrameOnWallWithMaterial(tryWall, artMaterial, frameWidth, frameHeight, tryPos.x, tryPos.y);
+                loadedCount++;
+                console.log(`Placed NFT ${loadedCount}/${nftFiles.length}: ${filename}`);
+                setTimeout(() => loadAndPlaceNFT(index + 1), 30);
+              },
+              undefined,
+              function(error) {
+                console.error(`Error loading NFT texture ${filename}:`, error);
+                setTimeout(() => loadAndPlaceNFT(index + 1), 30);
+              }
+            );
+            placed = true;
+            break;
+          }
+        }
+        if (!placed) {
+          console.warn(`Could not place NFT ${index + 1}: ${filename}`);
+          setTimeout(() => loadAndPlaceNFT(index + 1), 30);
         }
       }
-      if (!found) {
-        console.warn(`Could not place NFT ${nftIndex + 1}`);
-        nftIndex++; // Skip to prevent infinite loop
-      }
-    }
+    };
+
+    img.onerror = function() {
+      console.error(`Error loading image dimensions for ${filename}`);
+      setTimeout(() => loadAndPlaceNFT(index + 1), 30);
+    };
+
+    // Start loading the image to get dimensions
+    img.src = `/assets/${filename}.png`;
   }
 
-  console.log(`Placed ${nftIndex} NFT frames with placeholders`);
-
-  // STEP 2: Load textures progressively and update materials
-  let loadedCount = 0;
-
-  function loadNFTTexture(index) {
-    if (index >= nftFiles.length) return;
-
-    const filename = nftFiles[index];
-    // Use PNG format directly for RoomB2 files (not webp)
-    textureLoader.load(
-      `/assets/${filename}.png`,
-      function(tex) {
-        // Use colorSpace instead of deprecated encoding
-        tex.colorSpace = THREE.SRGBColorSpace;
-
-        // Update the placeholder material with the real texture
-        if (nftMaterials[index]) {
-          nftMaterials[index].map = tex;
-          nftMaterials[index].color.set(0xffffff); // Reset color to white so texture shows properly
-          nftMaterials[index].needsUpdate = true;
-        }
-
-        loadedCount++;
-        console.log(`Loaded NFT ${loadedCount}/${nftFiles.length}: ${filename}`);
-
-        // Load next texture with small delay to prevent overwhelming the browser
-        setTimeout(() => loadNFTTexture(index + 1), 50);
-      },
-      undefined,
-      function(error) {
-        console.error(`Error loading NFT texture ${filename}:`, error);
-        // Set to red to indicate error
-        if (nftMaterials[index]) {
-          nftMaterials[index].color.set(0x440000);
-          nftMaterials[index].needsUpdate = true;
-        }
-        loadedCount++;
-        setTimeout(() => loadNFTTexture(index + 1), 50);
-      }
-    );
-  }
-
-  // Start loading textures (progressive - one at a time to show updates)
-  // Use multiple concurrent loaders for faster loading
-  const CONCURRENT_LOADERS = 5;
+  // Start loading NFTs (multiple concurrent loaders for faster loading)
+  const CONCURRENT_LOADERS = 4;
   for (let i = 0; i < CONCURRENT_LOADERS; i++) {
-    setTimeout(() => loadNFTTexture(i * Math.ceil(nftFiles.length / CONCURRENT_LOADERS)), i * 100);
+    setTimeout(() => loadAndPlaceNFT(i * Math.ceil(nftFiles.length / CONCURRENT_LOADERS)), i * 100);
   }
 
   // STEP 3: Start loading copper textures (they run in parallel)
@@ -1507,100 +1479,108 @@ function createLighting() {
 }
 
 // ----------------------------------------------------------------------
-// Create Floor Portal back to Room 0 (Ocean Room)
+// Create Hidden Hole Portal back to Room 0 (Ocean Room)
+// A mysterious hole in the floor - walk into it and fall back to the ocean
 // ----------------------------------------------------------------------
-function createPortalToRoom0() {
-  const portalGeometry = new THREE.CircleGeometry(5, 32); // Floor portal
-  const portalMaterial = new THREE.MeshBasicMaterial({
-    color: 0x00aaaa, // Cyan color - matching Ocean Room portal
-    side: THREE.DoubleSide,
-    transparent: true,
-    opacity: 0.8
+const holePosition = { x: roomWidth/2 - 15, z: roomLength/2 - 15 };
+const holeRadius = 4;
+const fallDepthToTeleport = 30; // How far to fall before triggering teleport
+let isFallingInHole = false;
+let fallStartY = 0;
+let teleportTriggered = false;
+
+function createHolePortal() {
+  // Create a dark pit/hole in the floor
+  // The hole is a cylinder going down with dark interior
+
+  // Create the hole rim (a ring around the hole)
+  const rimGeometry = new THREE.RingGeometry(holeRadius, holeRadius + 0.5, 32);
+  const rimMaterial = new THREE.MeshStandardMaterial({
+    color: 0x111111,
+    roughness: 0.9,
+    metalness: 0.1,
+    side: THREE.DoubleSide
   });
-  const portal = new THREE.Mesh(portalGeometry, portalMaterial);
+  const rim = new THREE.Mesh(rimGeometry, rimMaterial);
+  rim.rotation.x = -Math.PI / 2;
+  rim.position.set(holePosition.x, groundLevel + 0.02, holePosition.z);
+  scene.add(rim);
 
-  // Position portal on the floor in a corner (not center to avoid blocking view)
-  portal.position.set(roomWidth/2 - 15, groundLevel + 0.1, roomLength/2 - 15);
-  portal.rotation.x = -Math.PI / 2; // Lay flat on floor
-  scene.add(portal);
+  // Create the dark pit interior (a cylinder going down)
+  const pitDepth = 100; // Visual depth of the pit
+  const pitGeometry = new THREE.CylinderGeometry(holeRadius, holeRadius, pitDepth, 32, 1, true);
+  const pitMaterial = new THREE.MeshBasicMaterial({
+    color: 0x000000,
+    side: THREE.BackSide // Render inside of cylinder
+  });
+  const pit = new THREE.Mesh(pitGeometry, pitMaterial);
+  pit.position.set(holePosition.x, groundLevel - pitDepth/2, holePosition.z);
+  scene.add(pit);
 
-  const glowGeometry = new THREE.CircleGeometry(6, 32);
+  // Add a subtle dark glow around the hole
+  const glowGeometry = new THREE.RingGeometry(holeRadius + 0.5, holeRadius + 2, 32);
   const glowMaterial = new THREE.MeshBasicMaterial({
-    color: 0x00cccc,
-    side: THREE.DoubleSide,
+    color: 0x002233, // Slight cyan tint for ocean destination
     transparent: true,
-    opacity: 0.4
+    opacity: 0.5,
+    side: THREE.DoubleSide
   });
   const glow = new THREE.Mesh(glowGeometry, glowMaterial);
-  glow.position.copy(portal.position);
-  glow.position.y -= 0.05; // Slightly below portal
   glow.rotation.x = -Math.PI / 2;
+  glow.position.set(holePosition.x, groundLevel + 0.01, holePosition.z);
   scene.add(glow);
 
-  // Add a light to make the portal more visible
-  const portalLight = new THREE.PointLight(0x00aaaa, 2.0, 25);
-  portalLight.position.copy(portal.position);
-  portalLight.position.y += 3; // Position light above portal
-  scene.add(portalLight);
+  // Add dim light inside the pit for mysterious effect
+  const pitLight = new THREE.PointLight(0x003344, 0.3, 50);
+  pitLight.position.set(holePosition.x, groundLevel - 10, holePosition.z);
+  scene.add(pitLight);
 
-  // Add a floating label above the portal
-  const canvas = document.createElement('canvas');
-  const context = canvas.getContext('2d');
-  canvas.width = 512;
-  canvas.height = 128;
-  context.fillStyle = '#ffffff';
-  context.font = 'Bold 36px Arial';
-  context.textAlign = 'center';
-  context.fillText('Return to Ocean Room', canvas.width / 2, canvas.height / 2);
-
-  const labelTexture = new THREE.CanvasTexture(canvas);
-  const labelMaterial = new THREE.MeshBasicMaterial({
-    map: labelTexture,
-    side: THREE.DoubleSide,
-    transparent: true
-  });
-
-  const labelGeometry = new THREE.PlaneGeometry(8, 2);
-  const label = new THREE.Mesh(labelGeometry, labelMaterial);
-  label.position.set(portal.position.x, portal.position.y + 5, portal.position.z);
-  // Rotate to face toward center of room
-  label.lookAt(0, label.position.y, 0);
-  scene.add(label);
-
-  return { portal, glow, portalLight, label };
+  console.log('Created hidden hole portal at', holePosition.x, holePosition.z);
 }
 
 // ----------------------------------------------------------------------
-// Check Portal Proximity for Teleportation
+// Check if Player is Over the Hole
 // ----------------------------------------------------------------------
-function checkPortalProximity() {
-  // Calculate distance between player and floor portal (using horizontal distance)
-  const portalPosition = new THREE.Vector3(roomWidth/2 - 15, groundLevel, roomLength/2 - 15);
-  const playerHorizontal = new THREE.Vector3(camera.position.x, groundLevel, camera.position.z);
-  const distance = playerHorizontal.distanceTo(portalPosition);
+function isOverHole() {
+  const dx = camera.position.x - holePosition.x;
+  const dz = camera.position.z - holePosition.z;
+  const distance = Math.sqrt(dx * dx + dz * dz);
+  return distance < holeRadius;
+}
 
-  // When player is within 8 units of the portal, show prompt
-  if (distance < 8) {
-    document.getElementById('controls-description').textContent = 'Step onto portal to return to Ocean Room';
-    document.getElementById('controls-description').style.display = 'block';
+// ----------------------------------------------------------------------
+// Handle Falling Through Hole
+// ----------------------------------------------------------------------
+function handleHoleFalling(delta) {
+  if (teleportTriggered) return;
 
-    // When player is within 4 units of the portal, teleport automatically
-    if (distance < 4) {
-      console.log('Teleporting to Room 0');
+  if (isOverHole()) {
+    if (!isFallingInHole) {
+      // Start falling into the hole
+      isFallingInHole = true;
+      fallStartY = camera.position.y;
+      isJumping = true; // Use the existing jump/fall system
+      jumpVelocity = 0; // Start with no velocity, gravity will pull down
+      console.log('Falling into the hole...');
+    }
+
+    // Check if we've fallen far enough to trigger teleport
+    const fallDistance = fallStartY - camera.position.y;
+    if (fallDistance > fallDepthToTeleport && !teleportTriggered) {
+      teleportTriggered = true;
+      console.log('Teleporting to Ocean Room after falling', fallDistance.toFixed(1), 'units');
 
       // Show loading screen
       const loadingOverlay = document.getElementById('loading-overlay');
       if (loadingOverlay) {
         loadingOverlay.style.display = 'flex';
       }
-      
-      // Add a small delay before teleporting for smoother transition
+
+      // Teleport after a short delay
       setTimeout(() => {
         window.location.href = 'room0.html';
-      }, 200);
+      }, 500);
     }
-  } else {
-    document.getElementById('controls-description').textContent = 'Controls: WASD - Move, Mouse - Look, SPACE - Jump';
   }
 }
 
@@ -1614,9 +1594,9 @@ function initializeRoom() {
   console.log("Creating room structure and mixed decorations...");
   createBasicRoom();
 
-  // Create floor portal back to Room 0
-  console.log("Creating portal to Room 0...");
-  createPortalToRoom0();
+  // Create hidden hole portal back to Room 0 (Ocean Room)
+  console.log("Creating hidden hole portal to Ocean Room...");
+  createHolePortal();
   
   // Load GLB model
   console.log("Loading GLB model...");
@@ -1790,15 +1770,25 @@ function animate() {
         jumpVelocity = -jumpVelocity * bounceCoefficient; // Bounce down
       }
 
+      // Ground collision - but allow falling through the hole
       if (newY <= groundLevel + eyeHeight) {
-        // If we're at ground level
-        newY = groundLevel + eyeHeight;
-        isJumping = false;
-        jumpVelocity = 0;
+        if (isOverHole() && isFallingInHole) {
+          // Allow falling through the hole - no ground collision
+          // Keep falling
+        } else {
+          // Normal ground collision
+          newY = groundLevel + eyeHeight;
+          isJumping = false;
+          jumpVelocity = 0;
+          isFallingInHole = false; // Reset hole falling state
+        }
       }
 
       camera.position.y = newY;
     }
+
+    // Handle falling through the hole
+    handleHoleFalling(delta);
 
     // Add boundary check to keep player inside the room
     const boundaryBuffer = 2;
@@ -1816,9 +1806,6 @@ function animate() {
     } else if (camera.position.z > roomLength/2 - boundaryBuffer) {
       camera.position.z = roomLength/2 - boundaryBuffer;
     }
-
-    // Check portal proximity
-    checkPortalProximity();
   }
   
   // Render the scene

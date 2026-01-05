@@ -11,7 +11,7 @@ import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUti
 // - Grid: 25×25 cells generating rectangular clockwise spiral path
 // - Room: 48×48×8 world units cubic chamber centered at origin
 // - Portal: Center at (0, 2.5, 3) leading to Room 5 (Eternal Eclipse)
-// - NFTs: 16 placeholders (nft56-71) on walls at corners
+// - NFTs: 18 monochromatic photographs from /assets/Room9/ on walls along spiral
 // - Guidance: 6 cyan point lights pulling player inward + central beacon
 // - Obelisks: 3 ancient tech markers in central 3×3 chamber (terminus reward)
 //   - Triangular arrangement around portal (radius 3.5 units)
@@ -20,7 +20,7 @@ import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUti
 // - Movement: Rectangular bounds, controls.getObject() pattern (Room 6-style)
 //
 // CONFIG KNOBS:
-// - ROOM9_CONFIG.nftStartIndex: First NFT number (default 56)
+// - ROOM9_CONFIG.nftCount: Number of NFTs to place (default 18)
 // - ROOM9_CONFIG.debugPrintGrid: Console ASCII maze output (default false)
 // - ROOM9_CONFIG.enableCenterParticles: Atmospheric data motes (default true)
 // - ROOM9_CONFIG.guidanceLightCount: Spiral ring lights (default 6)
@@ -33,13 +33,33 @@ import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUti
 //
 // PERFORMANCE:
 // - Walls merged into single mesh (reduces ~300 draw calls to 1)
-// - 16 NFT textures loaded async with fallback to black
+// - 18 NFT textures loaded async from /assets/Room9/ with aspect ratio preservation
 // - 8 lights total (ambient + 2 directional + 5 guidance + 1 central)
 // - ~100 particles max (if enabled)
 // - Target: 60 FPS, <10 MB VRAM
 // ═══════════════════════════════════════════════════════════════════════
 
-import { getNftUrl } from './src/core/asset-utils.js';
+// Room 9 NFT Files - 18 monochromatic photographs
+const room9NftFiles = [
+  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_0176e0b1-51e8-4169-9e68-b7155dd45976',
+  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_11d2b388-18f7-4763-b611-ea4c32cfbaf0',
+  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_16c72529-6f33-41a3-a368-b1c2f43ea091',
+  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_332a6096-dabf-4c4d-8a6e-aefa2f7919dd',
+  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_33fe8d25-fa4d-487e-9477-27f102f7f587',
+  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_6bc3d1ca-bbef-44ae-9fc0-e69c79804d51',
+  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_6e6f6621-adb0-4b2d-9ee2-13118c94bcd9',
+  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_74d3926c-dfeb-4a53-a55f-3ef1f02e5b2c',
+  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_7addf437-8519-4876-92d8-33b5fdf34104',
+  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_7e3556a5-641c-44c6-b6a6-6ec302a9ae24',
+  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_8a30fdf9-32dc-4ff3-aab8-5e468f2f46a1',
+  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_992d2b42-5323-437e-9fe0-55153961ef97',
+  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_caa0e3d0-1a4a-4f18-899b-af6fc4f6d701',
+  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_da1a421f-2e6c-43d8-b738-18b3188408aa',
+  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_e0aa6ceb-d808-4589-b659-09ade63ef468',
+  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_e744cab9-c520-4a60-adf3-cd795e2300d9',
+  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_f2c690f6-7093-467b-b177-42ee6ab79043',
+  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_f3ef1d4b-3a68-41a8-96fd-47d324283bb7'
+];
 
 // ═══════════════════════════════════════════════════════════════════════
 // Ancient Tech Obelisk System (Archive Terminus Markers)
@@ -313,9 +333,8 @@ const ROOM9_CONFIG = {
   gravity: -30,
   
   // Content
-  nftCount: 16,
-  nftStartIndex: 56,        // nft56-71 (16 total)
-  nftSize: 1.6,
+  nftCount: 18,
+  nftBaseSize: 1.6,  // Base size, will be adjusted for aspect ratio
   guidanceLightCount: 6,
   
   // VFX
@@ -624,43 +643,48 @@ function buildMazeGeometry(grid) {
  */
 function detectNFTPositions(path) {
   const positions = [];
-  const sampleInterval = Math.floor(path.length / 16); // ~16 NFTs evenly distributed
-  
-  for (let i = 0; i < path.length; i += sampleInterval) {
+  const cfg = ROOM9_CONFIG;
+  const sampleInterval = Math.floor(path.length / cfg.nftCount); // ~18 NFTs evenly distributed
+
+  for (let i = 0; i < path.length && positions.length < cfg.nftCount; i += sampleInterval) {
     if (i < path.length) {
       positions.push(path[i]);
     }
   }
-  
+
   return positions;
 }
 
 /**
- * Place NFT planes with real texture loading (Phase 5)
+ * Place NFT planes with real texture loading from Room9 folder
+ * Preserves original aspect ratios of images
  */
 function placeNFTs(path) {
   const nftPositions = detectNFTPositions(path);
   const cfg = ROOM9_CONFIG;
-  const nftSize = cfg.nftSize;
+  const baseSize = cfg.nftBaseSize;
   const textureLoader = new THREE.TextureLoader();
-  
+
   const nftPlanes = [];
   let loadedCount = 0;
-  
+
+  // Use all 18 images, cycling if needed
+  const totalImages = room9NftFiles.length;
+
   nftPositions.forEach((pos, index) => {
     const world = gridToWorld(pos.x, pos.z);
-    
+
     // Determine wall facing based on path direction
     const nextIdx = Math.min(index + 1, path.length - 1);
     const next = path[nextIdx];
     const dx = next.x - pos.x;
     const dz = next.z - pos.z;
-    
+
     // Place NFT on adjacent wall (perpendicular to path direction)
     let nftX = world.x;
     let nftZ = world.z;
     let rotationY = 0;
-    
+
     if (Math.abs(dx) > Math.abs(dz)) {
       // Moving in X, place on Z wall
       nftZ += (Math.random() > 0.5 ? 1 : -1) * cfg.cellSize * 0.6;
@@ -670,55 +694,84 @@ function placeNFTs(path) {
       nftX += (Math.random() > 0.5 ? 1 : -1) * cfg.cellSize * 0.6;
       rotationY = Math.PI / 2;
     }
-    
+
+    // Get the image filename for this position
+    const imageIndex = index % totalImages;
+    const filename = room9NftFiles[imageIndex];
+    const nftUrl = `/assets/Room9/${filename}.png`;
+
     // Start with black placeholder
     const placeholderMaterial = new THREE.MeshBasicMaterial({
       color: 0x000000,
       side: THREE.DoubleSide
     });
-    
+
     const nftPlane = new THREE.Mesh(
-      new THREE.PlaneGeometry(nftSize, nftSize),
+      new THREE.PlaneGeometry(baseSize, baseSize),
       placeholderMaterial
     );
-    
+
     nftPlane.position.set(nftX, eyeHeight, nftZ);
     nftPlane.rotation.y = rotationY;
-    
+
     scene.add(nftPlane);
     nftPlanes.push(nftPlane);
-    
-    // Load real NFT texture asynchronously
-    const nftIndex = cfg.nftStartIndex + index;
-    const nftUrl = getNftUrl(nftIndex);
-    
-    textureLoader.load(
-      nftUrl,
-      (texture) => {
-        // Success: replace material with textured version
-        texture.minFilter = THREE.LinearFilter;
-        texture.magFilter = THREE.LinearFilter;
-        texture.encoding = THREE.sRGBEncoding;
-        
-        nftPlane.material = new THREE.MeshBasicMaterial({
-          map: texture,
-          side: THREE.DoubleSide
-        });
-        
-        loadedCount++;
-        if (loadedCount === nftPositions.length) {
-          console.log(`✓ All ${loadedCount} NFT textures loaded (nft${cfg.nftStartIndex}-${nftIndex})`);
-        }
-      },
-      undefined,
-      (error) => {
-        // Fallback: keep black placeholder
-        console.warn(`⚠ NFT ${nftIndex} failed to load, using placeholder`);
+
+    // Load actual image to get dimensions, then create textured plane with correct aspect ratio
+    const img = new Image();
+    img.onload = function() {
+      const imgWidth = img.width;
+      const imgHeight = img.height;
+      const aspectRatio = imgWidth / imgHeight;
+
+      // Calculate plane dimensions based on aspect ratio
+      let planeWidth, planeHeight;
+      if (aspectRatio >= 1) {
+        // Landscape or square
+        planeWidth = baseSize;
+        planeHeight = baseSize / aspectRatio;
+      } else {
+        // Portrait
+        planeWidth = baseSize * aspectRatio;
+        planeHeight = baseSize;
       }
-    );
+
+      // Update geometry with correct aspect ratio
+      nftPlane.geometry.dispose();
+      nftPlane.geometry = new THREE.PlaneGeometry(planeWidth, planeHeight);
+
+      // Load texture
+      textureLoader.load(
+        nftUrl,
+        (texture) => {
+          texture.minFilter = THREE.LinearFilter;
+          texture.magFilter = THREE.LinearFilter;
+          texture.colorSpace = THREE.SRGBColorSpace;
+
+          nftPlane.material.dispose();
+          nftPlane.material = new THREE.MeshBasicMaterial({
+            map: texture,
+            side: THREE.DoubleSide
+          });
+
+          loadedCount++;
+          if (loadedCount === nftPositions.length) {
+            console.log(`✓ All ${loadedCount} Room9 NFT textures loaded with original aspect ratios`);
+          }
+        },
+        undefined,
+        (error) => {
+          console.warn(`⚠ Room9 NFT ${filename} failed to load`);
+        }
+      );
+    };
+    img.onerror = function() {
+      console.warn(`⚠ Could not load image dimensions for ${filename}`);
+    };
+    img.src = nftUrl;
   });
-  
-  console.log(`✓ Placed ${nftPlanes.length} NFT planes, loading textures...`);
+
+  console.log(`✓ Placed ${nftPlanes.length} NFT planes, loading Room9 textures...`);
   return nftPlanes;
 }
 
