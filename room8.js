@@ -61,7 +61,7 @@ const ROOM8_CONFIG = {
   platformAngularSpacing: 51.43, // Degrees between platforms (360°/7)
   
   // Player physics
-  eyeHeight: 3.5,   // Balanced height - higher than default but stable on platforms
+  eyeHeight: 5.25,  // Elevated 50% for easier platform jumping (was 3.5)
   speed: 100.0,
   gravity: -30,
   jumpVelocity: 10,
@@ -1081,10 +1081,11 @@ function createWallNFTs() {
   // 6 rings × 8 NFTs = 48 total
   const ringHeights = [6, 14, 22, 30, 38, 46];
   const perRing = 8;
-  const nftSize = cfg.nftSize;
+  const baseSize = cfg.nftSize; // Base dimension for scaling
   const shaftHeight = cfg.height;  // 50 units
 
   let count = 0;
+  let loadedCount = 0;
 
   for (let r = 0; r < ringHeights.length; r++) {
     const h = ringHeights[r];
@@ -1097,38 +1098,83 @@ function createWallNFTs() {
 
     for (let s = 0; s < perRing; s++) {
       const angle = (s / perRing) * Math.PI * 2;  // Angle around circle
+      const filename = room8NftFiles[count];
+      const nftUrl = `/assets/Room8/${filename}.png`;
 
       // Create a pivot group at the center
       const pivot = new THREE.Group();
       pivot.position.set(0, h, 0);  // Position at ring height
       pivot.rotation.y = angle;     // Rotate to slot position
 
-      // Load texture from Room8 folder
-      const filename = room8NftFiles[count];
-      const tex = textureLoader.load(`/assets/Room8/${filename}.png`, (t) => {
-        t.colorSpace = THREE.SRGBColorSpace;
-      });
-
-      // Create plane facing +Z, positioned at -Z (toward wall)
-      const mat = new THREE.MeshBasicMaterial({
-        map: tex,
-        side: THREE.DoubleSide,
-        toneMapped: false
+      // Create placeholder plane (will be updated with correct aspect ratio)
+      const placeholderMat = new THREE.MeshBasicMaterial({
+        color: 0x000000,
+        side: THREE.DoubleSide
       });
 
       const plane = new THREE.Mesh(
-        new THREE.PlaneGeometry(nftSize, nftSize),
-        mat
+        new THREE.PlaneGeometry(baseSize, baseSize),
+        placeholderMat
       );
 
       // Position plane at wall distance for THIS height, facing center
-      // Plane is child of pivot, so it will rotate with the pivot
-      plane.position.set(0, 0, -wallDist);  // Offset backward from pivot
-      // No rotation needed - plane faces +Z by default, which is toward center
+      plane.position.set(0, 0, -wallDist);
 
       pivot.add(plane);
       scene.add(pivot);
       nftGroups.push(pivot);
+
+      // Load actual image to get dimensions, then update geometry with correct aspect ratio
+      const img = new Image();
+      img.onload = function() {
+        const imgWidth = img.width;
+        const imgHeight = img.height;
+        const aspectRatio = imgWidth / imgHeight;
+
+        // Calculate plane dimensions preserving aspect ratio
+        let planeWidth, planeHeight;
+        if (aspectRatio >= 1) {
+          // Landscape or square
+          planeWidth = baseSize;
+          planeHeight = baseSize / aspectRatio;
+        } else {
+          // Portrait (vertical) - these images
+          planeWidth = baseSize * aspectRatio;
+          planeHeight = baseSize;
+        }
+
+        // Update geometry with correct aspect ratio
+        plane.geometry.dispose();
+        plane.geometry = new THREE.PlaneGeometry(planeWidth, planeHeight);
+
+        // Load texture
+        textureLoader.load(
+          nftUrl,
+          (texture) => {
+            texture.colorSpace = THREE.SRGBColorSpace;
+
+            plane.material.dispose();
+            plane.material = new THREE.MeshBasicMaterial({
+              map: texture,
+              side: THREE.DoubleSide,
+              toneMapped: false
+            });
+
+            loadedCount++;
+            if (loadedCount === 48) {
+              console.log(`✓ All 48 Room8 NFT textures loaded with original aspect ratios`);
+            }
+          },
+          undefined,
+          (error) => {
+            console.warn(`⚠ Room8 NFT ${filename} failed to load texture`);
+          }
+        );
+      };
+      img.onerror = function() {
+        console.warn(`⚠ Could not load image dimensions for ${filename}`);
+      };
+      img.src = nftUrl;
 
       count++;
     }
@@ -1136,7 +1182,7 @@ function createWallNFTs() {
     console.log(`Ring ${r + 1}/6 at Y=${h}: ${perRing} NFTs (wallRadius=${wallRadius.toFixed(2)}, dist=${wallDist.toFixed(2)})`);
   }
 
-  console.log(`✓ Total: ${count} NFTs in 6 rings (accounting for tapered wall)`);
+  console.log(`✓ Total: ${count} NFT placeholders created, loading textures with aspect ratio preservation...`);
   return nftGroups;
 }
 
