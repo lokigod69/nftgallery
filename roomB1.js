@@ -1,21 +1,10 @@
-// Changes made:
-// - Created roomB.js with an open space design featuring a simple floor with surrounding walls
-// - Added a portal connection to room0
-// - Implemented minimalist design with simple geometry and wood texture floor
-// - Used the same controls as other rooms for movement and camera panning
-// - Created an enclosed box structure with high ceilings
-// - Fixed camera controls to match other rooms
-// - Increased camera height for better visibility (now at 8.0)
-// - Increased movement speed for faster navigation
-// - Added GLB model loading functionality with GLTFLoader
-// - Fixed loading bar issues
-// - Removed all platforms and ramps as requested
-// - Added textured wood floor with mosaic pattern: wood_floor2 with wood_floor1 inlays positioned in top-left corner, center, and bottom-right of each tile
-// - Created walls decorated with NFT artwork randomly scattered across all four walls
-// - Added randomly scattered copper tiles at the top and bottom of all four walls using multiple copper textures (copper1-4) with varying sizes and orientations
-// - Applied metal2.jpeg texture to the walls for a full metallic room theme
-// - Made the ceiling reflective to create a mirror effect that reflects the entire room
-// - Randomized NFT placement and mixed with copper tiles while preventing overlaps
+// Room B1 - Extension of the B Gallery Series
+// - Cloned from roomB.js with different metal and copper textures
+// - Uses metal3 for walls instead of metal2
+// - Uses copper1, copper4a, copper4b, copper4c for decorations
+// - Loads 60 NFTs from RoomB1 folder (PNG format)
+// - Features floor portal to Room B2
+// - Same room dimensions, special jumping physics (high jump, slow fall)
 
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
@@ -26,7 +15,7 @@ import { loadTextureWithDiagnostics, logTextureLoadingSummary, getTextureUrl, ge
 // Scene Setup
 // ----------------------------------------------------------------------
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87ceeb); // Light blue sky background
+scene.background = new THREE.Color(0x6b8e9f); // Slightly darker blue-gray for Room B1
 
 // Camera setup
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -301,9 +290,9 @@ function createTexturedWalls() {
 }
 
 function createBaseWalls(thickness) {
-  // Load metal2 texture for walls
+  // Load metal3 texture for walls (different from Room B)
   const textureLoader = new THREE.TextureLoader();
-  const metalTexture = textureLoader.load(getTextureUrl('metal2'), function(texture) {
+  const metalTexture = textureLoader.load(getTextureUrl('metal3'), function(texture) {
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
     texture.repeat.set(8, 4); // Repeat to cover the large walls
@@ -407,15 +396,12 @@ function createMirrorCeiling() {
 }
 
 function addCopperWavePatterns() {
-  // Load all copper textures
+  // Load copper textures (different subset for Room B1)
   const textureLoader = new THREE.TextureLoader();
   const copperTextures = [];
-  
+
   const copperFiles = [
     getTextureUrl('copper1'),
-    getTextureUrl('copper2'),
-    getTextureUrl('copper3'),
-    getTextureUrl('copper4'),
     getTextureUrl('copper4a'),
     getTextureUrl('copper4b'),
     getTextureUrl('copper4c')
@@ -806,15 +792,12 @@ function getWallDimensions(wallType) {
 }
 
 function addMixedDecorationsToWalls() {
-  // Load all copper textures
+  // Load copper textures (different subset for Room B1)
   const textureLoader = new THREE.TextureLoader();
   const copperTextures = [];
 
   const copperFiles = [
     getTextureUrl('copper1'),
-    getTextureUrl('copper2'),
-    getTextureUrl('copper3'),
-    getTextureUrl('copper4'),
     getTextureUrl('copper4a'),
     getTextureUrl('copper4b'),
     getTextureUrl('copper4c')
@@ -870,10 +853,69 @@ function addMixedDecorationsToWalls() {
   // Then load real textures progressively and update materials when ready
 
   const nftMaterials = []; // Store materials so we can update them when textures load
-  const nftFiles = [];
-  for (let i = 1; i <= 60; i++) {
-    nftFiles.push(`RoomB/b${i}`);
-  }
+  // Room B1 NFT files (60 PNG images with descriptive names)
+  const nftFiles = [
+    'aha_its_over_--ar_34_--profile_4qkwdsq_--v_7_244e75f1-3bb1-41e0-8e04-50760d654377_0',
+    'aha_its_over_--ar_34_--profile_4qkwdsq_--v_7_244e75f1-3bb1-41e0-8e04-50760d654377_2',
+    'art_--ar_34_--profile_4qkwdsq_--v_7_94bfd84a-c95b-46b8-b1e8-d0bc8de511bf_3',
+    'discombobulating_--ar_34_--v_7_c1d1258a-272a-4089-92e0-5fc250b71120_3',
+    'dissolve_dissect_disperse_--ar_34_--profile_4qkwdsq_--v_7_cc45f451-c075-4703-a724-03c62e40d2c5_0',
+    'dissolve_dissect_disperse_--ar_34_--profile_4qkwdsq_--v_7_cc45f451-c075-4703-a724-03c62e40d2c5_3',
+    'dont_die_--ar_34_--v_7_870345a9-8c53-4805-bd11-c21f749b4403_0',
+    'fever_in_style_--ar_34_--profile_4qkwdsq_--v_7_988a066a-9e98-47a2-a2eb-d6279088a44a_3',
+    'forever_and_never_--ar_34_--profile_4qkwdsq_--v_7_cd78cef2-c57f-40ff-8af5-f79c938abd59_1',
+    'fren_jaa_ko_ok_issa_min_baba_--chaos_15_--ar_34_--stylize_600_219366e1-b082-4f34-aa6e-10075bec2445_3',
+    'frinda_lofte_berti_frassa_--chaos_35_--ar_34_--profile_4qkwds_e7a078e7-7ea6-4e3d-98d9-accee4cd5326_0',
+    'frinda_lofte_berti_frassa_--chaos_35_--ar_34_--profile_4qkwds_e7a078e7-7ea6-4e3d-98d9-accee4cd5326_1',
+    'fumbling_the_leader_--ar_34_--profile_4qkwdsq_--v_7_a7f391eb-9880-4ed6-a874-cad3bab76f73_0',
+    'fumbling_the_leader_--ar_34_--profile_4qkwdsq_--v_7_a7f391eb-9880-4ed6-a874-cad3bab76f73_3',
+    'guffaw_at_crossroad_station_--ar_34_--profile_4qkwdsq_--v_7_e430732a-e9b6-4ba1-9e4e-d621d17d65cc_0',
+    'guffaw_at_crossroad_station_--ar_34_--profile_4qkwdsq_--v_7_e430732a-e9b6-4ba1-9e4e-d621d17d65cc_1',
+    'guffaw_at_crossroad_station_--ar_34_--profile_4qkwdsq_--v_7_e430732a-e9b6-4ba1-9e4e-d621d17d65cc_3',
+    'iubwdq_quwibpd_puioqnwodim_qmpwodmq_p_mqpwdmn_oqq_nwnwpq_d_nq_1308193b-9674-49be-9a6b-f23f417b78bb_0',
+    'iubwdq_quwibpd_puioqnwodim_qmpwodmq_p_mqpwdmn_oqq_nwnwpq_d_nq_1308193b-9674-49be-9a6b-f23f417b78bb_3',
+    'juntar_robnik_grasdu_plecki_--chaos_35_--ar_34_--profile_4qkw_c917eed1-6ff2-4d4e-a5c9-d9107642d6fe_0',
+    'juntar_robnik_grasdu_plecki_--chaos_35_--ar_34_--profile_4qkw_c917eed1-6ff2-4d4e-a5c9-d9107642d6fe_3',
+    'juuuuce_in_floooodin_bunt_schwarz_weis_brei_--chaos_35_--ar_3_71ef9bbc-8d03-47ff-9503-5c1332d4a450_0',
+    'juuuuce_in_floooodin_bunt_schwarz_weis_brei_--chaos_35_--ar_3_71ef9bbc-8d03-47ff-9503-5c1332d4a450_2',
+    'juuuuce_in_floooodin_bunt_schwarz_weis_brei_--chaos_35_--ar_3_71ef9bbc-8d03-47ff-9503-5c1332d4a450_3',
+    'kin_--ar_34_--profile_4qkwdsq_--v_7_e043d59a-5db8-44d9-81d8-7a82cace814a_2',
+    'klaaar_1_waran_bvjskdj_--chaos_15_--ar_34_--stylize_600_--wei_932f8c4a-da46-466d-b46f-7f3586153e45_1',
+    'klaaar_1_waran_bvjskdj_--chaos_15_--ar_34_--stylize_600_--wei_932f8c4a-da46-466d-b46f-7f3586153e45_3',
+    'lakidaci_nagasaki_kaki_flaki_--chaos_35_--ar_34_--stylize_250_aca4c470-5a67-4d6a-9b94-24b75c80239b_1',
+    'lakidaci_nagasaki_kaki_flaki_--chaos_35_--ar_34_--stylize_250_aca4c470-5a67-4d6a-9b94-24b75c80239b_3',
+    'licking_boots_while_feeding_moods_circus_de_macabre_lemur_dan_e03846cd-e87f-4276-93e4-8aa3a2ebd13d_0',
+    'licking_boots_while_feeding_moods_circus_de_macabre_lemur_dan_e03846cd-e87f-4276-93e4-8aa3a2ebd13d_3',
+    'lokopterin_brazzs_freek_--chaos_35_--ar_34_--profile_4qkwdsq__8a07fc15-2251-4ed0-93e2-656297ddef53_0',
+    'lokopterin_brazzs_freek_--chaos_35_--ar_34_--profile_4qkwdsq__8a07fc15-2251-4ed0-93e2-656297ddef53_1',
+    'lokopterin_brazzs_freek_--chaos_35_--ar_34_--profile_4qkwdsq__8a07fc15-2251-4ed0-93e2-656297ddef53_2',
+    'lokopterin_brazzs_freek_--chaos_35_--ar_34_--profile_4qkwdsq__8a07fc15-2251-4ed0-93e2-656297ddef53_3',
+    'lugubrious_ducks_--ar_34_--profile_4qkwdsq_--v_7_625312db-00c1-4aac-810b-6d7d51b7ce5c_0',
+    'luntar_progir_dembel_kallun_--chaos_35_--ar_34_--profile_4qkw_8fecfaeb-5660-44f8-8c0c-c36279f5df31_0',
+    'obfuscate_--ar_34_--v_7_60f612de-8d3e-4365-9f5e-6a6ca22902d1_0',
+    'purgatory_--ar_34_--profile_4qkwdsq_--v_7_de305a88-c937-428a-8c55-26026821f9c8_2',
+    'simp_--ar_34_--profile_4qkwdsq_--v_7_b0c9b510-9fd7-4889-aa4e-6c3909ab19c1_0',
+    'simp_--ar_34_--profile_4qkwdsq_--v_7_b0c9b510-9fd7-4889-aa4e-6c3909ab19c1_2',
+    'smear_campaign_in_Pamplona_--ar_34_--profile_4qkwdsq_--v_7_1978fa5c-7f2c-4e04-8abc-aca640d3ff8b_1',
+    'tann_freee_q_q_2_--chaos_35_--ar_34_--profile_4qkwdsq_--styli_e85249cf-1f98-4a99-997c-1da9d49ff7ca_0',
+    'tann_freee_q_q_2_--chaos_35_--ar_34_--profile_4qkwdsq_--styli_e85249cf-1f98-4a99-997c-1da9d49ff7ca_1',
+    'tann_freee_q_q_2_--chaos_35_--ar_34_--profile_4qkwdsq_--styli_e85249cf-1f98-4a99-997c-1da9d49ff7ca_2',
+    'tann_freee_q_q_2_--chaos_35_--ar_34_--profile_4qkwdsq_--styli_e85249cf-1f98-4a99-997c-1da9d49ff7ca_3',
+    'tantalizing_idols_--chaos_35_--ar_34_--profile_4qkwdsq_--styl_c076f05f-ad0f-4da7-9978-e66e0dfc2b99_0',
+    'tantalizing_idols_--chaos_35_--ar_34_--profile_4qkwdsq_--styl_c076f05f-ad0f-4da7-9978-e66e0dfc2b99_3',
+    'tartufon_pho_n_e_ai_nut_--chaos_35_--ar_34_--stylize_250_--we_8dc61495-e5a8-4f97-8965-50ce127efec0_2',
+    'tartufon_pho_n_e_ai_nut_--chaos_35_--ar_34_--stylize_250_--we_8dc61495-e5a8-4f97-8965-50ce127efec0_3',
+    'trembling_haze_licking_one_color_code_--chaos_50_--ar_34_--pr_e61beb04-1cb4-4369-8365-8b1f6b03c9d3_2',
+    'trouble_beyond_repair_--ar_34_--profile_eamzyo3_--v_7_ca2c34b7-9c92-467f-a31a-f1dc5ca2e0fb_1',
+    'truc_sinbaa_qokaju_inpim_--chaos_35_--ar_34_--stylize_250_--w_c73a34c8-479f-46d6-90dd-07e2c1567b22_1',
+    'truc_sinbaa_qokaju_inpim_--chaos_35_--ar_34_--stylize_250_--w_c73a34c8-479f-46d6-90dd-07e2c1567b22_2',
+    'tuton_faseda_lilino_pitcha_caan_--chaos_35_--ar_34_--profile__0dcbcf1d-68a1-49e4-aa85-a6731dea5cdc_2',
+    'water_dripping_viscous_oozing_monochrome_liquids_solo_color_i_efa0881a-a126-4d45-9fc3-061253c7a22e_1',
+    'what_when_where_--ar_34_--profile_4qkwdsq_--v_7_78bc0823-14e1-43ca-ae20-0ee0f69af435_0',
+    'what_when_where_--ar_34_--profile_4qkwdsq_--v_7_78bc0823-14e1-43ca-ae20-0ee0f69af435_1',
+    'what_when_where_--ar_34_--profile_4qkwdsq_--v_7_78bc0823-14e1-43ca-ae20-0ee0f69af435_2',
+    'what_when_where_--ar_34_--profile_4qkwdsq_--v_7_78bc0823-14e1-43ca-ae20-0ee0f69af435_3'
+  ].map(name => `RoomB1/${name}`);
 
   // STEP 1: Place all 60 NFT frames immediately with placeholder (loading) appearance
   const minHeight = 5;
@@ -987,8 +1029,9 @@ function addMixedDecorationsToWalls() {
     if (index >= nftFiles.length) return;
 
     const filename = nftFiles[index];
+    // Use PNG format directly for RoomB1 files (not webp)
     textureLoader.load(
-      getTextureUrl(filename),
+      `/assets/${filename}.png`,
       function(tex) {
         // Use colorSpace instead of deprecated encoding
         tex.colorSpace = THREE.SRGBColorSpace;
@@ -1466,9 +1509,9 @@ function createLighting() {
 }
 
 // ----------------------------------------------------------------------
-// Create Floor Portal to Room B1
+// Create Floor Portal to Room B2
 // ----------------------------------------------------------------------
-function createPortalToRoomB1() {
+function createPortalToRoomB2() {
   const portalGeometry = new THREE.CircleGeometry(5, 32); // Floor portal
   const portalMaterial = new THREE.MeshBasicMaterial({
     color: 0xff6600, // Orange color to distinguish from other portals
@@ -1510,7 +1553,7 @@ function createPortalToRoomB1() {
   context.fillStyle = '#ffffff';
   context.font = 'Bold 36px Arial';
   context.textAlign = 'center';
-  context.fillText('Enter Room B1', canvas.width / 2, canvas.height / 2);
+  context.fillText('Enter Room B2', canvas.width / 2, canvas.height / 2);
 
   const labelTexture = new THREE.CanvasTexture(canvas);
   const labelMaterial = new THREE.MeshBasicMaterial({
@@ -1540,22 +1583,22 @@ function checkPortalProximity() {
 
   // When player is within 8 units of the portal, show prompt
   if (distance < 8) {
-    document.getElementById('controls-description').textContent = 'Step onto portal to enter Room B1';
+    document.getElementById('controls-description').textContent = 'Step onto portal to enter Room B2';
     document.getElementById('controls-description').style.display = 'block';
 
     // When player is within 4 units of the portal, teleport automatically
     if (distance < 4) {
-      console.log('Teleporting to Room B1');
+      console.log('Teleporting to Room B2');
 
       // Show loading screen
       const loadingOverlay = document.getElementById('loading-overlay');
       if (loadingOverlay) {
         loadingOverlay.style.display = 'flex';
       }
-
+      
       // Add a small delay before teleporting for smoother transition
       setTimeout(() => {
-        window.location.href = 'roomB1.html';
+        window.location.href = 'roomB2.html';
       }, 200);
     }
   } else {
@@ -1567,15 +1610,15 @@ function checkPortalProximity() {
 // Initialize Scene
 // ----------------------------------------------------------------------
 function initializeRoom() {
-  console.log("Initializing Room B (Gallery Room)...");
+  console.log("Initializing Room B1 (Gallery Room)...");
 
   // Create the basic room structure
   console.log("Creating room structure and mixed decorations...");
   createBasicRoom();
 
-  // Create floor portal to Room B1
-  console.log("Creating portal to Room B1...");
-  createPortalToRoomB1();
+  // Create floor portal to Room B2
+  console.log("Creating portal to Room B2...");
+  createPortalToRoomB2();
   
   // Load GLB model
   console.log("Loading GLB model...");

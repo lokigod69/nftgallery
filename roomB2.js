@@ -1,21 +1,10 @@
-// Changes made:
-// - Created roomB.js with an open space design featuring a simple floor with surrounding walls
-// - Added a portal connection to room0
-// - Implemented minimalist design with simple geometry and wood texture floor
-// - Used the same controls as other rooms for movement and camera panning
-// - Created an enclosed box structure with high ceilings
-// - Fixed camera controls to match other rooms
-// - Increased camera height for better visibility (now at 8.0)
-// - Increased movement speed for faster navigation
-// - Added GLB model loading functionality with GLTFLoader
-// - Fixed loading bar issues
-// - Removed all platforms and ramps as requested
-// - Added textured wood floor with mosaic pattern: wood_floor2 with wood_floor1 inlays positioned in top-left corner, center, and bottom-right of each tile
-// - Created walls decorated with NFT artwork randomly scattered across all four walls
-// - Added randomly scattered copper tiles at the top and bottom of all four walls using multiple copper textures (copper1-4) with varying sizes and orientations
-// - Applied metal2.jpeg texture to the walls for a full metallic room theme
-// - Made the ceiling reflective to create a mirror effect that reflects the entire room
-// - Randomized NFT placement and mixed with copper tiles while preventing overlaps
+// Room B2 - Extension of the B Gallery Series
+// - Cloned from roomB.js with different metal and copper textures
+// - Uses metal4 for walls
+// - Uses copper2, copper3, copper4 for decorations
+// - Loads 60 NFTs from RoomB2 folder (PNG format)
+// - Features floor portal back to Room 0
+// - Same room dimensions, special jumping physics (high jump, slow fall)
 
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
@@ -26,7 +15,7 @@ import { loadTextureWithDiagnostics, logTextureLoadingSummary, getTextureUrl, ge
 // Scene Setup
 // ----------------------------------------------------------------------
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87ceeb); // Light blue sky background
+scene.background = new THREE.Color(0x5a7080); // Even darker blue-gray for Room B2
 
 // Camera setup
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -301,9 +290,9 @@ function createTexturedWalls() {
 }
 
 function createBaseWalls(thickness) {
-  // Load metal2 texture for walls
+  // Load metal4 texture for walls (different from Room B and B1)
   const textureLoader = new THREE.TextureLoader();
-  const metalTexture = textureLoader.load(getTextureUrl('metal2'), function(texture) {
+  const metalTexture = textureLoader.load(getTextureUrl('metal4'), function(texture) {
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
     texture.repeat.set(8, 4); // Repeat to cover the large walls
@@ -407,18 +396,14 @@ function createMirrorCeiling() {
 }
 
 function addCopperWavePatterns() {
-  // Load all copper textures
+  // Load copper textures (different subset for Room B2)
   const textureLoader = new THREE.TextureLoader();
   const copperTextures = [];
-  
+
   const copperFiles = [
-    getTextureUrl('copper1'),
     getTextureUrl('copper2'),
     getTextureUrl('copper3'),
-    getTextureUrl('copper4'),
-    getTextureUrl('copper4a'),
-    getTextureUrl('copper4b'),
-    getTextureUrl('copper4c')
+    getTextureUrl('copper4')
   ];
   
   // Load all copper textures
@@ -806,18 +791,14 @@ function getWallDimensions(wallType) {
 }
 
 function addMixedDecorationsToWalls() {
-  // Load all copper textures
+  // Load copper textures (different subset for Room B2)
   const textureLoader = new THREE.TextureLoader();
   const copperTextures = [];
 
   const copperFiles = [
-    getTextureUrl('copper1'),
     getTextureUrl('copper2'),
     getTextureUrl('copper3'),
-    getTextureUrl('copper4'),
-    getTextureUrl('copper4a'),
-    getTextureUrl('copper4b'),
-    getTextureUrl('copper4c')
+    getTextureUrl('copper4')
   ];
 
   // Batched loading configuration
@@ -870,10 +851,69 @@ function addMixedDecorationsToWalls() {
   // Then load real textures progressively and update materials when ready
 
   const nftMaterials = []; // Store materials so we can update them when textures load
-  const nftFiles = [];
-  for (let i = 1; i <= 60; i++) {
-    nftFiles.push(`RoomB/b${i}`);
-  }
+  // Room B2 NFT files (60 PNG images with descriptive names)
+  const nftFiles = [
+    'A_chess_game_between_a_mannequin_and_a_mirror_pieces_sculpted_2fb2d847-0753-454c-9353-dba90ba264c7_0',
+    'A_massive_cube_of_black_ink_levitating_over_a_desert_salt_fla_b17f17f7-e952-4d25-9782-7f28d398ccb6_0',
+    'Bedouin_caravan_cresting_ochre_dunes_at_golden_hour_shadows_c_d33dca3e-0218-4a20-88e3-995bd0ae3b68_0',
+    'Detroit_warehouse_inferno_at_midnight_firefighters_silhouette_51befdea-9d4d-4361-9924-74c64c14c5c0_0',
+    'Dhow_silhouette_on_the_Gulf_of_Oman_at_magenta_dusk_sail_clot_76154597-02b6-4538-a2bc-ab9f380586cb_0',
+    'Electron_microscope_view_of_snowflake_crystal_at_50000x_magni_da08dd05-97c8-4343-b60c-f3bcb398180d_0',
+    'Erupting_coralspire_volcanic_fury_towering_reef-spire_of_crim_422353f9-bc74-4ed5-a8b3-991ceeaa23c4_0',
+    'Exploding_velvet_nebula_plush_crimson_cosmos_tears_apart_into_88bfd611-c7cb-48ae-ac29-d59cd74dd784_0',
+    'Industrial_shipyard_at_sunset_silhouettes_of_gantry_cranes_co_d4547443-dfb3-48e1-a5a6-26a7dd4ed99c_0',
+    'Inside_a_barreling_wave_surf_photographer_captures_water_wall_deb2fa07-e658-46a1-bcb7-c79e7d6c6a3f_0',
+    'Inside_sapphire-blue_Antarctic_ice_cave_diffuse_skylight_make_fc937a9c-19b8-4481-9f0c-b942de0999e2_0',
+    'Kreuzberg_Berlin_after_rain_street_lights_reflect_razor-sharp_ef3fb5f7-2967-4685-a6c0-a9a6c9687194_0',
+    'Levitating_rust_monks_corroded_monks_hover_in_iron_desert_ora_6f3555e6-9da3-48f6-bf64-f39352ec109e_0',
+    'lokigod69._Ghost-town_Route_66_gas_station_at_high_noon_cracked_4e48ea26-6583-425b-91aa-49b87342bc09',
+    'lokigod69._Gleaming_marble_metro_station_in_Saint_Petersburg_fl_320f99eb-9a87-4d29-9252-74ecb1d86b69',
+    'lokigod69._Golden_wheat_field_beneath_gathering_thunderheads_so_97dea6f1-b869-4cab-98a5-a92a7eebcbd5',
+    'lokigod69._Graffiti_mural_in_narrow_city_alley_melts_pigments_f_176ee3bc-0d4f-415e-aab4-86d20ef354cf',
+    'lokigod69._Graffiti_mural_in_narrow_city_alley_melts_pigments_f_52a45485-ca41-4c7d-a998-6d53490c754b',
+    'lokigod69._Hawaiian_lava_river_meeting_Pacific_at_night_steam_p_63b97eda-98d8-44fa-b652-5163e36b46a0',
+    'lokigod69._Herd_of_Icelandic_horses_thundering_across_lupine-sp_0314757b-0b36-4e74-acfb-a040837bed73',
+    'lokigod69._High-speed_140_000_s_capture_of_artisan_chocolatier__e8cc3d31-c141-4b2b-a835-74f129a9d9ad',
+    'lokigod69._Humpback_whale_breaches_beside_small_sailboat_midday_0972ee55-a981-409c-8966-402699f622d9',
+    'lokigod69._Hyperrealistic_human_eye_macro_in_monochrome_capture_17ea5b9b-2f4a-4ace-9024-45dfbebf11b5',
+    'lokigod69._Joshua_Tree_desert_night_long_exposure_stars_appear__3ca58e0b-e85e-45e9-a57f-2924021b93fb',
+    'lokigod69._Karst_river_dawn_in_Guangxi_lone_fisherman_on_bamboo_f5885458-0581-4ed6-8466-3db685a686a0',
+    'lokigod69._Laboratory_cross-section_of_1000-year_redwood_trunk__0224490d-e752-46df-a97f-5c72a6367df8',
+    'lokigod69._Levitating_rust_monks_corroded_monks_hover_in_iron_d_6f3555e6-9da3-48f6-bf64-f39352ec109e',
+    'lokigod69._Macro_close-up_of_a_single_blade_of_prairie_grass_at_32e68126-48c6-418f-9a33-04bfcda171f2',
+    'lokigod69._Macro_dandelion_seed_head_backlit_every_filament_agl_be31f5a0-9812-4f25-8421-e71386bbb815',
+    'lokigod69._Mirror-still_alpine_lake_in_British_Columbia_at_dawn_28655554-a7ff-4ba4-bd45-2f7f8ce0ee09',
+    'lokigod69._Moonlit_salt_flats_of_Salar_de_Uyuni_during_wet_seas_aa695a69-e1e6-40cc-ab2d-4058863425e1',
+    'lokigod69._Mycelium_circuit_board_bio-luminous_fungus_traces_si_3d2a66da-9fb5-4a6a-9259-21546c10699d',
+    'lokigod69._Mycelium_circuit_board_bio-luminous_fungus_traces_si_44df0fd6-2194-4834-9342-60373353a122',
+    'lokigod69._Night_dive_beneath_Maldivian_atoll_manta_ray_swoops__6c1caf92-234e-4306-af30-7d1604ba9ea6',
+    'lokigod69._Night-shift_freight_yard_outside_Hamburg_rust-red_ca_8803256c-9038-456a-81f5-6f40da29ed8c',
+    'lokigod69._Opalescent_tide_hunters_pearl-skinned_nomads_riding__f3872ae3-7487-48b6-9678-42188c391dc0',
+    'lokigod69._Pacific_tide_pool_low_tide_ochre_starfish_its_arms_d_8368817c-0582-42ae-8c29-5c9d97a14203',
+    'lokigod69._Portrait_of_proud_Maasai_warrior_in_dusty_savanna_co_521906ca-4ee1-42cd-af30-a1dcd7ac3061',
+    'lokigod69._Pulsating_fog_armada_ghost_ships_materialize_in_thro_d6da6d85-fad5-452a-931a-6cc99d9de59a',
+    'lokigod69._Rain-drenched_back-alley_ramen_bar_in_Osaka_crimson__3d388fa3-d623-4071-ba86-b6becf4392e0',
+    'lokigod69._Rain-forest_gecko_clinging_to_leaf_skin_pattern_morp_17d231f6-82d7-4d8c-a6d5-0a1d21d66c68',
+    'lokigod69._Rhodium_skull_forge_silver_skulls_pour_from_blazing__9b1f4bac-ffb8-4b63-ba38-999243970ffc',
+    'lokigod69._Road-trip_snapshot_in_Arizona_desert_vintage_station_c14ee9b0-5f54-4574-b01a-abdf515344d4',
+    'lokigod69._Saharan_dust_storm_whipping_across_solar_array_at_no_676fb8d9-eacd-41af-a4d4-eb70a31fe722',
+    'lokigod69._Saharan_dust_storm_whipping_across_solar_array_at_no_6ca2e5f0-16f0-4e3a-90d4-0bee23dfeeeb',
+    'lokigod69._Snow_leopard_mid-pounce_frozen_at_13200_s_each_whisk_ec091e74-ec9b-4457-865b-04294831704a',
+    'lokigod69._Spinning_quartz_prison_rotating_crystal_cage_reflect_7249b37f-02a6-4b6a-a8c2-0a89eff14a40',
+    'lokigod69._Sunset_silhouette_of_lone_acacia_on_Serengeti_branch_50a43d3f-6e25-4551-90bc-9931bac1b753',
+    'lokigod69._Tibetan_yak_standing_on_snow-swept_pass_braided_harn_fad47318-6529-4c3e-aea9-b225951f1f61',
+    'lokigod69._Top-down_drone_of_Danakil_salt_flats_workers_crystal_17929bdb-9ad9-4a62-9317-25ac0d1b81e1',
+    'lokigod69._Top-down_drone_of_Danakil_salt_flats_workers_crystal_3aba4678-f9b4-43b5-aa9a-19a438c5841f',
+    'lokigod69._Top-down_drone_shot_of_Rotterdam_shipping_port_at_du_3bad76e6-5f73-4bc6-afee-833da2ec74be',
+    'lokigod69._Torrential_rain_on_Manhattans_High_Line_puddles_pool_24fc3410-4e79-4bc4-88b8-9db278a25761',
+    'Monochrome_rainforest_canopy_aerial_view_shot_from_helicopter_dbbbee82-4a03-4b61-a90a-d9fd6c60150b_0',
+    'Norwegian_fjord_cliff_base_midnight_sun_grazing_rock_waterfal_51154a84-ab03-4887-b81f-0e80c7fe30e3_0',
+    'Opalescent_tide_hunters_pearl-skinned_nomads_riding_crystal_m_f3872ae3-7487-48b6-9678-42188c391dc0_0',
+    'Pre-monsoon_Bangalore_rooftop_sari_billowing_in_hot_up-draft__1111ff21-0657-468d-8cfb-1a6326b5914a_0',
+    'Rain-forest_tree-frog_clings_to_a_glass_pane_at_night_twin_LE_eb22b6c2-bbce-4c91-bd68-736f1a71f1f9_0',
+    'Rain-slicked_alley_in_Lisbons_Alfama_district_fado_guitarist__6227acce-247f-408c-ab1a-efd1d7d216f0_0',
+    'Street-fashion_capture_of_a_woman_crossing_zebra_stripes_fabr_34b3d99c-065e-4f18-ab38-186e8562ab3b_0'
+  ].map(name => `RoomB2/${name}`);
 
   // STEP 1: Place all 60 NFT frames immediately with placeholder (loading) appearance
   const minHeight = 5;
@@ -987,8 +1027,9 @@ function addMixedDecorationsToWalls() {
     if (index >= nftFiles.length) return;
 
     const filename = nftFiles[index];
+    // Use PNG format directly for RoomB2 files (not webp)
     textureLoader.load(
-      getTextureUrl(filename),
+      `/assets/${filename}.png`,
       function(tex) {
         // Use colorSpace instead of deprecated encoding
         tex.colorSpace = THREE.SRGBColorSpace;
@@ -1466,12 +1507,12 @@ function createLighting() {
 }
 
 // ----------------------------------------------------------------------
-// Create Floor Portal to Room B1
+// Create Floor Portal back to Room 0 (Ocean Room)
 // ----------------------------------------------------------------------
-function createPortalToRoomB1() {
+function createPortalToRoom0() {
   const portalGeometry = new THREE.CircleGeometry(5, 32); // Floor portal
   const portalMaterial = new THREE.MeshBasicMaterial({
-    color: 0xff6600, // Orange color to distinguish from other portals
+    color: 0x00aaaa, // Cyan color - matching Ocean Room portal
     side: THREE.DoubleSide,
     transparent: true,
     opacity: 0.8
@@ -1485,7 +1526,7 @@ function createPortalToRoomB1() {
 
   const glowGeometry = new THREE.CircleGeometry(6, 32);
   const glowMaterial = new THREE.MeshBasicMaterial({
-    color: 0xff8833,
+    color: 0x00cccc,
     side: THREE.DoubleSide,
     transparent: true,
     opacity: 0.4
@@ -1497,7 +1538,7 @@ function createPortalToRoomB1() {
   scene.add(glow);
 
   // Add a light to make the portal more visible
-  const portalLight = new THREE.PointLight(0xff6600, 2.0, 25);
+  const portalLight = new THREE.PointLight(0x00aaaa, 2.0, 25);
   portalLight.position.copy(portal.position);
   portalLight.position.y += 3; // Position light above portal
   scene.add(portalLight);
@@ -1510,7 +1551,7 @@ function createPortalToRoomB1() {
   context.fillStyle = '#ffffff';
   context.font = 'Bold 36px Arial';
   context.textAlign = 'center';
-  context.fillText('Enter Room B1', canvas.width / 2, canvas.height / 2);
+  context.fillText('Return to Ocean Room', canvas.width / 2, canvas.height / 2);
 
   const labelTexture = new THREE.CanvasTexture(canvas);
   const labelMaterial = new THREE.MeshBasicMaterial({
@@ -1540,22 +1581,22 @@ function checkPortalProximity() {
 
   // When player is within 8 units of the portal, show prompt
   if (distance < 8) {
-    document.getElementById('controls-description').textContent = 'Step onto portal to enter Room B1';
+    document.getElementById('controls-description').textContent = 'Step onto portal to return to Ocean Room';
     document.getElementById('controls-description').style.display = 'block';
 
     // When player is within 4 units of the portal, teleport automatically
     if (distance < 4) {
-      console.log('Teleporting to Room B1');
+      console.log('Teleporting to Room 0');
 
       // Show loading screen
       const loadingOverlay = document.getElementById('loading-overlay');
       if (loadingOverlay) {
         loadingOverlay.style.display = 'flex';
       }
-
+      
       // Add a small delay before teleporting for smoother transition
       setTimeout(() => {
-        window.location.href = 'roomB1.html';
+        window.location.href = 'room0.html';
       }, 200);
     }
   } else {
@@ -1567,15 +1608,15 @@ function checkPortalProximity() {
 // Initialize Scene
 // ----------------------------------------------------------------------
 function initializeRoom() {
-  console.log("Initializing Room B (Gallery Room)...");
+  console.log("Initializing Room B2 (Gallery Room)...");
 
   // Create the basic room structure
   console.log("Creating room structure and mixed decorations...");
   createBasicRoom();
 
-  // Create floor portal to Room B1
-  console.log("Creating portal to Room B1...");
-  createPortalToRoomB1();
+  // Create floor portal back to Room 0
+  console.log("Creating portal to Room 0...");
+  createPortalToRoom0();
   
   // Load GLB model
   console.log("Loading GLB model...");
