@@ -862,148 +862,172 @@ function addMixedDecorationsToWalls() {
     copperMaterials[index].needsUpdate = true;
   });
 
-  // NFT loading setup
-  const nftImages = [];
-  const nftDimensions = []; // Array to store the original dimensions of each NFT
+  // NFT Progressive Loading System
+  // Place all 60 NFT frames IMMEDIATELY with placeholder textures
+  // Then load real textures progressively and update materials when ready
 
-  // Generate file names b1.png to b60.png (lowercase to match actual files)
+  const nftMaterials = []; // Store materials so we can update them when textures load
   const nftFiles = [];
   for (let i = 1; i <= 60; i++) {
     nftFiles.push(`RoomB/b${i}`);
   }
 
-  // Batched NFT loading - load ALL textures first, then place them
-  function loadNFTBatch(startIndex) {
-    const endIndex = Math.min(startIndex + BATCH_SIZE, nftFiles.length);
+  // STEP 1: Place all 60 NFT frames immediately with placeholder (loading) appearance
+  const minHeight = 5;
+  const maxHeight = roomHeight - 5;
+  const wallTypes = ['front', 'back', 'left', 'right'];
 
-    for (let i = startIndex; i < endIndex; i++) {
-      const filename = nftFiles[i];
-      const texture = textureLoader.load(getTextureUrl(filename), function(tex) {
-        // Use colorSpace instead of deprecated encoding
-        tex.colorSpace = THREE.SRGBColorSpace;
+  // Pre-calculate positions for all 60 NFTs using a fixed size initially
+  const nftPositions = [];
+  const baseFrameSize = 9; // Fixed size for initial placement
 
-        // Store the actual dimensions of the loaded texture
-        const dimensions = {
-          width: tex.image.width,
-          height: tex.image.height,
-          aspectRatio: tex.image.width / tex.image.height
+  console.log('Placing 60 NFT frames with placeholders...');
+
+  // Distribute NFTs evenly across walls
+  const nftsPerWall = 15; // 60 / 4 = 15 per wall
+  let nftIndex = 0;
+
+  wallTypes.forEach(wallType => {
+    for (let i = 0; i < nftsPerWall && nftIndex < 60; i++) {
+      const frameWidth = baseFrameSize;
+      const frameHeight = baseFrameSize;
+
+      const position = findUnoccupiedPosition(wallType, frameWidth, frameHeight, minHeight, maxHeight);
+
+      if (position) {
+        nftPositions[nftIndex] = {
+          wallType,
+          x: position.x,
+          y: position.y,
+          width: frameWidth,
+          height: frameHeight
         };
-        nftDimensions[i] = dimensions;
 
-        console.log(`Loaded NFT ${i+1}/${nftFiles.length}: ${filename} (${dimensions.width}x${dimensions.height})`);
+        // Create placeholder material (dark gray with loading indicator)
+        const placeholderMaterial = new THREE.MeshBasicMaterial({
+          color: 0x333333,
+          side: THREE.DoubleSide
+        });
+        nftMaterials[nftIndex] = placeholderMaterial;
 
-        // Check if all NFTs are loaded - then place them
-        const loadedCount = Object.keys(nftDimensions).length;
-        if (loadedCount === nftFiles.length) {
-          console.log('All NFT textures loaded, placing artwork...');
-          placeAllNFTsOnWalls();
-        }
-      }, undefined, function(error) {
-        console.error(`Error loading NFT texture ${filename}:`, error);
-        // Push a default dimension in case of error
-        nftDimensions[i] = { width: 512, height: 512, aspectRatio: 1 };
+        // Place the frame with placeholder
+        placeArtFrameOnWallWithMaterial(wallType, placeholderMaterial, frameWidth, frameHeight, position.x, position.y);
+        nftIndex++;
+      }
+    }
+  });
 
-        // Still check if all done
-        const loadedCount = Object.keys(nftDimensions).length;
-        if (loadedCount === nftFiles.length) {
-          placeAllNFTsOnWalls();
-        }
+  // Place remaining NFTs if any walls were full
+  while (nftIndex < 60) {
+    const randomWallType = wallTypes[Math.floor(Math.random() * wallTypes.length)];
+    const frameWidth = baseFrameSize;
+    const frameHeight = baseFrameSize;
+
+    const position = findUnoccupiedPosition(randomWallType, frameWidth, frameHeight, minHeight, maxHeight);
+
+    if (position) {
+      nftPositions[nftIndex] = {
+        wallType: randomWallType,
+        x: position.x,
+        y: position.y,
+        width: frameWidth,
+        height: frameHeight
+      };
+
+      const placeholderMaterial = new THREE.MeshBasicMaterial({
+        color: 0x333333,
+        side: THREE.DoubleSide
       });
-      nftImages[i] = texture;
-    }
+      nftMaterials[nftIndex] = placeholderMaterial;
 
-    // Load next batch if there are more textures
-    if (endIndex < nftFiles.length) {
-      setTimeout(() => loadNFTBatch(endIndex), BATCH_DELAY);
-    }
-  }
+      placeArtFrameOnWallWithMaterial(randomWallType, placeholderMaterial, frameWidth, frameHeight, position.x, position.y);
+      nftIndex++;
+    } else {
+      // Try other walls
+      let found = false;
+      for (const tryWall of wallTypes) {
+        const tryPos = findUnoccupiedPosition(tryWall, frameWidth, frameHeight, minHeight, maxHeight);
+        if (tryPos) {
+          nftPositions[nftIndex] = {
+            wallType: tryWall,
+            x: tryPos.x,
+            y: tryPos.y,
+            width: frameWidth,
+            height: frameHeight
+          };
 
-  // Function to place all NFTs after textures are loaded
-  function placeAllNFTsOnWalls() {
-    const minHeight = 5;
-    const maxHeight = roomHeight - 5;
-    const wallTypes = ['front', 'back', 'left', 'right'];
-    const nftsPerWall = Math.ceil(60 / 4);
-    let nftIndex = 0;
+          const placeholderMaterial = new THREE.MeshBasicMaterial({
+            color: 0x333333,
+            side: THREE.DoubleSide
+          });
+          nftMaterials[nftIndex] = placeholderMaterial;
 
-    // Place NFTs on each wall
-    wallTypes.forEach(wallType => {
-      const nftsForThisWall = Math.min(nftsPerWall, 60 - nftIndex);
-
-      for (let i = 0; i < nftsForThisWall && nftIndex < 60; i++) {
-        const currentTexture = nftImages[nftIndex];
-        const dimensions = nftDimensions[nftIndex] || { width: 512, height: 512, aspectRatio: 1 };
-
-        const baseSize = 7 + (Math.random() * 6);
-        let frameWidth, frameHeight;
-
-        if (dimensions.aspectRatio >= 1) {
-          frameWidth = baseSize * Math.sqrt(dimensions.aspectRatio);
-          frameHeight = baseSize / Math.sqrt(dimensions.aspectRatio);
-        } else {
-          frameWidth = baseSize * dimensions.aspectRatio;
-          frameHeight = baseSize / dimensions.aspectRatio;
-        }
-
-        const position = findUnoccupiedPosition(wallType, frameWidth, frameHeight, minHeight, maxHeight);
-
-        if (position) {
-          placeArtFrameOnWall(wallType, currentTexture, dimensions, frameWidth, frameHeight, position.x, position.y);
+          placeArtFrameOnWallWithMaterial(tryWall, placeholderMaterial, frameWidth, frameHeight, tryPos.x, tryPos.y);
           nftIndex++;
-        } else {
+          found = true;
           break;
         }
       }
-    });
-
-    // Place remaining NFTs on any wall with space
-    while (nftIndex < 60) {
-      const randomWallType = wallTypes[Math.floor(Math.random() * wallTypes.length)];
-      const currentTexture = nftImages[nftIndex];
-      const dimensions = nftDimensions[nftIndex] || { width: 512, height: 512, aspectRatio: 1 };
-
-      const baseSize = 7 + (Math.random() * 6);
-      let frameWidth, frameHeight;
-
-      if (dimensions.aspectRatio >= 1) {
-        frameWidth = baseSize * Math.sqrt(dimensions.aspectRatio);
-        frameHeight = baseSize / Math.sqrt(dimensions.aspectRatio);
-      } else {
-        frameWidth = baseSize * dimensions.aspectRatio;
-        frameHeight = baseSize / dimensions.aspectRatio;
-      }
-
-      const position = findUnoccupiedPosition(randomWallType, frameWidth, frameHeight, minHeight, maxHeight);
-
-      if (position) {
-        placeArtFrameOnWall(randomWallType, currentTexture, dimensions, frameWidth, frameHeight, position.x, position.y);
-        nftIndex++;
-      } else {
-        // Try a few more times before giving up
-        let attempts = 0;
-        while (attempts < 10 && nftIndex < 60) {
-          const tryWall = wallTypes[Math.floor(Math.random() * wallTypes.length)];
-          const tryPos = findUnoccupiedPosition(tryWall, frameWidth, frameHeight, minHeight, maxHeight);
-          if (tryPos) {
-            placeArtFrameOnWall(tryWall, currentTexture, dimensions, frameWidth, frameHeight, tryPos.x, tryPos.y);
-            nftIndex++;
-            break;
-          }
-          attempts++;
-        }
-        if (attempts >= 10) nftIndex++; // Skip this NFT if no space
+      if (!found) {
+        console.warn(`Could not place NFT ${nftIndex + 1}`);
+        nftIndex++; // Skip to prevent infinite loop
       }
     }
-
-    console.log(`Placed ${nftIndex} NFTs on walls`);
   }
 
-  // Start the batched loading process
-  // NFTs will be placed automatically when all textures are loaded (see placeAllNFTsOnWalls)
+  console.log(`Placed ${nftIndex} NFT frames with placeholders`);
+
+  // STEP 2: Load textures progressively and update materials
+  let loadedCount = 0;
+
+  function loadNFTTexture(index) {
+    if (index >= nftFiles.length) return;
+
+    const filename = nftFiles[index];
+    textureLoader.load(
+      getTextureUrl(filename),
+      function(tex) {
+        // Use colorSpace instead of deprecated encoding
+        tex.colorSpace = THREE.SRGBColorSpace;
+
+        // Update the placeholder material with the real texture
+        if (nftMaterials[index]) {
+          nftMaterials[index].map = tex;
+          nftMaterials[index].color.set(0xffffff); // Reset color to white so texture shows properly
+          nftMaterials[index].needsUpdate = true;
+        }
+
+        loadedCount++;
+        console.log(`Loaded NFT ${loadedCount}/${nftFiles.length}: ${filename}`);
+
+        // Load next texture with small delay to prevent overwhelming the browser
+        setTimeout(() => loadNFTTexture(index + 1), 50);
+      },
+      undefined,
+      function(error) {
+        console.error(`Error loading NFT texture ${filename}:`, error);
+        // Set to red to indicate error
+        if (nftMaterials[index]) {
+          nftMaterials[index].color.set(0x440000);
+          nftMaterials[index].needsUpdate = true;
+        }
+        loadedCount++;
+        setTimeout(() => loadNFTTexture(index + 1), 50);
+      }
+    );
+  }
+
+  // Start loading textures (progressive - one at a time to show updates)
+  // Use multiple concurrent loaders for faster loading
+  const CONCURRENT_LOADERS = 5;
+  for (let i = 0; i < CONCURRENT_LOADERS; i++) {
+    setTimeout(() => loadNFTTexture(i * Math.ceil(nftFiles.length / CONCURRENT_LOADERS)), i * 100);
+  }
+
+  // STEP 3: Start loading copper textures (they run in parallel)
   loadCopperBatch(0);
 
-  // Add copper tiles to walls (copper textures load quickly, no need to wait)
-  const wallTypes = ['front', 'back', 'left', 'right'];
+  // STEP 4: Place copper tiles in remaining spaces (after NFT positions are reserved)
 
   // Define copper tile dimensions
   const tileWidth = 3.5;
@@ -1070,11 +1094,11 @@ function addMixedDecorationsToWalls() {
   });
 }
 
-// Function to place an art frame on a specific wall
-function placeArtFrameOnWall(wallType, texture, dimensions, frameWidth, frameHeight, xPosition, yPosition) {
+// Function to place an art frame with a pre-created material (for progressive loading)
+function placeArtFrameOnWallWithMaterial(wallType, artMaterial, frameWidth, frameHeight, xPosition, yPosition) {
   // Determine the wall position and orientation
   let wallX, wallZ, rotationY;
-  
+
   switch(wallType) {
     case 'front':
       wallX = 0;
@@ -1097,10 +1121,108 @@ function placeArtFrameOnWall(wallType, texture, dimensions, frameWidth, frameHei
       rotationY = -Math.PI / 2;
       break;
   }
-  
+
   // Calculate the final position based on wall orientation
   let finalX, finalZ;
-  
+
+  if (wallType === 'front' || wallType === 'back') {
+    finalX = xPosition;
+    finalZ = 0;
+  } else {
+    finalX = 0;
+    finalZ = xPosition;
+  }
+
+  // Create frame backing
+  const frameBackGeometry = new THREE.BoxGeometry(frameWidth + 0.8, frameHeight + 0.8, 0.2);
+  const frameBackMat = new THREE.MeshStandardMaterial({
+    color: 0x332211,
+    roughness: 0.8,
+    metalness: 0.2
+  });
+  const frameBack = new THREE.Mesh(frameBackGeometry, frameBackMat);
+  frameBack.position.set(wallX + finalX, yPosition, wallZ + finalZ);
+  frameBack.rotation.y = rotationY;
+  frameBack.castShadow = true;
+  scene.add(frameBack);
+
+  // Create actual artwork with the provided material
+  const artGeometry = new THREE.PlaneGeometry(frameWidth, frameHeight);
+  const artwork = new THREE.Mesh(artGeometry, artMaterial);
+
+  // Position just in front of the frame backing
+  let artOffset = 0.15;
+  let zOffset = 0, xOffset = 0;
+
+  if (rotationY === 0) {
+    zOffset = -artOffset;
+  } else if (rotationY === Math.PI) {
+    zOffset = artOffset;
+  } else if (rotationY === Math.PI / 2) {
+    xOffset = artOffset;
+  } else if (rotationY === -Math.PI / 2) {
+    xOffset = -artOffset;
+  }
+
+  artwork.position.set(wallX + finalX + xOffset, yPosition, wallZ + finalZ + zOffset);
+
+  if (rotationY === Math.PI / 2 || rotationY === -Math.PI / 2) {
+    artwork.rotation.y = rotationY + Math.PI;
+  } else {
+    artwork.rotation.y = rotationY;
+  }
+
+  scene.add(artwork);
+
+  // Add spotlight
+  const spotLight = new THREE.SpotLight(0xffffff, 0.3, 30, Math.PI/8, 0.8, 1);
+
+  if (rotationY === 0) {
+    spotLight.position.set(wallX + finalX, yPosition + 5, wallZ + finalZ + 8);
+  } else if (rotationY === Math.PI) {
+    spotLight.position.set(wallX + finalX, yPosition + 5, wallZ + finalZ - 8);
+  } else if (rotationY === Math.PI / 2) {
+    spotLight.position.set(wallX + finalX - 8, yPosition + 5, wallZ + finalZ);
+  } else if (rotationY === -Math.PI / 2) {
+    spotLight.position.set(wallX + finalX + 8, yPosition + 5, wallZ + finalZ);
+  }
+
+  spotLight.target.position.set(wallX + finalX, yPosition, wallZ + finalZ);
+  scene.add(spotLight);
+  scene.add(spotLight.target);
+}
+
+// Function to place an art frame on a specific wall (legacy - used by copper tiles)
+function placeArtFrameOnWall(wallType, texture, dimensions, frameWidth, frameHeight, xPosition, yPosition) {
+  // Determine the wall position and orientation
+  let wallX, wallZ, rotationY;
+
+  switch(wallType) {
+    case 'front':
+      wallX = 0;
+      wallZ = roomLength/2 - 0.3;
+      rotationY = 0;
+      break;
+    case 'back':
+      wallX = 0;
+      wallZ = -roomLength/2 + 0.3;
+      rotationY = Math.PI;
+      break;
+    case 'left':
+      wallX = -roomWidth/2 + 0.3;
+      wallZ = 0;
+      rotationY = Math.PI / 2;
+      break;
+    case 'right':
+      wallX = roomWidth/2 - 0.3;
+      wallZ = 0;
+      rotationY = -Math.PI / 2;
+      break;
+  }
+
+  // Calculate the final position based on wall orientation
+  let finalX, finalZ;
+
   if (wallType === 'front' || wallType === 'back') {
     finalX = xPosition;
     finalZ = 0;
@@ -1108,7 +1230,7 @@ function placeArtFrameOnWall(wallType, texture, dimensions, frameWidth, frameHei
     finalX = 0;
     finalZ = xPosition; // Use xPosition as z-coordinate for side walls
   }
-  
+
   // Create frame backing
   const frameBackGeometry = new THREE.BoxGeometry(frameWidth + 0.8, frameHeight + 0.8, 0.2);
   const frameBackMaterial = new THREE.MeshStandardMaterial({
