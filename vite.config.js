@@ -25,6 +25,8 @@ export default defineConfig({
         roomA: resolve(__dirname, 'roomA.html'),
         roomA1: resolve(__dirname, 'roomA1.html'),
         roomB: resolve(__dirname, 'roomB.html'),
+        roomB1: resolve(__dirname, 'roomB1.html'),
+        roomB2: resolve(__dirname, 'roomB2.html'),
         roomC: resolve(__dirname, 'roomC.html')
       }
     }
