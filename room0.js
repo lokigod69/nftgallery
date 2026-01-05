@@ -513,7 +513,7 @@ function createHubDoors() {
       toRoom: 'B',
       destination: 'roomB.html',
       name: 'Room B',
-      label: 'B'  // Add letter label above door
+      label: null  // Door name label is enough
     },
     // Room C - southwest
     {
@@ -523,7 +523,7 @@ function createHubDoors() {
       toRoom: 'C',
       destination: 'roomC.html',
       name: 'Room C',
-      label: 'C'  // Add letter label above door
+      label: null  // Door name label is enough
     },
     // Levels - northwest (Rooms 6-10)
     {

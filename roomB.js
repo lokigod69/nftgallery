@@ -44,8 +44,11 @@ const groundLevel = 0;
 const eyeHeight = 8.0; // Increased from 5.5 to give a higher viewpoint
 let isJumping = false;
 let jumpVelocity = 0;
-const gravity = -25; // Normal gravity
-const initialJumpVelocity = 15; // Normal jump velocity
+const gravity = -10; // Slow fall gravity
+const initialJumpVelocity = 35; // High jump to reach ceiling
+const hoverZoneHeight = roomHeight - 3; // Near-ceiling hover zone (57 units)
+const hoverGravity = -2; // Very slow fall in hover zone
+const bounceCoefficient = 0.3; // Ceiling bounce
 const speed = 60.0;
 
 // Movement and controls
@@ -1728,12 +1731,20 @@ function animate() {
       controls.moveRight(speedDelta);
     }
 
-    // Handle jumping and gravity
+    // Handle jumping and gravity with hover zone near ceiling
     if (isJumping) {
-      jumpVelocity += gravity * delta;
+      // Apply hover gravity when near ceiling, normal gravity otherwise
+      const currentGravity = camera.position.y >= hoverZoneHeight ? hoverGravity : gravity;
+      jumpVelocity += currentGravity * delta;
 
       // Update position based on velocity
       let newY = camera.position.y + jumpVelocity * delta;
+
+      // Ceiling collision - bounce off
+      if (newY >= roomHeight - eyeHeight) {
+        newY = roomHeight - eyeHeight;
+        jumpVelocity = -jumpVelocity * bounceCoefficient; // Bounce down
+      }
 
       if (newY <= groundLevel + eyeHeight) {
         // If we're at ground level
