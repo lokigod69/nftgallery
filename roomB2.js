@@ -1076,7 +1076,8 @@ function placeArtFrameOnWallWithMaterial(wallType, artMaterial, frameWidth, fram
   const artwork = new THREE.Mesh(artGeometry, artMaterial);
 
   // Position just in front of the frame backing
-  let artOffset = 0.15;
+  // Increased from 0.15 to 0.5 to ensure NFTs render in front of copper tiles (which are at 0.25)
+  let artOffset = 0.5;
   let zOffset = 0, xOffset = 0;
 
   if (rotationY === 0) {
@@ -1178,7 +1179,8 @@ function placeArtFrameOnWall(wallType, texture, dimensions, frameWidth, frameHei
   const artwork = new THREE.Mesh(artGeometry, artMaterial);
   
   // Position just in front of the frame backing
-  let artOffset = 0.15;
+  // Increased from 0.15 to 0.5 to ensure NFTs render in front of copper tiles (which are at 0.25)
+  let artOffset = 0.5;
   let zOffset = 0, xOffset = 0;
   
   // Calculate offset direction based on wall orientation
