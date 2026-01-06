@@ -149,8 +149,8 @@ function createMixedFloor() {
   // Load custom B2 floor texture
   const textureLoader = new THREE.TextureLoader();
 
-  // Load floor3 texture for the main floor
-  const floorTexture = textureLoader.load('/assets/RoomB2/floor3.png', function(texture) {
+  // Load floor1 texture for the main floor
+  const floorTexture = textureLoader.load('/assets/RoomB2/floor1.png', function(texture) {
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
     texture.repeat.set(4, 4);  // Tile the texture 4x4 across the floor
@@ -179,71 +179,82 @@ function createMixedFloor() {
 function createTexturedWalls() {
   // Wall thickness
   const wallThickness = 0.5;
-  
-  // Create plain base walls
+
+  // Create walls with custom textures (no copper/metal decorations)
   createBaseWalls(wallThickness);
-  
-  // Add mixed artwork and copper tiles to walls
-  addMixedDecorationsToWalls();
 }
 
 function createBaseWalls(thickness) {
-  // Load metal4 texture for walls (different from Room B and B1)
+  // Load custom wall textures for B2
   const textureLoader = new THREE.TextureLoader();
-  const metalTexture = textureLoader.load(getTextureUrl('metal4'), function(texture) {
+
+  // Load wall1 texture for front/back walls
+  const wall1Texture = textureLoader.load('/assets/RoomB2/wall1.png', function(texture) {
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(8, 4); // Repeat to cover the large walls
-    console.log('Metal wall texture loaded successfully');
-  }, undefined, function(error) {
-    console.error('Error loading metal wall texture:', error);
+    texture.repeat.set(4, 2); // Tile across wall
+    texture.colorSpace = THREE.SRGBColorSpace;
+    console.log('✓ B2 wall1 texture loaded');
   });
-  
-  // Create walls with metal texture
-  const wallMaterial = new THREE.MeshStandardMaterial({ 
-    map: metalTexture,
-    roughness: 0.6, 
-    metalness: 0.7,
-    color: 0xffffff // Default color, texture will override
+
+  // Load wall2 texture for left/right walls
+  const wall2Texture = textureLoader.load('/assets/RoomB2/wall2.png', function(texture) {
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(4, 2); // Tile across wall
+    texture.colorSpace = THREE.SRGBColorSpace;
+    console.log('✓ B2 wall2 texture loaded');
   });
-  
-  // Front wall
+
+  // Create wall materials with custom textures (no metal)
+  const wall1Material = new THREE.MeshStandardMaterial({
+    map: wall1Texture,
+    roughness: 0.8,
+    metalness: 0.1
+  });
+
+  const wall2Material = new THREE.MeshStandardMaterial({
+    map: wall2Texture,
+    roughness: 0.8,
+    metalness: 0.1
+  });
+
+  // Front wall (wall1)
   const frontWallGeometry = new THREE.BoxGeometry(roomWidth, roomHeight, thickness);
-  const frontWall = new THREE.Mesh(frontWallGeometry, wallMaterial);
+  const frontWall = new THREE.Mesh(frontWallGeometry, wall1Material);
   frontWall.position.set(0, roomHeight/2, roomLength/2);
   frontWall.castShadow = true;
   frontWall.receiveShadow = true;
   scene.add(frontWall);
-  
-  // Back wall
+
+  // Back wall (wall1)
   const backWallGeometry = new THREE.BoxGeometry(roomWidth, roomHeight, thickness);
-  const backWall = new THREE.Mesh(backWallGeometry, wallMaterial);
+  const backWall = new THREE.Mesh(backWallGeometry, wall1Material);
   backWall.position.set(0, roomHeight/2, -roomLength/2);
   backWall.castShadow = true;
   backWall.receiveShadow = true;
   scene.add(backWall);
-  
-  // Left wall
+
+  // Left wall (wall2)
   const leftWallGeometry = new THREE.BoxGeometry(thickness, roomHeight, roomLength);
-  const leftWall = new THREE.Mesh(leftWallGeometry, wallMaterial);
+  const leftWall = new THREE.Mesh(leftWallGeometry, wall2Material);
   leftWall.position.set(-roomWidth/2, roomHeight/2, 0);
   leftWall.castShadow = true;
   leftWall.receiveShadow = true;
   scene.add(leftWall);
-  
-  // Right wall
+
+  // Right wall (wall2)
   const rightWallGeometry = new THREE.BoxGeometry(thickness, roomHeight, roomLength);
-  const rightWall = new THREE.Mesh(rightWallGeometry, wallMaterial);
+  const rightWall = new THREE.Mesh(rightWallGeometry, wall2Material);
   rightWall.position.set(roomWidth/2, roomHeight/2, 0);
   rightWall.castShadow = true;
   rightWall.receiveShadow = true;
   scene.add(rightWall);
-  
+
   // Create mirror ceiling using dynamic cube camera
   createMirrorCeiling();
 
-  // Add copper wave pattern decorations to walls
-  addCopperWavePatterns();
+  console.log('✓ B2 custom walls created');
 }
 
 function createMirrorCeiling() {

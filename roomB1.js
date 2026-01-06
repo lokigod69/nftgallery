@@ -179,32 +179,17 @@ function createMixedFloor() {
 function createTexturedWalls() {
   // Wall thickness
   const wallThickness = 0.5;
-  
-  // Create plain base walls
+
+  // Create plain base walls (no copper/metal decorations)
   createBaseWalls(wallThickness);
-  
-  // Add mixed artwork and copper tiles to walls
-  addMixedDecorationsToWalls();
 }
 
 function createBaseWalls(thickness) {
-  // Load metal3 texture for walls (different from Room B)
-  const textureLoader = new THREE.TextureLoader();
-  const metalTexture = textureLoader.load(getTextureUrl('metal3'), function(texture) {
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(8, 4); // Repeat to cover the large walls
-    console.log('Metal wall texture loaded successfully');
-  }, undefined, function(error) {
-    console.error('Error loading metal wall texture:', error);
-  });
-  
-  // Create walls with metal texture
-  const wallMaterial = new THREE.MeshStandardMaterial({ 
-    map: metalTexture,
-    roughness: 0.6, 
-    metalness: 0.7,
-    color: 0xffffff // Default color, texture will override
+  // Create simple neutral wall material (no metal/copper textures)
+  const wallMaterial = new THREE.MeshStandardMaterial({
+    color: 0x2a2a2a, // Dark neutral gray
+    roughness: 0.8,
+    metalness: 0.1
   });
   
   // Front wall
@@ -241,9 +226,6 @@ function createBaseWalls(thickness) {
   
   // Create mirror ceiling using dynamic cube camera
   createMirrorCeiling();
-
-  // Add copper wave pattern decorations to walls
-  addCopperWavePatterns();
 }
 
 function createMirrorCeiling() {
