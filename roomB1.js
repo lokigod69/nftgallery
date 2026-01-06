@@ -146,136 +146,34 @@ function createBasicRoom() {
 }
 
 function createMixedFloor() {
-  // Load wood floor textures
+  // Load custom B1 floor texture
   const textureLoader = new THREE.TextureLoader();
-  
-  // Load wood_floor2 texture (main floor)
-  const woodTexture2 = textureLoader.load(getTextureUrl('wood_floor2'), function(texture) {
+
+  // Load b1floor2 texture for the main floor
+  const floorTexture = textureLoader.load('/assets/RoomB1/b1floor2.png', function(texture) {
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
-    // Instead of repeating the whole texture 10x10 times, we'll use a smaller repeat
-    // to make the individual tiles more visible for our mosaic pattern
-    texture.repeat.set(12, 12);
-    texture.encoding = THREE.sRGBEncoding;
-    console.log('Wood floor 2 texture loaded successfully');
+    texture.repeat.set(4, 4);  // Tile the texture 4x4 across the floor
+    texture.colorSpace = THREE.SRGBColorSpace;
+    console.log('✓ B1 floor texture loaded successfully');
   }, undefined, function(error) {
-    console.error('Error loading wood floor 2 texture:', error);
+    console.error('Error loading B1 floor texture:', error);
   });
-  
-  // Load wood_floor1 texture (inlay sections)
-  const woodTexture1 = textureLoader.load(getTextureUrl('wood_floor1'), function(texture) {
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(12, 12);
-    texture.encoding = THREE.sRGBEncoding;
-    console.log('Wood floor 1 texture loaded successfully');
-  }, undefined, function(error) {
-    console.error('Error loading wood floor 1 texture:', error);
-  });
-  
-  // Create main floor with wood_floor2 texture
+
+  // Create main floor with b1floor2 texture
   const mainFloorGeometry = new THREE.PlaneGeometry(roomWidth, roomLength);
-  const mainFloorMaterial = new THREE.MeshStandardMaterial({ 
-    map: woodTexture2,
-    roughness: 0.8, 
-    metalness: 0.2
+  const mainFloorMaterial = new THREE.MeshStandardMaterial({
+    map: floorTexture,
+    roughness: 0.7,
+    metalness: 0.15
   });
   const mainFloor = new THREE.Mesh(mainFloorGeometry, mainFloorMaterial);
   mainFloor.rotation.x = -Math.PI / 2;
   mainFloor.position.y = groundLevel;
   mainFloor.receiveShadow = true;
   scene.add(mainFloor);
-  
-  // Now create a grid of inlays using wood_floor1 texture
-  const tilesPerRow = 12;
-  const tilesPerCol = 12;
-  const tileWidth = roomWidth / tilesPerRow;
-  const tileLength = roomLength / tilesPerCol;
-  
-  // For each tile, create inlays in top-left corner, center, and bottom-right
-  for (let row = 0; row < tilesPerRow; row++) {
-    for (let col = 0; col < tilesPerCol; col++) {
-      // Calculate the size of the inlay (20% of the tile)
-      const inlayWidth = tileWidth * 0.2;
-      const inlayLength = tileLength * 0.2;
-      
-      // Create and place the top-left inlay
-      createTileInlay(
-        woodTexture1, 
-        inlayWidth, 
-        inlayLength, 
-        -roomWidth/2 + col * tileWidth + inlayWidth/2, // Position at top-left of tile
-        -roomLength/2 + (row + 1) * tileLength - inlayLength/2,
-        col, 
-        row, 
-        tilesPerRow, 
-        tilesPerCol
-      );
-      
-      // Create and place the center inlay
-      createTileInlay(
-        woodTexture1, 
-        inlayWidth, 
-        inlayLength, 
-        -roomWidth/2 + col * tileWidth + tileWidth/2, // Position at center of tile
-        -roomLength/2 + row * tileLength + tileLength/2,
-        col, 
-        row, 
-        tilesPerRow, 
-        tilesPerCol
-      );
-      
-      // Create and place the bottom-right inlay
-      createTileInlay(
-        woodTexture1, 
-        inlayWidth, 
-        inlayLength, 
-        -roomWidth/2 + (col + 1) * tileWidth - inlayWidth/2, // Position at bottom-right of tile
-        -roomLength/2 + row * tileLength + inlayLength/2,
-        col, 
-        row, 
-        tilesPerRow, 
-        tilesPerCol
-      );
-    }
-  }
-  
-  // Helper function to create an inlay with proper UV mapping
-  function createTileInlay(texture, width, length, posX, posZ, col, row, tilesPerRow, tilesPerCol) {
-    // Create inlay geometry
-    const inlayGeometry = new THREE.PlaneGeometry(width, length);
-    
-    // Use the upper 10% portion of wood_floor1 texture
-    const inlayMaterial = new THREE.MeshStandardMaterial({
-      map: texture,
-      roughness: 0.7,
-      metalness: 0.25
-    });
-    
-    // To capture the upper 10% of the source texture for each inlay,
-    // we need to modify the UV mapping of the geometry
-    const uvs = inlayGeometry.attributes.uv;
-    for (let i = 0; i < uvs.count; i++) {
-      // Shrink UVs to 20% of their range and offset to upper region
-      uvs.setXY(
-        i,
-        uvs.getX(i) * 0.2 + (col / tilesPerRow),
-        uvs.getY(i) * 0.2 + (0.8 + (row / tilesPerCol) * 0.2)
-      );
-    }
-    
-    const inlay = new THREE.Mesh(inlayGeometry, inlayMaterial);
-    inlay.rotation.x = -Math.PI / 2;
-    
-    inlay.position.set(
-      posX,
-      groundLevel + 0.01, // Slightly above main floor
-      posZ
-    );
-    
-    inlay.receiveShadow = true;
-    scene.add(inlay);
-  }
+
+  console.log('✓ B1 custom floor created');
 }
 
 function createTexturedWalls() {

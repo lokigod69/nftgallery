@@ -64,12 +64,12 @@ const ROOM8_CONFIG = {
   eyeHeight: 5.25,  // Elevated 50% for easier platform jumping (was 3.5)
   speed: 100.0,
   gravity: -30,
-  jumpVelocity: 10,
-  
+  jumpVelocity: 20,  // Doubled for easier jumping (was 10)
+
   // Content
   nftCount: 48,           // 48 NFT images in Room8 folder (6 rings × 8)
   nftStartIndex: 1,       // Not used - loading by filename
-  nftSize: 2.8,           // Increased 40% from 2.0 for better visibility
+  nftSize: 3.08,          // Increased 10% more for better visibility (was 2.8)
   
   // VFX
   enableDustParticles: true,
@@ -129,12 +129,14 @@ let isLandingTransition = false;
 let landingLerpFactor = 0;
 const LANDING_LERP_SPEED = 12.0;  // How fast to blend to platform position
 
-// Spawn on Platform 0 (static base platform at angle 0°, radial position 6.0)
-// Platform 0 is at (0, 2.0, 6.0) in spiral layout
+// Spawn on Platform 0 (static base platform at angle -35°, radial position 6.0)
+// Platform 0 position calculated from angle: x = sin(-35°)*6, z = cos(-35°)*6
+const spawnAngle = -35 * Math.PI / 180;  // Convert to radians
+const spawnX = Math.sin(spawnAngle) * ROOM8_CONFIG.platformRadialPosition;  // ≈ -3.44
+const spawnZ = Math.cos(spawnAngle) * ROOM8_CONFIG.platformRadialPosition;  // ≈ 4.91
 const spawnY = 2.0 + ROOM8_CONFIG.platformHeight / 2 + eyeHeight;
-const spawnZ = ROOM8_CONFIG.platformRadialPosition; // Platform 0 at angle 0° (south)
 const { scene, camera, renderer, controls } = initScene({
-  spawnPosition: { x: 0, y: spawnY, z: spawnZ },
+  spawnPosition: { x: spawnX, y: spawnY, z: spawnZ },
   background: 0x1a140f,  // Dark warm brown
   fog: { color: 0x2a1f15, near: 20, far: 65 }  // Extended fog for better NFT visibility
 });
@@ -775,12 +777,21 @@ function createShaft() {
   shaft.position.y = cfg.height / 2;  // Center vertically
   scene.add(shaft);
 
-  // Floor (bottom of shaft)
+  // Floor (bottom of shaft) with hieroglyphics texture
   const floorGeometry = new THREE.CircleGeometry(cfg.baseRadius, 32);
+  const textureLoader = new THREE.TextureLoader();
+  const floorTexture = textureLoader.load('/assets/Room8/floor.png', (texture) => {
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(2, 2);  // Tile the texture
+    texture.colorSpace = THREE.SRGBColorSpace;
+    console.log('✓ Hieroglyphics floor texture loaded');
+  });
+
   const floorMaterial = new THREE.MeshStandardMaterial({
-    color: 0xa89050,     // Dusty darker sandstone
-    roughness: 0.95,
-    metalness: 0.02
+    map: floorTexture,
+    roughness: 0.85,
+    metalness: 0.05
   });
 
   const floor = new THREE.Mesh(floorGeometry, floorMaterial);
@@ -818,9 +829,9 @@ function createShaft() {
 // Platforms arranged in helix pattern with synchronized phase alternation
 // When odd platforms peak, even platforms are at low point (and vice versa)
 const platformMotionParams = [
-  // Platform 0: Static spawn (South, 0°)
+  // Platform 0: Static spawn (moved to -35° to avoid overlap with P1)
   {
-    angle: 0,           // Degrees
+    angle: -35,         // Moved from 0° to give clearance from Platform 1
     baseY: 2.0,         // Static height
     amplitude: 0,       // No motion
     speed: 0,
@@ -1191,7 +1202,7 @@ function createWallNFTs() {
  */
 function respawnPlayer() {
   const player = controls.getObject();
-  player.position.set(0, spawnY, spawnZ); // Match Platform 0 position
+  player.position.set(spawnX, spawnY, spawnZ); // Match Platform 0 position at angle -35°
   isJumping = false;
   isFalling = false;
   jumpVelocity = 0;
@@ -1292,7 +1303,7 @@ const portal9Obj = createLinkedPortal({
   y: portalY,
   z: portalZ,
   rotationY: 0,  // Face toward approaching player (from center toward platform)
-  createLabel: true
+  createLabel: false  // No label on portal
 });
 
 const portalToRoom9 = portal9Obj.portal;
@@ -1301,17 +1312,19 @@ const portal9Glow = portal9Obj.glow;
 // ----------------------------------------------------------------------
 // Portal to Room 7 (Helix Crossing) - Back portal at spawn
 // ----------------------------------------------------------------------
-// Portal positioned BEHIND spawn platform (Platform 0 at angle 0° = south)
-// Spawn is at (0, spawnY, 6.0), portal behind at z = 10
+// Portal positioned BEHIND spawn platform (Platform 0 at angle -35°)
+// Spawn is at (spawnX, spawnY, spawnZ), portal behind at radius 10
+const portal7X = Math.sin(spawnAngle) * 10;  // Same direction as spawn, further out
+const portal7Z = Math.cos(spawnAngle) * 10;
 const portal7Obj = createLinkedPortal({
   scene,
   fromRoom: '8',
   toRoom: '7',
-  x: 0,
+  x: portal7X,
   y: spawnY,
-  z: spawnZ + 4,  // Behind spawn platform
-  rotationY: Math.PI,  // Face -Z (toward player at spawn)
-  createLabel: true
+  z: portal7Z,
+  rotationY: spawnAngle + Math.PI,  // Face inward toward player at spawn
+  createLabel: false  // No label on portal
 });
 
 const portalToRoom7 = portal7Obj.portal;
@@ -1328,7 +1341,7 @@ const checkPortalProximity = createMultiPortalChecker({
       triggerDistance: 2.5
     },
     {
-      position: new THREE.Vector3(0, spawnY, spawnZ + 4),
+      position: new THREE.Vector3(portal7X, spawnY, portal7Z),
       name: 'Helix Crossing (Room 7)',
       url: 'room7.html',
       showDistance: 3.0,
