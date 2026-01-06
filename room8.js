@@ -69,7 +69,7 @@ const ROOM8_CONFIG = {
   // Content
   nftCount: 48,           // 48 NFT images in Room8 folder (6 rings × 8)
   nftStartIndex: 1,       // Not used - loading by filename
-  nftSize: 2.0,
+  nftSize: 2.8,           // Increased 40% from 2.0 for better visibility
   
   // VFX
   enableDustParticles: true,
@@ -1416,6 +1416,27 @@ function animate() {
     const onFloor = isOnFloor(player.position);
     const onSolidGround = onPlatform || onFloor;
 
+    // CRITICAL: Hard floor constraint for ALL platforms
+    // Check this FIRST, before any physics - prevents any clipping through platforms
+    if (onPlatform) {
+      const platformTop = onPlatform.position.y + ROOM8_CONFIG.platformHeight / 2;
+      const minPlayerY = platformTop + eyeHeight;
+
+      // If player is below platform surface they're standing on, snap them up
+      if (player.position.y < minPlayerY) {
+        player.position.y = minPlayerY;
+        // Also reset vertical velocity if falling through
+        if (isFalling) {
+          isFalling = false;
+          fallVelocity = 0;
+        }
+        if (isJumping && jumpVelocity < 0) {
+          isJumping = false;
+          jumpVelocity = 0;
+        }
+      }
+    }
+
     // Vertical physics - platform and floor collision
     if (isJumping) {
       player.position.y += jumpVelocity * delta;
@@ -1483,6 +1504,12 @@ function animate() {
         const platformTop = onPlatform.position.y + ROOM8_CONFIG.platformHeight / 2;
         const targetY = platformTop + eyeHeight;
 
+        // CRITICAL: Hard floor constraint - NEVER allow player below platform surface
+        // This prevents falling through platforms regardless of physics state
+        if (player.position.y < targetY) {
+          player.position.y = targetY;
+        }
+
         // Smooth landing transition - lerp to platform position
         if (isLandingTransition) {
           landingLerpFactor += LANDING_LERP_SPEED * delta;
@@ -1493,9 +1520,9 @@ function animate() {
           // Smooth blend from current position to target
           player.position.y = player.position.y + (targetY - player.position.y) * Math.min(landingLerpFactor, 1.0);
         } else {
-          // Already settled - smoothly follow platform with high lerp factor
-          // This prevents micro-jumps from platform movement
-          player.position.y = player.position.y + (targetY - player.position.y) * 0.3;
+          // Already settled - lock to platform position (no lerp drift)
+          // Hard lock prevents any drift below platform
+          player.position.y = targetY;
         }
         currentPlatform = onPlatform;
       } else if (onFloor) {
