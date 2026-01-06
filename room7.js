@@ -4,12 +4,14 @@ import { createLinkedPortal, animateLinkedPortal, createMultiPortalChecker } fro
 import { getRoom7ArtUrl } from './src/core/asset-utils.js';
 
 // ═══════════════════════════════════════════════════════════════════════
-// Room 7: "Helix Crossing" - NFT Platform Jumping Challenge
+// Room 7: "S-Curve Gallery" - NFT Platform Jumping Challenge
 // ═══════════════════════════════════════════════════════════════════════
 /**
- * CONCEPT: Two intertwined helix paths of NFT platforms
- * - Player must jump from platform to platform
- * - Each platform displays an NFT artwork
+ * CONCEPT: S-curve path of 35 NFT platforms
+ * - Single flowing path that curves right, then left, forming an S-shape
+ * - Player jumps from platform to platform along the S-curve
+ * - Each platform displays a unique NFT artwork (no repeats)
+ * - Rectangular platforms preserve the aspect ratio of horizontal images
  * - Fall to floor = respawn at start
  * - Navigate from spawn to portal
  */
@@ -426,52 +428,43 @@ scatterTilesOnWall('right', 35);
 console.log(`✓ Added ${wallTiles.length} scattered color tiles on walls`);
 
 // ═══════════════════════════════════════════════════════════════════════
-// Zigzag Path Generation - Jumpable alternating pattern
+// S-Curve Path Generation - Smooth flowing path
 // ═══════════════════════════════════════════════════════════════════════
 
 /**
- * Generate zigzag path positions
- * Creates a single path that alternates left-center-right in a jumpable pattern
- * Pattern: center → left → right → center → left → right...
- * Each platform is reachable from the previous one
+ * Generate S-curve path positions for exactly 35 platforms
+ * Pattern: center → curve right → middle → curve left → center
+ * Uses sine wave: x = amplitude * sin(4π * t)
+ * This creates: 0 → +max → 0 → -max → 0
  */
-function generateZigzagPath() {
+function generateSCurvePath() {
   const cfg = ROOM7_CONFIG;
   const positions = [];
 
-  const startZ = cfg.spawnZ + 5;  // First platform after spawn
-  const endZ = cfg.portalZ - 5;   // Last platform before end
+  const numPlatforms = 35;  // Exactly 35 platforms
+  const startZ = cfg.spawnZ + 8;  // First platform after spawn
+  const endZ = cfg.portalZ - 8;   // Last platform before end
   const pathLength = endZ - startZ;
+  const zSpacing = pathLength / (numPlatforms - 1);  // Equal spacing
 
-  // Calculate number of platforms based on Z spacing
-  const numPlatforms = Math.floor(pathLength / cfg.platformSpacingZ);
-
-  // Zigzag pattern positions (X offsets)
-  // Pattern repeats: center(0) → left(-amp) → right(+amp) → center(0) → left(-amp) → right(+amp)
-  // This creates a weaving path that's always jumpable
-  const amp = cfg.zigzagAmplitude;
+  // S-curve amplitude - how far left/right the path goes
+  const amplitude = 20;  // Larger amplitude for more dramatic curves
 
   for (let i = 0; i < numPlatforms; i++) {
-    const z = startZ + i * cfg.platformSpacingZ;
+    // Normalized position (0 to 1)
+    const t = i / (numPlatforms - 1);
 
-    // Create zigzag pattern with 6-step cycle for visual variety
-    // 0: center, 1: left, 2: center-right, 3: right, 4: center-left, 5: left-center
-    const patternIndex = i % 6;
-    let x;
+    // Z position - evenly spaced from start to end
+    const z = startZ + i * zSpacing;
 
-    switch (patternIndex) {
-      case 0: x = 0; break;                    // Center
-      case 1: x = -amp * 0.7; break;           // Left
-      case 2: x = amp * 0.4; break;            // Slight right
-      case 3: x = amp; break;                  // Full right
-      case 4: x = amp * 0.3; break;            // Slight right (coming back)
-      case 5: x = -amp * 0.5; break;           // Half left
-    }
+    // X position - S-curve using sine wave
+    // sin(4π * t) creates: 0 → max → 0 → -max → 0
+    const x = amplitude * Math.sin(4 * Math.PI * t);
 
     positions.push({ x: x, z: z, index: i });
   }
 
-  console.log(`Generated ${positions.length} platform positions in zigzag pattern`);
+  console.log(`Generated ${positions.length} platform positions in S-curve pattern`);
   return positions;
 }
 
@@ -483,14 +476,19 @@ const platforms = [];  // All platforms for collision detection
 const loader = new THREE.TextureLoader();
 
 /**
- * Create a single NFT platform
+ * Create a single NFT platform with optional aspect ratio
  */
-function createPlatform(x, y, z, size, textureUrl, isSpecial = false) {
+function createPlatform(x, y, z, size, textureUrl, isSpecial = false, aspectRatio = 1.0) {
   const cfg = ROOM7_CONFIG;
   const group = new THREE.Group();
 
-  // Platform base (box)
-  const baseGeo = new THREE.BoxGeometry(size, cfg.platformThickness, size);
+  // Calculate platform dimensions based on aspect ratio
+  // aspectRatio = width / height
+  const platformWidth = size * aspectRatio;
+  const platformDepth = size;
+
+  // Platform base (box) - rectangular for aspect ratio
+  const baseGeo = new THREE.BoxGeometry(platformWidth, cfg.platformThickness, platformDepth);
 
   // Platform edge material - chrome black for special, matte black for regular
   const edgeMaterial = new THREE.MeshStandardMaterial({
@@ -515,7 +513,8 @@ function createPlatform(x, y, z, size, textureUrl, isSpecial = false) {
       toneMapped: false
     });
 
-    const topGeo = new THREE.PlaneGeometry(size * 0.9, size * 0.9);
+    // Create rectangular plane matching aspect ratio
+    const topGeo = new THREE.PlaneGeometry(platformWidth * 0.9, platformDepth * 0.9);
     const top = new THREE.Mesh(topGeo, topMaterial);
     top.rotation.x = -Math.PI / 2;
     top.rotation.z = Math.PI;  // Rotate 180 degrees to flip image
@@ -531,10 +530,12 @@ function createPlatform(x, y, z, size, textureUrl, isSpecial = false) {
   // Position the platform
   group.position.set(x, y, z);
 
-  // Store collision data
+  // Store collision data with both width and depth for rectangular platforms
   group.userData = {
     isPlatform: true,
     size: size,
+    width: platformWidth,
+    depth: platformDepth,
     isSpecial: isSpecial
   };
 
@@ -563,72 +564,29 @@ function createEndPlatform() {
 }
 
 /**
- * Create all NFT platforms along zigzag path
+ * Create all NFT platforms along S-curve path
+ * Each platform uses a unique image (no repeats) with aspect ratio preserved
  */
-function createZigzagPlatforms(positions, imageFiles) {
+function createSCurvePlatforms(positions, imageFiles) {
   const cfg = ROOM7_CONFIG;
   const y = cfg.platformHeight;
+
+  // Aspect ratio for horizontal images (width:height)
+  // Most horizontal photos are 3:2 or 4:3 ratio
+  const aspectRatio = 1.5;  // 3:2 ratio (width is 1.5x height)
 
   positions.forEach((pos, i) => {
-    // Cycle through available images
-    const imageIndex = i % imageFiles.length;
-    const textureUrl = getRoom7ArtUrl(imageFiles[imageIndex]);
+    // Use each image exactly once (no cycling/repeating)
+    if (i >= imageFiles.length) {
+      console.warn(`Not enough images for platform ${i}`);
+      return;
+    }
 
-    createPlatform(pos.x, y, pos.z, cfg.platformSize, textureUrl, false);
+    const textureUrl = getRoom7ArtUrl(imageFiles[i]);
+    createPlatform(pos.x, y, pos.z, cfg.platformSize, textureUrl, false, aspectRatio);
   });
 
-  console.log(`Created ${positions.length} NFT platforms in zigzag pattern`);
-}
-
-/**
- * Create side platforms in a bell curve / Gaussian distribution pattern
- * Narrow at start → wide in middle → narrow at end
- */
-function createBellCurveSidePlatforms(mainPositions, sideImages) {
-  const cfg = ROOM7_CONFIG;
-  const y = cfg.platformHeight;
-  const sideDistance = 15; // Distance from center for side platforms
-  const platformSpacing = cfg.platformSpacingZ * 1.5; // Slightly more spaced
-
-  // Calculate the middle Z position
-  const startZ = mainPositions[0].z;
-  const endZ = mainPositions[mainPositions.length - 1].z;
-  const midZ = (startZ + endZ) / 2;
-  const pathLength = endZ - startZ;
-
-  let imageIndex = 0;
-  let sidePlatformCount = 0;
-
-  // Distribute platforms along Z axis with bell curve width
-  for (let z = startZ; z <= endZ && imageIndex < sideImages.length; z += platformSpacing) {
-    // Calculate normalized position (0 to 1)
-    const normalizedPos = (z - startZ) / pathLength;
-
-    // Gaussian function: exp(-((x - 0.5)^2) / (2 * sigma^2))
-    // sigma = 0.2 gives a nice bell curve that peaks in the middle
-    const sigma = 0.2;
-    const gaussianValue = Math.exp(-Math.pow(normalizedPos - 0.5, 2) / (2 * sigma * sigma));
-
-    // Map Gaussian value to number of platforms on each side (0-3 platforms)
-    const maxSidePlatforms = 3;
-    const sidePlatformsCount = Math.round(gaussianValue * maxSidePlatforms);
-
-    // Create platforms on both left and right sides
-    for (let side = -1; side <= 1; side += 2) { // -1 for left, +1 for right
-      for (let tier = 1; tier <= sidePlatformsCount; tier++) {
-        if (imageIndex >= sideImages.length) break;
-
-        const x = side * (sideDistance + (tier - 1) * 5); // Spread outward
-        const textureUrl = getRoom7ArtUrl(sideImages[imageIndex]);
-
-        createPlatform(x, y, z, cfg.platformSize, textureUrl, false);
-        imageIndex++;
-        sidePlatformCount++;
-      }
-    }
-  }
-
-  console.log(`Created ${sidePlatformCount} side platforms in bell curve pattern`);
+  console.log(`Created ${positions.length} NFT platforms in S-curve pattern with aspect ratio ${aspectRatio}`);
 }
 
 /**
@@ -750,17 +708,14 @@ const room7Images = [
 const spawnPlatform = createSpawnPlatform();
 const endPlatform = createEndPlatform();
 
-// Generate zigzag path and create main NFT platforms
-const zigzagPositions = generateZigzagPath();
-createZigzagPlatforms(zigzagPositions, room7Images);
-
-// Add bell curve side platforms with same PNG images
-createBellCurveSidePlatforms(zigzagPositions, room7Images);
+// Generate S-curve path and create main NFT platforms
+const sCurvePositions = generateSCurvePath();
+createSCurvePlatforms(sCurvePositions, room7Images);
 
 // Add wall placements on left and right sides (17 + 18 = 35 images)
 createWallPlacements(room7Images);
 
-console.log(`✓ Room 7 initialized: ${platforms.length} total platforms (zigzag + bell curve + walls)`);
+console.log(`✓ Room 7 initialized: ${platforms.length} total platforms (S-curve + walls)`);
 
 // ═══════════════════════════════════════════════════════════════════════
 // Platform Collision Detection
@@ -768,6 +723,7 @@ console.log(`✓ Room 7 initialized: ${platforms.length} total platforms (zigzag
 
 /**
  * Check if player is standing on any platform
+ * Updated to handle rectangular platforms with width and depth
  */
 function detectPlatformCollision(playerPos) {
   const cfg = ROOM7_CONFIG;
@@ -775,13 +731,17 @@ function detectPlatformCollision(playerPos) {
 
   for (const platform of platforms) {
     const platformTop = platform.position.y + cfg.platformThickness / 2;
-    const platformSize = platform.userData.size;
-    const halfSize = platformSize / 2;
 
-    // Horizontal bounds check (square platform)
+    // Get platform dimensions (use width/depth for rectangular, size for square)
+    const platformWidth = platform.userData.width || platform.userData.size;
+    const platformDepth = platform.userData.depth || platform.userData.size;
+    const halfWidth = platformWidth / 2;
+    const halfDepth = platformDepth / 2;
+
+    // Horizontal bounds check (rectangular platform)
     const dx = Math.abs(playerPos.x - platform.position.x);
     const dz = Math.abs(playerPos.z - platform.position.z);
-    const onPlatformXZ = dx <= halfSize + 0.3 && dz <= halfSize + 0.3;
+    const onPlatformXZ = dx <= halfWidth + 0.3 && dz <= halfDepth + 0.3;
 
     // Vertical check - feet near platform top
     const vertDist = Math.abs(feetY - platformTop);
