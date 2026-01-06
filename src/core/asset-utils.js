@@ -225,10 +225,10 @@ export function getRoomBNftUrl(index) {
  * @returns {string} Full URL to Room7 image
  *
  * @example
- * getRoom7ArtUrl('lokigod69._A_female_model_...') → '/assets/Room7/lokigod69._A_female_model_....webp'
+ * getRoom7ArtUrl('ComfyUI_03027_') → '/assets/Room7/ComfyUI_03027_.png'
  */
 export function getRoom7ArtUrl(filename) {
-  return getTextureUrl(`Room7/${filename}`);
+  return `/assets/Room7/${filename}.png`;
 }
 
 /**

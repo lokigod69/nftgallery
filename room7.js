@@ -634,10 +634,11 @@ function createBellCurveSidePlatforms(mainPositions, sideImages) {
 /**
  * Create wall placements on left and right sides
  * Evenly distributes images: 17 on left wall, 18 on right wall
+ * Positioned in front of colored wall tiles
  */
 function createWallPlacements(images) {
   const cfg = ROOM7_CONFIG;
-  const wallX = cfg.roomSize / 2 - 2; // Position near room edges
+  const wallX = cfg.roomSize / 2 - 1.5; // Position closer to walls
   const startZ = cfg.spawnZ + 10;
   const endZ = cfg.portalZ - 10;
   const wallHeight = cfg.platformHeight + 3; // Slightly above platform height
@@ -649,6 +650,7 @@ function createWallPlacements(images) {
   const zSpacing = (endZ - startZ) / Math.max(leftCount, rightCount);
 
   let imageIndex = 0;
+  const baseRenderOrder = 1000; // High render order to ensure NFTs render on top
 
   // Left wall (17 images)
   for (let i = 0; i < leftCount; i++) {
@@ -656,14 +658,19 @@ function createWallPlacements(images) {
     const textureUrl = getRoom7ArtUrl(images[imageIndex % images.length]);
 
     // Create a plane on the left wall
-    const geometry = new THREE.PlaneGeometry(3, 3);
+    const geometry = new THREE.PlaneGeometry(4, 4);
     const texture = new THREE.TextureLoader().load(textureUrl);
     texture.colorSpace = THREE.SRGBColorSpace;
-    const material = new THREE.MeshStandardMaterial({ map: texture });
+    const material = new THREE.MeshStandardMaterial({
+      map: texture,
+      side: THREE.FrontSide
+    });
     const plane = new THREE.Mesh(geometry, material);
 
-    plane.position.set(-wallX, wallHeight, z);
+    // Position slightly in front of wall
+    plane.position.set(-wallX + 0.5, wallHeight, z);
     plane.rotation.y = Math.PI / 2; // Face inward
+    plane.renderOrder = baseRenderOrder + i; // Ensure renders on top of colored tiles
     scene.add(plane);
 
     imageIndex++;
@@ -675,14 +682,19 @@ function createWallPlacements(images) {
     const textureUrl = getRoom7ArtUrl(images[imageIndex % images.length]);
 
     // Create a plane on the right wall
-    const geometry = new THREE.PlaneGeometry(3, 3);
+    const geometry = new THREE.PlaneGeometry(4, 4);
     const texture = new THREE.TextureLoader().load(textureUrl);
     texture.colorSpace = THREE.SRGBColorSpace;
-    const material = new THREE.MeshStandardMaterial({ map: texture });
+    const material = new THREE.MeshStandardMaterial({
+      map: texture,
+      side: THREE.FrontSide
+    });
     const plane = new THREE.Mesh(geometry, material);
 
-    plane.position.set(wallX, wallHeight, z);
+    // Position slightly in front of wall
+    plane.position.set(wallX - 0.5, wallHeight, z);
     plane.rotation.y = -Math.PI / 2; // Face inward
+    plane.renderOrder = baseRenderOrder + leftCount + i; // Ensure renders on top of colored tiles
     scene.add(plane);
 
     imageIndex++;
