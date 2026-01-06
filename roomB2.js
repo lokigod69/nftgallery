@@ -736,7 +736,7 @@ function addMixedDecorationsToWalls() {
       setTimeout(() => loadCopperBatch(endIndex), BATCH_DELAY);
     } else {
       // Start loading NFT textures after copper textures are queued
-      setTimeout(() => loadNFTBatch(0), BATCH_DELAY);
+      setTimeout(() => loadAndPlaceNFT(0), BATCH_DELAY);
     }
   }
 

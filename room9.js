@@ -39,26 +39,26 @@ import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUti
 // - Target: 60 FPS, <10 MB VRAM
 // ═══════════════════════════════════════════════════════════════════════
 
-// Room 9 NFT Files - 18 monochromatic photographs
+// Room 9 NFT Files - 18 PNG images from Room9 folder
 const room9NftFiles = [
-  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_0176e0b1-51e8-4169-9e68-b7155dd45976',
-  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_11d2b388-18f7-4763-b611-ea4c32cfbaf0',
-  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_16c72529-6f33-41a3-a368-b1c2f43ea091',
-  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_332a6096-dabf-4c4d-8a6e-aefa2f7919dd',
-  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_33fe8d25-fa4d-487e-9477-27f102f7f587',
-  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_6bc3d1ca-bbef-44ae-9fc0-e69c79804d51',
-  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_6e6f6621-adb0-4b2d-9ee2-13118c94bcd9',
-  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_74d3926c-dfeb-4a53-a55f-3ef1f02e5b2c',
-  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_7addf437-8519-4876-92d8-33b5fdf34104',
-  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_7e3556a5-641c-44c6-b6a6-6ec302a9ae24',
-  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_8a30fdf9-32dc-4ff3-aab8-5e468f2f46a1',
-  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_992d2b42-5323-437e-9fe0-55153961ef97',
-  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_caa0e3d0-1a4a-4f18-899b-af6fc4f6d701',
-  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_da1a421f-2e6c-43d8-b738-18b3188408aa',
-  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_e0aa6ceb-d808-4589-b659-09ade63ef468',
-  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_e744cab9-c520-4a60-adf3-cd795e2300d9',
-  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_f2c690f6-7093-467b-b177-42ee6ab79043',
-  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_f3ef1d4b-3a68-41a8-96fd-47d324283bb7'
+  'ComfyUI_03156_',
+  'ComfyUI_03157_',
+  'ComfyUI_03158_',
+  'ComfyUI_03159_',
+  'ComfyUI_03160_',
+  'ComfyUI_03161_',
+  'ComfyUI_03162_',
+  'ComfyUI_03163_',
+  'ComfyUI_03164_',
+  'ComfyUI_03165_',
+  'ComfyUI_03166_',
+  'ComfyUI_03167_',
+  'ComfyUI_03168_',
+  'ComfyUI_03169_',
+  'ComfyUI_03170_',
+  'ComfyUI_03171_',
+  'ComfyUI_03172_',
+  'ComfyUI_03173_'
 ];
 
 // ═══════════════════════════════════════════════════════════════════════

@@ -29,7 +29,7 @@ const ROOM7_CONFIG = {
 
   // Zigzag path parameters - jumpable alternating pattern
   zigzagAmplitude: 8,        // Max horizontal distance from center (reduced for jumpability)
-  platformSpacingZ: 1.28,    // Z distance between platforms (adjusted for exactly 70 platforms)
+  platformSpacingZ: 4.5,     // Z distance between platforms (closer together)
 
   // Player physics
   eyeHeight: 4.0,            // Raised eye height for better view of platform photos
@@ -38,8 +38,8 @@ const ROOM7_CONFIG = {
   jumpVelocity: 14,          // Increased for longer jumps
 
   // Spawn and portal positions
-  spawnZ: -50,               // Start position (negative Z) - extended for more platforms
-  portalZ: 50,               // End position - near room edge
+  spawnZ: -45,               // Start position (negative Z)
+  portalZ: 48,               // End position - near room edge
 
   // Floor (danger zone)
   floorY: 0,
@@ -580,8 +580,119 @@ function createZigzagPlatforms(positions, imageFiles) {
   console.log(`Created ${positions.length} NFT platforms in zigzag pattern`);
 }
 
-// Images from /assets/Room7 - 70 files total (35 PNG + 35 WebP)
-const imageFiles = [
+/**
+ * Create side platforms in a bell curve / Gaussian distribution pattern
+ * Narrow at start → wide in middle → narrow at end
+ */
+function createBellCurveSidePlatforms(mainPositions, sideImages) {
+  const cfg = ROOM7_CONFIG;
+  const y = cfg.platformHeight;
+  const sideDistance = 15; // Distance from center for side platforms
+  const platformSpacing = cfg.platformSpacingZ * 1.5; // Slightly more spaced
+
+  // Calculate the middle Z position
+  const startZ = mainPositions[0].z;
+  const endZ = mainPositions[mainPositions.length - 1].z;
+  const midZ = (startZ + endZ) / 2;
+  const pathLength = endZ - startZ;
+
+  let imageIndex = 0;
+  let sidePlatformCount = 0;
+
+  // Distribute platforms along Z axis with bell curve width
+  for (let z = startZ; z <= endZ && imageIndex < sideImages.length; z += platformSpacing) {
+    // Calculate normalized position (0 to 1)
+    const normalizedPos = (z - startZ) / pathLength;
+
+    // Gaussian function: exp(-((x - 0.5)^2) / (2 * sigma^2))
+    // sigma = 0.2 gives a nice bell curve that peaks in the middle
+    const sigma = 0.2;
+    const gaussianValue = Math.exp(-Math.pow(normalizedPos - 0.5, 2) / (2 * sigma * sigma));
+
+    // Map Gaussian value to number of platforms on each side (0-3 platforms)
+    const maxSidePlatforms = 3;
+    const sidePlatformsCount = Math.round(gaussianValue * maxSidePlatforms);
+
+    // Create platforms on both left and right sides
+    for (let side = -1; side <= 1; side += 2) { // -1 for left, +1 for right
+      for (let tier = 1; tier <= sidePlatformsCount; tier++) {
+        if (imageIndex >= sideImages.length) break;
+
+        const x = side * (sideDistance + (tier - 1) * 5); // Spread outward
+        const textureUrl = getRoom7ArtUrl(sideImages[imageIndex]);
+
+        createPlatform(x, y, z, cfg.platformSize, textureUrl, false);
+        imageIndex++;
+        sidePlatformCount++;
+      }
+    }
+  }
+
+  console.log(`Created ${sidePlatformCount} side platforms in bell curve pattern`);
+}
+
+/**
+ * Create wall placements on left and right sides
+ * Evenly distributes images: 17 on left wall, 18 on right wall
+ */
+function createWallPlacements(images) {
+  const cfg = ROOM7_CONFIG;
+  const wallX = cfg.roomSize / 2 - 2; // Position near room edges
+  const startZ = cfg.spawnZ + 10;
+  const endZ = cfg.portalZ - 10;
+  const wallHeight = cfg.platformHeight + 3; // Slightly above platform height
+
+  // Left wall gets 17 images, right wall gets 18
+  const leftCount = 17;
+  const rightCount = 18;
+
+  const zSpacing = (endZ - startZ) / Math.max(leftCount, rightCount);
+
+  let imageIndex = 0;
+
+  // Left wall (17 images)
+  for (let i = 0; i < leftCount; i++) {
+    const z = startZ + i * zSpacing * (leftCount / rightCount); // Adjust spacing
+    const textureUrl = getRoom7ArtUrl(images[imageIndex % images.length]);
+
+    // Create a plane on the left wall
+    const geometry = new THREE.PlaneGeometry(3, 3);
+    const texture = new THREE.TextureLoader().load(textureUrl);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    const material = new THREE.MeshStandardMaterial({ map: texture });
+    const plane = new THREE.Mesh(geometry, material);
+
+    plane.position.set(-wallX, wallHeight, z);
+    plane.rotation.y = Math.PI / 2; // Face inward
+    scene.add(plane);
+
+    imageIndex++;
+  }
+
+  // Right wall (18 images)
+  for (let i = 0; i < rightCount; i++) {
+    const z = startZ + i * zSpacing;
+    const textureUrl = getRoom7ArtUrl(images[imageIndex % images.length]);
+
+    // Create a plane on the right wall
+    const geometry = new THREE.PlaneGeometry(3, 3);
+    const texture = new THREE.TextureLoader().load(textureUrl);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    const material = new THREE.MeshStandardMaterial({ map: texture });
+    const plane = new THREE.Mesh(geometry, material);
+
+    plane.position.set(wallX, wallHeight, z);
+    plane.rotation.y = -Math.PI / 2; // Face inward
+    scene.add(plane);
+
+    imageIndex++;
+  }
+
+  console.log(`Created wall placements: ${leftCount} on left wall, ${rightCount} on right wall`);
+}
+
+// Room 7 NFT Files - 35 PNG images used for all platforms and walls
+const room7Images = [
 "ComfyUI_03027_",
 "ComfyUI_03028_",
 "ComfyUI_03029_",
@@ -616,42 +727,7 @@ const imageFiles = [
 "ComfyUI_03058_",
 "ComfyUI_03059_",
 "ComfyUI_03060_",
-"ComfyUI_03061_",
-"lokigod69._A_female_model_standing_in_a_stark_monochrome_space__461d3cd1-91d2-4213-90e0-567676b9955d",
-"lokigod69._A_female_model_standing_in_a_stark_monochrome_space__466af283-1d72-466f-bfc1-54e1ee6876c2",
-"lokigod69._A_female_model_standing_in_a_stark_monochrome_space__68b3628b-b6ef-4896-9549-2c5d8a1bd7af",
-"lokigod69._A_female_model_standing_in_a_stark_monochrome_space__7b1a8021-543c-4df1-b042-ca0b831b8958",
-"lokigod69._A_female_model_standing_in_a_stark_monochrome_space__88a763cc-6ccc-4e13-9be3-8f08d461424c",
-"lokigod69._A_female_model_standing_in_a_stark_monochrome_space__bf83db25-9c43-483a-89c7-d2f8c19f5f0b",
-"lokigod69._A_female_model_standing_in_a_stark_monochrome_space__e054a1e9-c25f-42b7-999d-8f70985bd4c5",
-"lokigod69._A_female_model_whose_body_dissolves_into_thick_impre_4512005b-b6b4-48bf-8a1c-3739d9c4a119",
-"lokigod69._A_female_model_whose_body_dissolves_into_thick_impre_59be43ce-bd6e-4cc3-8450-716fc35dac80",
-"lokigod69._A_female_model_whose_body_dissolves_into_thick_impre_85b12a18-2947-48ad-a5af-1d6b33ce774f",
-"lokigod69._A_female_model_whose_body_dissolves_into_thick_impre_8759e405-ef7f-4d8a-a442-f66f99e25ecb",
-"lokigod69._A_female_model_whose_body_dissolves_into_thick_impre_9482ebf3-7396-4e99-aa02-80ca057b13fa",
-"lokigod69._A_female_model_whose_body_dissolves_into_thick_impre_9b619bf6-3921-4ddc-be34-e52b7357be11",
-"lokigod69._A_female_model_whose_body_dissolves_into_thick_impre_b0af6fe2-75ea-4db4-8347-e68fb96a8271",
-"lokigod69._A_female_model_whose_face_and_body_are_partially_hum_00f3edec-48a9-4008-9395-b38b6be4d41a",
-"lokigod69._A_female_model_whose_face_and_body_are_partially_hum_14dd4c67-a62e-4129-90fb-30f9190f70f6",
-"lokigod69._A_female_model_whose_face_and_body_are_partially_hum_15eacfaf-36fc-4130-9b7b-bd6077059bb8",
-"lokigod69._A_female_model_whose_face_and_body_are_partially_hum_2929b4b0-7f22-4bfd-b078-bbe50a80d68d",
-"lokigod69._A_female_model_whose_face_and_body_are_partially_hum_2d4349d0-29e3-478b-bcd4-27c7ea85ebc0",
-"lokigod69._A_female_model_whose_face_and_body_are_partially_hum_2ee2d461-2cfa-41f2-8ca9-a9822a0b0a9c",
-"lokigod69._A_female_model_whose_face_and_body_are_partially_hum_33b7a50b-ef28-440e-9e78-a0162a004cbd",
-"lokigod69._A_female_model_whose_face_and_body_are_partially_hum_4bc3ba0e-ee5f-4585-9c69-39006f26ecb0",
-"lokigod69._A_female_model_whose_face_and_body_are_partially_hum_64ee1a46-0467-42fb-9c06-9d5808ed5939",
-"lokigod69._A_female_model_whose_face_and_body_are_partially_hum_7384f469-b030-4a0e-b097-44ba9ee5d4a1",
-"lokigod69._A_female_model_whose_face_and_body_are_partially_hum_7c0d1f36-6efa-482f-8c07-36c9ac51c43f",
-"lokigod69._A_female_model_whose_face_and_body_are_partially_hum_82754cdd-ac8a-4f79-95e1-9dc78238a7bf",
-"lokigod69._A_female_model_whose_face_and_body_are_partially_hum_8705c6aa-ccba-46cb-898e-666f778f7ce4",
-"lokigod69._A_female_model_whose_face_and_body_are_partially_hum_a2a34144-0654-40ab-b56e-511fe17495fe",
-"lokigod69._A_female_model_whose_face_and_body_are_partially_hum_a68832b9-b616-422a-84f5-ce7a3b3e29f9",
-"lokigod69._A_female_model_whose_face_and_body_are_partially_hum_bb3fc202-10a4-4ce9-a1a3-ac78b6be7cc5",
-"lokigod69._A_female_model_whose_face_and_body_are_partially_hum_bf44c9a4-d34b-4fab-b098-823809e660e9",
-"lokigod69._A_female_model_whose_face_and_body_are_partially_hum_ce313a50-bf83-4bdc-8fc2-dc65101c5b35",
-"lokigod69._A_female_model_whose_face_and_body_are_partially_hum_d89a1885-b7ca-41da-8d28-2ca3f3c58d93",
-"lokigod69._A_female_model_whose_face_and_body_are_partially_hum_f76ec122-ce7b-456a-863b-ffd6eb7fcf97",
-"lokigod69._A_female_model_whose_face_and_body_are_partially_hum_fa2abe36-bf87-489f-ad93-315bdf686727"
+"ComfyUI_03061_"
 ];
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -662,11 +738,17 @@ const imageFiles = [
 const spawnPlatform = createSpawnPlatform();
 const endPlatform = createEndPlatform();
 
-// Generate zigzag path and create NFT platforms
+// Generate zigzag path and create main NFT platforms
 const zigzagPositions = generateZigzagPath();
-createZigzagPlatforms(zigzagPositions, imageFiles);
+createZigzagPlatforms(zigzagPositions, room7Images);
 
-console.log(`✓ Room 7 initialized: ${platforms.length} total platforms (zigzag path)`);
+// Add bell curve side platforms with same PNG images
+createBellCurveSidePlatforms(zigzagPositions, room7Images);
+
+// Add wall placements on left and right sides (17 + 18 = 35 images)
+createWallPlacements(room7Images);
+
+console.log(`✓ Room 7 initialized: ${platforms.length} total platforms (zigzag + bell curve + walls)`);
 
 // ═══════════════════════════════════════════════════════════════════════
 // Platform Collision Detection
