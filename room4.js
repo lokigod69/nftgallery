@@ -31,6 +31,39 @@ import { initScene } from './src/core/scene-setup.js';
 import { initUnifiedNFTViewer, MAX_NFT_INTERACTION_DISTANCE } from './src/core/nft-viewer.js';
 import { initMobileControls } from './src/core/mobile-controls.js';
 
+// Room 4 NFT Files - 23 PNG images from Room4 folder
+const room4NftFiles = [
+  'ComfyUI_03074_',
+  'ComfyUI_03075_',
+  'ComfyUI_03076_',
+  'ComfyUI_03077_',
+  'ComfyUI_03078_',
+  'ComfyUI_03079_',
+  'ComfyUI_03080_',
+  'ComfyUI_03081_',
+  'ComfyUI_03082_',
+  'ComfyUI_03083_',
+  'ComfyUI_03084_',
+  'ComfyUI_03085_',
+  'ComfyUI_03086_',
+  'ComfyUI_03087_',
+  'ComfyUI_03088_',
+  'ComfyUI_03089_',
+  'ComfyUI_03090_',
+  'ComfyUI_03091_',
+  'ComfyUI_03092_',
+  'ComfyUI_03093_',
+  'ComfyUI_03094_',
+  'ComfyUI_03095_',
+  'ComfyUI_03096_'
+];
+
+// Helper function to get Room4 NFT URL by index (0-22)
+function getRoom4NftUrl(index) {
+  const filename = room4NftFiles[index % room4NftFiles.length];
+  return `/assets/Room4/${filename}.png`;
+}
+
 // ----------------------------------------------------------------------
 // Global Variables
 // ----------------------------------------------------------------------
@@ -378,8 +411,8 @@ function createFloatingNFT(displayIndex, position, rotation) {
   const frameHeight = 2.5;
   const frameWidth = frameHeight * 0.564;
 
-  // Calculate the actual NFT number to use (108-127)
-  const nftIndex = 107 + displayIndex; // Map display indexes 1-20 to NFT indexes 108-127
+  // Calculate the array index to use (0-22 for 23 NFTs)
+  const arrayIndex = (displayIndex - 1) % room4NftFiles.length;
 
   // Create fallback texture immediately so we always have something to display
   const canvas = document.createElement('canvas');
@@ -398,7 +431,7 @@ function createFloatingNFT(displayIndex, position, rotation) {
   ctx.font = 'bold 48px Arial';
   ctx.fillStyle = 'white';
   ctx.textAlign = 'center';
-  ctx.fillText(`NFT #${nftIndex}`, canvas.width/2, canvas.height/2 - 50);
+  ctx.fillText(`NFT #${displayIndex}`, canvas.width/2, canvas.height/2 - 50);
   ctx.font = '32px Arial';
   ctx.fillText('Floating Gallery', canvas.width/2, canvas.height/2 + 50);
 
@@ -410,8 +443,8 @@ function createFloatingNFT(displayIndex, position, rotation) {
   // Create a fallback texture immediately
   const fallbackTexture = new THREE.CanvasTexture(canvas);
 
-  // Create the NFT path using WebP helper function
-  const nftPath = getNftUrl(nftIndex);
+  // Create the NFT path using Room4 helper function
+  const nftPath = getRoom4NftUrl(arrayIndex);
 
   // Create a single material that works on both sides of the plane
   const material = new THREE.MeshBasicMaterial({
@@ -449,25 +482,25 @@ function createFloatingNFT(displayIndex, position, rotation) {
         texture.encoding = THREE.sRGBEncoding; // Correct color representation
         material.map = texture;
         material.needsUpdate = true;
-        console.log(`Successfully loaded NFT texture ${nftIndex}`);
+        console.log(`Successfully loaded NFT texture ${displayIndex}`);
       },
       // Progress callback
       function(xhr) {
         if (xhr.total !== 0) {
-          console.log(`${nftIndex} loading: ${(xhr.loaded / xhr.total * 100).toFixed(2)}%`);
+          console.log(`${displayIndex} loading: ${(xhr.loaded / xhr.total * 100).toFixed(2)}%`);
         }
       },
       // Error callback
       function(err) {
-        console.error(`Error loading NFT texture ${nftIndex}:`, err);
+        console.error(`Error loading NFT texture ${displayIndex}:`, err);
 
         if (retryCount < maxRetries) {
           // Retry with exponential backoff
           const delay = 1000 * Math.pow(2, retryCount);
-          console.log(`Retrying to load NFT ${nftIndex} in ${delay}ms (attempt ${retryCount + 1}/${maxRetries})`);
+          console.log(`Retrying to load NFT ${displayIndex} in ${delay}ms (attempt ${retryCount + 1}/${maxRetries})`);
           setTimeout(() => loadNFTTexture(retryCount + 1), delay);
         } else {
-          console.log(`Max retries reached for NFT ${nftIndex}, using fallback`);
+          console.log(`Max retries reached for NFT ${displayIndex}, using fallback`);
           // Keep using the fallback texture - which is already set
         }
       }
@@ -480,7 +513,7 @@ function createFloatingNFT(displayIndex, position, rotation) {
   // Store the plane for click detection
   plane.userData = {
     isNFT: true,
-    index: nftIndex,
+    index: displayIndex,
     imageUrl: nftPath // Use full URL from getNftUrl (don't strip query params)
   };
   picturePlanes.push(plane);
@@ -741,8 +774,8 @@ for (let i = 0; i < nftCount; i++) {
   floatingNFTs.push(nft);
 }
 
-// Add a second inner ring of NFTs (120-127)
-const innerNFTCount = 8;
+// Add a second inner ring of NFTs (13-23 total)
+const innerNFTCount = 11;
 for (let i = 0; i < innerNFTCount; i++) {
   const angle = (i / innerNFTCount) * Math.PI * 2 + (Math.PI / innerNFTCount); // Offset from outer ring
   const radius = 6; // Inner radius
@@ -756,7 +789,7 @@ for (let i = 0; i < innerNFTCount; i++) {
   // Face toward the center
   const rotation = new THREE.Euler(0, Math.atan2(x, z), 0);
 
-  // Create with display index 13-20, which maps to NFTs 120-127
+  // Create with display index 13-23 (11 more NFTs for total of 23)
   const nft = createFloatingNFT(i + 13, position, rotation);
   floatingNFTs.push(nft);
 }

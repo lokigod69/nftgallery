@@ -21,6 +21,30 @@ import { initScene } from './src/core/scene-setup.js';
 import { initUnifiedNFTViewer, MAX_NFT_INTERACTION_DISTANCE } from './src/core/nft-viewer.js';
 import { initMobileControls } from './src/core/mobile-controls.js';
 
+// Room 5 NFT Files - 14 PNG images from Room5 folder
+const room5NftFiles = [
+  'ComfyUI_03062_',
+  'ComfyUI_03065_',
+  'ComfyUI_03066_',
+  'ComfyUI_03067_',
+  'ComfyUI_03068_',
+  'ComfyUI_03069_',
+  'ComfyUI_03070_',
+  'ComfyUI_03071_',
+  'ComfyUI_03072_',
+  'ComfyUI_03073_',
+  'ComfyUI_03099_',
+  'ComfyUI_03100_',
+  'ComfyUI_03105_',
+  'ComfyUI_03107_'
+];
+
+// Helper function to get Room5 NFT URL by index (0-13)
+function getRoom5NftUrl(index) {
+  const filename = room5NftFiles[index % room5NftFiles.length];
+  return `/assets/Room5/${filename}.png`;
+}
+
 // ----------------------------------------------------------------------
 // Global Variables
 // ----------------------------------------------------------------------
@@ -373,24 +397,22 @@ function createCeiling() {
   };
 }
 
-// Create NFT displays in a dodecagon formation
+// Create NFT displays in formation
 function createNFTPedestals() {
-  const nftCount = 12; // 12 NFTs in a dodecagon
+  const nftCount = 14; // 14 NFTs in formation
   const nfts = [];
 
-  // Use NFTs 131-142
-  const startNFTIndex = 131;
+  // Use Room5 NFT files (indices 0-13)
 
-  // Create NFTs in a dodecagon (12-sided polygon)
+  // Create NFTs in a 14-sided polygon
   for (let i = 0; i < nftCount; i++) {
     const angle = (i / nftCount) * Math.PI * 2;
     const radius = roomRadius * 0.6; // Position in a circle
     const x = Math.cos(angle) * radius;
     const z = Math.sin(angle) * radius;
 
-    // Create floating NFT with glow effects
-    const nftIndex = startNFTIndex + i;
-    createDoubleSidedNFT(nftIndex, new THREE.Vector3(x, 5, z), angle);
+    // Create floating NFT with glow effects (using index 0-13)
+    createDoubleSidedNFT(i, new THREE.Vector3(x, 5, z), angle);
   }
 
   return nfts;
@@ -529,15 +551,11 @@ function createDoubleSidedNFT(index, position, angle) {
   // Set texture loading priority and options
   textureLoader.setCrossOrigin('anonymous');
 
-  // NFT path formats to try
+  // NFT path using Room5 helper function
   const timestamp = Date.now();
   const pathFormats = [
-    `/assets/nft${index}.png?t=${timestamp}`,
-    `/assets/nft${index}.png?t=${timestamp}`,
-    getNftUrl(index),
-    getNftUrl(index),
-    `../assets/nft${index}.png?t=${timestamp}`,
-    `./assets/nft${index}.png?t=${timestamp}`
+    getRoom5NftUrl(index),
+    `${getRoom5NftUrl(index)}?t=${timestamp}`
   ];
 
   let loadAttempt = 0;
@@ -588,12 +606,12 @@ function createDoubleSidedNFT(index, position, angle) {
 
   // Store for click detection (use getNftUrl for consistent URL format)
   nftMeshFront.userData.isNFT = true;
-  nftMeshFront.userData.index = index;
-  nftMeshFront.userData.imageUrl = getNftUrl(index);
+  nftMeshFront.userData.index = index + 1; // Display as 1-12
+  nftMeshFront.userData.imageUrl = getRoom5NftUrl(index);
 
   nftMeshBack.userData.isNFT = true;
-  nftMeshBack.userData.index = index;
-  nftMeshBack.userData.imageUrl = getNftUrl(index);
+  nftMeshBack.userData.index = index + 1; // Display as 1-12
+  nftMeshBack.userData.imageUrl = getRoom5NftUrl(index);
 
   // Add both sides to picturePlanes for interaction
   picturePlanes.push(nftMeshFront);

@@ -29,7 +29,7 @@ const ROOM7_CONFIG = {
 
   // Zigzag path parameters - jumpable alternating pattern
   zigzagAmplitude: 8,        // Max horizontal distance from center (reduced for jumpability)
-  platformSpacingZ: 4.5,     // Z distance between platforms (closer together)
+  platformSpacingZ: 1.28,    // Z distance between platforms (adjusted for exactly 70 platforms)
 
   // Player physics
   eyeHeight: 4.0,            // Raised eye height for better view of platform photos
@@ -38,8 +38,8 @@ const ROOM7_CONFIG = {
   jumpVelocity: 14,          // Increased for longer jumps
 
   // Spawn and portal positions
-  spawnZ: -45,               // Start position (negative Z)
-  portalZ: 48,               // End position - near room edge
+  spawnZ: -50,               // Start position (negative Z) - extended for more platforms
+  portalZ: 50,               // End position - near room edge
 
   // Floor (danger zone)
   floorY: 0,
@@ -580,8 +580,43 @@ function createZigzagPlatforms(positions, imageFiles) {
   console.log(`Created ${positions.length} NFT platforms in zigzag pattern`);
 }
 
-// Images from /assets/Room7
+// Images from /assets/Room7 - 70 files total (35 PNG + 35 WebP)
 const imageFiles = [
+"ComfyUI_03027_",
+"ComfyUI_03028_",
+"ComfyUI_03029_",
+"ComfyUI_03030_",
+"ComfyUI_03031_",
+"ComfyUI_03032_",
+"ComfyUI_03033_",
+"ComfyUI_03034_",
+"ComfyUI_03035_",
+"ComfyUI_03036_",
+"ComfyUI_03037_",
+"ComfyUI_03038_",
+"ComfyUI_03039_",
+"ComfyUI_03040_",
+"ComfyUI_03041_",
+"ComfyUI_03042_",
+"ComfyUI_03043_",
+"ComfyUI_03044_",
+"ComfyUI_03045_",
+"ComfyUI_03046_",
+"ComfyUI_03047_",
+"ComfyUI_03048_",
+"ComfyUI_03049_",
+"ComfyUI_03050_",
+"ComfyUI_03051_",
+"ComfyUI_03052_",
+"ComfyUI_03053_",
+"ComfyUI_03054_",
+"ComfyUI_03055_",
+"ComfyUI_03056_",
+"ComfyUI_03057_",
+"ComfyUI_03058_",
+"ComfyUI_03059_",
+"ComfyUI_03060_",
+"ComfyUI_03061_",
 "lokigod69._A_female_model_standing_in_a_stark_monochrome_space__461d3cd1-91d2-4213-90e0-567676b9955d",
 "lokigod69._A_female_model_standing_in_a_stark_monochrome_space__466af283-1d72-466f-bfc1-54e1ee6876c2",
 "lokigod69._A_female_model_standing_in_a_stark_monochrome_space__68b3628b-b6ef-4896-9549-2c5d8a1bd7af",
@@ -616,7 +651,7 @@ const imageFiles = [
 "lokigod69._A_female_model_whose_face_and_body_are_partially_hum_ce313a50-bf83-4bdc-8fc2-dc65101c5b35",
 "lokigod69._A_female_model_whose_face_and_body_are_partially_hum_d89a1885-b7ca-41da-8d28-2ca3f3c58d93",
 "lokigod69._A_female_model_whose_face_and_body_are_partially_hum_f76ec122-ce7b-456a-863b-ffd6eb7fcf97",
-"lokigod69._A_female_model_whose_face_and_body_are_partially_hum_fa2abe36-bf87-489f-ad93-315bdf686727.png"
+"lokigod69._A_female_model_whose_face_and_body_are_partially_hum_fa2abe36-bf87-489f-ad93-315bdf686727"
 ];
 
 // ═══════════════════════════════════════════════════════════════════════
