@@ -137,3 +137,11 @@ canvas {
     box-sizing: border-box;
     z-index: 2000;
 }
+
+/* Hide keyboard controls on mobile/touch devices */
+@media (max-width: 1024px) and (pointer: coarse) {
+    #controls-description,
+    .controls-description {
+        display: none;
+    }
+}
