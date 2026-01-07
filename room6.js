@@ -265,7 +265,7 @@ function placeMonolithsOnWalls() {
   initMonolithMaterials();
 
   const monoliths = [];
-  const nftSpacing = corridorLength / (14 + 1); // 14 NFTs displayed
+  const nftSpacing = corridorLength / (16 + 1); // 16 NFTs displayed
 
   cfg.monolithWallIndices.forEach((nftIndex, i) => {
     // Calculate position between NFTs on walls
@@ -336,7 +336,7 @@ function placeMonolithsOnWalls() {
 // - Fall mechanic: Player falls when not on safe tile, creating "drop into pit" feeling
 //
 // NFT ASSETS:
-// - Using /assets/Room6/1.webp through 31.webp (31 NFT images)
+// - Using /assets/Room6/6a.png through 6p.png (16 NFT images)
 // - Replacing 13 video textures for better performance
 // - Wall-mounted planes, alternating sides like original videos
 //
@@ -848,7 +848,7 @@ function addFloorStalagmites() {
 
   // Calculate NFT Z positions to avoid
   const nftZPositions = [];
-  const localNftCount = 14; // Local copy to avoid TDZ with global nftCount
+  const localNftCount = 16; // Local copy to avoid TDZ with global nftCount
   const nftSpacing = corridorLength / (localNftCount + 1);
   for (let i = 0; i < localNftCount; i++) {
     nftZPositions.push(-nftSpacing * (i + 1));
@@ -1015,17 +1015,19 @@ for (let z = -15; z >= -90; z -= 15) {
 // NFT Wall Art - Room 6 Collection
 // ----------------------------------------------------------------------
 // Using static NFT images from /assets/Room6/ instead of videos
-// 14 NFTs displayed (matching tile count), alternating walls like original videos
+// 16 NFTs displayed (6a.png through 6p.png), alternating walls like original videos
 
 const nftPlanes = [];
 const textureLoader = new THREE.TextureLoader();
-const nftCount = 14; // Display 14 of the 31 available NFTs
+const nftCount = 16; // Display 16 NFTs (6a through 6p)
 const nftSpacing = corridorLength / (nftCount + 1);
 
 for (let i = 0; i < nftCount; i++) {
-  const nftIndex = i + 1; // Use NFTs 1-14
+  // Convert index to letter: 0→'a', 1→'b', ..., 15→'p'
+  const letter = String.fromCharCode(97 + i); // 97 is 'a' in ASCII
+  const filename = `6${letter}`;
   const texture = textureLoader.load(
-    `/assets/Room6/${nftIndex}.webp`,
+    `/assets/Room6/${filename}.png`,
     // onLoad callback to ensure proper color space
     (loadedTexture) => {
       loadedTexture.colorSpace = THREE.SRGBColorSpace; // Ensure correct color space
