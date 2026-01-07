@@ -23,7 +23,7 @@ const ROOM7_CONFIG = {
   roomLength: 80,            // Path length (Z-axis)
 
   // Platform settings
-  platformSize: 4.0,         // NFT platform size (slightly larger for easier landing)
+  platformSize: 3.2,         // NFT platform size (reduced to prevent overlap on S-curve)
   platformHeight: 2.0,       // Height above floor
   platformThickness: 0.5,    // Platform depth
   spawnPlatformSize: 6.0,    // Larger spawn platform
@@ -442,13 +442,14 @@ function generateSCurvePath() {
   const positions = [];
 
   const numPlatforms = 35;  // Exactly 35 platforms
-  const startZ = cfg.spawnZ + 8;  // First platform after spawn
-  const endZ = cfg.portalZ - 8;   // Last platform before end
+  const startZ = cfg.spawnZ + 3;  // First platform after spawn (extended path)
+  const endZ = cfg.portalZ - 3;   // Last platform before end (extended path)
   const pathLength = endZ - startZ;
   const zSpacing = pathLength / (numPlatforms - 1);  // Equal spacing
 
   // S-curve amplitude - how far left/right the path goes
-  const amplitude = 20;  // Larger amplitude for more dramatic curves
+  // Room walls are at ±49, so amplitude of 38 reaches close to walls
+  const amplitude = 38;
 
   for (let i = 0; i < numPlatforms; i++) {
     // Normalized position (0 to 1)
@@ -458,13 +459,15 @@ function generateSCurvePath() {
     const z = startZ + i * zSpacing;
 
     // X position - S-curve using sine wave
-    // sin(4π * t) creates: 0 → max → 0 → -max → 0
+    // sin(4π * t) creates: 0 → +max → 0 → -max → 0
     const x = amplitude * Math.sin(4 * Math.PI * t);
 
     positions.push({ x: x, z: z, index: i });
   }
 
   console.log(`Generated ${positions.length} platform positions in S-curve pattern`);
+  console.log(`Z-spacing: ${zSpacing.toFixed(2)} units, Platform depth: ${cfg.platformSize} units`);
+  console.log(`Amplitude: ±${amplitude} units (room walls at ±${cfg.roomSize/2})`);
   return positions;
 }
 
