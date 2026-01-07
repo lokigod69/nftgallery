@@ -231,7 +231,7 @@ function createBaseWalls(thickness) {
   createMirrorCeiling();
 }
 
-// Simple NFT placement - no copper tiles, just 60 PNGs evenly distributed on walls
+// Simple NFT placement - 60 PNGs with original aspect ratios, randomly placed
 function placeNFTsOnWalls() {
   const textureLoader = new THREE.TextureLoader();
 
@@ -254,85 +254,104 @@ function placeNFTsOnWalls() {
     'ComfyUI_03231_', 'ComfyUI_03232_', 'ComfyUI_03233_', 'ComfyUI_03234_'
   ];
 
-  // Distribute 15 NFTs per wall (4 walls = 60 NFTs)
-  const nftsPerWall = 15;
-  const wallSize = 8;  // NFT display size
+  const baseSize = 10;  // Base size for NFT display
   const minY = 8;       // Minimum height from floor
-  const maxY = roomHeight - 8;  // Maximum height (leave space at top)
+  const maxY = roomHeight - 10;  // Maximum height
 
-  // Wall definitions: position and normal direction
+  // Wall definitions with width for random placement
   const walls = [
-    { name: 'front', pos: new THREE.Vector3(0, 0, roomLength/2),  normal: new THREE.Vector3(0, 0, -1) },
-    { name: 'back',  pos: new THREE.Vector3(0, 0, -roomLength/2), normal: new THREE.Vector3(0, 0, 1) },
-    { name: 'left',  pos: new THREE.Vector3(-roomWidth/2, 0, 0),  normal: new THREE.Vector3(1, 0, 0) },
-    { name: 'right', pos: new THREE.Vector3(roomWidth/2, 0, 0),   normal: new THREE.Vector3(-1, 0, 0) }
+    { name: 'front', pos: new THREE.Vector3(0, 0, roomLength/2),  normal: new THREE.Vector3(0, 0, -1), width: roomWidth },
+    { name: 'back',  pos: new THREE.Vector3(0, 0, -roomLength/2), normal: new THREE.Vector3(0, 0, 1),  width: roomWidth },
+    { name: 'left',  pos: new THREE.Vector3(-roomWidth/2, 0, 0),  normal: new THREE.Vector3(1, 0, 0),  width: roomLength },
+    { name: 'right', pos: new THREE.Vector3(roomWidth/2, 0, 0),   normal: new THREE.Vector3(-1, 0, 0), width: roomLength }
   ];
 
   let nftIndex = 0;
+  const nftsPerWall = 15; // 15 per wall = 60 total
 
-  walls.forEach((wall, wallIdx) => {
+  walls.forEach((wall) => {
     for (let i = 0; i < nftsPerWall && nftIndex < nftFiles.length; i++) {
       const filename = nftFiles[nftIndex];
+      const imgPath = `/assets/RoomB1/${filename}.png`;
 
-      // Calculate grid position on wall
-      const cols = 5;  // 5 columns per wall
-      const rows = 3;  // 3 rows per wall
-      const col = i % cols;
-      const row = Math.floor(i / cols);
+      // Load image first to get dimensions
+      const img = new Image();
+      img.onload = function() {
+        const aspectRatio = img.width / img.height;
 
-      // Calculate position along wall
-      let x, y, z;
-      const spacing = (wall.name === 'front' || wall.name === 'back')
-        ? roomWidth / (cols + 1)
-        : roomLength / (cols + 1);
-      const ySpacing = (maxY - minY) / (rows + 1);
-
-      y = minY + ySpacing * (row + 1);
-
-      if (wall.name === 'front' || wall.name === 'back') {
-        x = -roomWidth/2 + spacing * (col + 1);
-        z = wall.pos.z + wall.normal.z * 1.0;  // 1.0 unit IN FRONT of wall
-      } else {
-        z = -roomLength/2 + spacing * (col + 1);
-        x = wall.pos.x + wall.normal.x * 1.0;  // 1.0 unit IN FRONT of wall
-      }
-
-      // Load and place NFT
-      textureLoader.load(
-        `/assets/RoomB1/${filename}.png`,
-        (texture) => {
-          texture.colorSpace = THREE.SRGBColorSpace;
-
-          const material = new THREE.MeshBasicMaterial({
-            map: texture,
-            side: THREE.DoubleSide,
-            toneMapped: false
-          });
-
-          const geometry = new THREE.PlaneGeometry(wallSize, wallSize);
-          const mesh = new THREE.Mesh(geometry, material);
-          mesh.position.set(x, y, z);
-
-          // Rotate to face into room
-          if (wall.name === 'front') mesh.rotation.y = 0;
-          else if (wall.name === 'back') mesh.rotation.y = Math.PI;
-          else if (wall.name === 'left') mesh.rotation.y = Math.PI / 2;
-          else if (wall.name === 'right') mesh.rotation.y = -Math.PI / 2;
-
-          scene.add(mesh);
-          console.log(`✓ Placed NFT ${nftIndex + 1}/60: ${filename} on ${wall.name} wall`);
-        },
-        undefined,
-        (error) => {
-          console.error(`✗ Failed to load NFT ${filename}:`, error);
+        // Calculate plane dimensions preserving aspect ratio
+        let planeWidth, planeHeight;
+        if (aspectRatio >= 1) {
+          // Landscape or square
+          planeWidth = baseSize;
+          planeHeight = baseSize / aspectRatio;
+        } else {
+          // Portrait
+          planeHeight = baseSize;
+          planeWidth = baseSize * aspectRatio;
         }
-      );
 
+        // Random position on wall with margin
+        const margin = Math.max(planeWidth, planeHeight) / 2 + 5;
+        const xRange = wall.width - margin * 2;
+        const yRange = maxY - minY - margin * 2;
+
+        const randomX = -wall.width/2 + margin + Math.random() * xRange;
+        const randomY = minY + margin + Math.random() * yRange;
+
+        let x, y, z;
+        y = randomY;
+
+        if (wall.name === 'front' || wall.name === 'back') {
+          x = randomX;
+          z = wall.pos.z + wall.normal.z * 1.0;
+        } else {
+          z = randomX;
+          x = wall.pos.x + wall.normal.x * 1.0;
+        }
+
+        // Load texture and create mesh
+        textureLoader.load(
+          imgPath,
+          (texture) => {
+            texture.colorSpace = THREE.SRGBColorSpace;
+
+            const material = new THREE.MeshBasicMaterial({
+              map: texture,
+              side: THREE.DoubleSide,
+              toneMapped: false
+            });
+
+            const geometry = new THREE.PlaneGeometry(planeWidth, planeHeight);
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(x, y, z);
+
+            // Rotate to face into room
+            if (wall.name === 'front') mesh.rotation.y = 0;
+            else if (wall.name === 'back') mesh.rotation.y = Math.PI;
+            else if (wall.name === 'left') mesh.rotation.y = Math.PI / 2;
+            else if (wall.name === 'right') mesh.rotation.y = -Math.PI / 2;
+
+            scene.add(mesh);
+            console.log(`✓ Placed ${filename} (${img.width}x${img.height}, ratio ${aspectRatio.toFixed(2)}) on ${wall.name}`);
+          },
+          undefined,
+          (error) => {
+            console.error(`✗ Failed to load texture ${filename}:`, error);
+          }
+        );
+      };
+
+      img.onerror = function() {
+        console.error(`✗ Failed to load image ${filename}`);
+      };
+
+      img.src = imgPath;
       nftIndex++;
     }
   });
 
-  console.log(`Started loading ${nftFiles.length} NFTs across 4 walls`);
+  console.log(`Started loading ${nftFiles.length} NFTs with original aspect ratios, randomly placed`);
 }
 
 function createMirrorCeiling() {
