@@ -525,14 +525,14 @@ function createHubDoors() {
       name: 'Room C',
       label: null  // Door name label is enough
     },
-    // Levels - northwest (Rooms 6-10)
+    // Levels - northwest (Rooms 7-10)
     {
       x: -15.56, z: 15.56,
       rotation: Math.PI - Math.PI / 4,
       fromRoom: '0',
-      toRoom: '6',
-      destination: 'room6.html',
-      name: 'Levels (6-10)',
+      toRoom: '7',
+      destination: 'room7.html',
+      name: 'Levels (7-10)',
       label: null  // No extra label needed
     }
   ];

@@ -1268,12 +1268,12 @@ const portalToRoom7 = portal7Obj.portal;
 const portalGlow7 = portal7Obj.glow;
 
 // ============================================
-// Portal to Room 0 (back to hub - at spawn end)
+// Portal to Room 5 (Eternal Eclipse - return path)
 // ============================================
-const portal0Obj = createLinkedPortal({
+const portal5Obj = createLinkedPortal({
   scene,
   fromRoom: '6',
-  toRoom: '0',
+  toRoom: '5',
   x: 0,
   y: eyeHeight,
   z: 2,
@@ -1281,8 +1281,8 @@ const portal0Obj = createLinkedPortal({
   createLabel: true
 });
 
-const portalToRoom0 = portal0Obj.portal;
-const portalGlow0 = portal0Obj.glow;
+const portalToRoom5 = portal5Obj.portal;
+const portalGlow5 = portal5Obj.glow;
 
 const checkPortalProximity = createMultiPortalChecker({
   camera: controls.getObject(), // Use player position, not camera
@@ -1296,8 +1296,8 @@ const checkPortalProximity = createMultiPortalChecker({
     },
     {
       position: new THREE.Vector3(0, eyeHeight, 2),
-      name: 'Ocean Hub',
-      url: 'room0.html',
+      name: 'Eternal Eclipse (Room 5)',
+      url: 'room5.html',
       showDistance: 3.0,
       triggerDistance: 1.8
     }
@@ -1479,7 +1479,7 @@ function animate() {
   }
 
   // Animate portals
-  animateLinkedPortal(portalToRoom0, portalGlow0);
+  animateLinkedPortal(portalToRoom5, portalGlow5);
   animateLinkedPortal(portalToRoom7, portalGlow7);
 
   renderer.render(scene, camera);

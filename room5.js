@@ -14,6 +14,7 @@ import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { getNftUrl } from './src/core/asset-utils.js';
 import { createLinkedPortal, createPortalLabel, animateLinkedPortal, createMultiPortalChecker } from './src/core/portal-utils.js';
+import { showAccessCodePrompt } from './src/core/access-code-gate.js';
 import { getPortalStyle } from './src/core/portal-styles.js';
 import { MOVEMENT_CONFIG } from './src/core/movement-config.js';
 import { initSpeedControl } from './src/ui/speed-control.js';
@@ -674,22 +675,29 @@ function createAllPortals() {
   });
   portals.push({ ...portal4, name: 'Room 4', url: 'room4.html', position: new THREE.Vector3(0, groundLevel + eyeHeight, roomRadius - 5) });
 
-  // Portal to Room 0 (Ocean Hub) - North - Return to hub
-  const portal0 = createLinkedPortal({
+  // Portal to Room 6 (RESTRICTED - Access Code Required) - North - Black-red theme
+  const portal6 = createLinkedPortal({
     scene,
     fromRoom: '5',
-    toRoom: '0',
+    toRoom: '6',
     x: 0,
     y: eyeHeight,
     z: -(roomRadius - 5),
     rotationX: 0.1,
     createLabel: true,
-    overrideColor: 0x8844aa      // Purple to match 0-5 style
+    overrideColor: 0x330000,     // Very dark red (almost black)
+    overrideOpacity: 0.95         // Nearly opaque
   });
-  portals.push({ ...portal0, name: 'Ocean Hub', url: 'room0.html', position: new THREE.Vector3(0, eyeHeight, -(roomRadius - 5)) });
+  portals.push({
+    ...portal6,
+    name: 'Room 6 (Restricted)',
+    url: 'room6.html',
+    position: new THREE.Vector3(0, eyeHeight, -(roomRadius - 5)),
+    requiresAccessCode: true  // Flag for access code gate
+  });
 
-  // Room 5 is the END of the main gallery path (1-5)
-  // Rooms 6-10 are now accessed via the "Levels" door from Room 0
+  // Room 5 now connects to Room 6 (gated) instead of Room 0
+  // Players who can't access Room 6 can return via Room 4 → Room 3 → ... → Room 0
 
   return portals;
 }
@@ -704,22 +712,72 @@ const pedestals = createNFTPedestals();
 const haze = createAtmosphericHaze();
 const allPortals = createAllPortals();
 
-// Set up multi-portal proximity checker using standardized system
+// Set up multi-portal proximity checker with access code gate integration
 const portalConfigs = allPortals.map(p => ({
   position: p.position,
   name: p.name,
   url: p.url,
   showDistance: 4.0,
-  triggerDistance: 2.0
+  triggerDistance: 2.0,
+  requiresAccessCode: p.requiresAccessCode || false
 }));
 
-const checkPortalProximity = createMultiPortalChecker({
-  camera,
-  portals: portalConfigs,
-  controlsId: 'controls-description',
-  overlayId: 'loading-overlay',
-  loadingDelay: 500
-});
+// Custom portal checker that handles access code gate
+let isCheckingAccess = false;
+function checkPortalProximity() {
+  const playerPos = camera.position;
+
+  for (const portal of portalConfigs) {
+    const dist = playerPos.distanceTo(portal.position);
+
+    // Show prompt when near
+    if (dist < portal.showDistance && dist >= portal.triggerDistance) {
+      const desc = document.getElementById('controls-description');
+      if (desc) {
+        desc.textContent = `Approach ${portal.name}`;
+        desc.style.display = 'block';
+      }
+    }
+
+    // Trigger portal
+    if (dist < portal.triggerDistance) {
+      // Check if access code is required
+      if (portal.requiresAccessCode && !isCheckingAccess) {
+        isCheckingAccess = true;
+
+        // Show access code prompt
+        showAccessCodePrompt().then((granted) => {
+          isCheckingAccess = false;
+
+          if (granted) {
+            // Access granted - navigate to room
+            const overlay = document.getElementById('loading-overlay');
+            if (overlay) {
+              overlay.style.display = 'flex';
+            }
+            setTimeout(() => {
+              window.location.href = portal.url;
+            }, 500);
+          }
+          // If not granted, user stays in Room 5
+        });
+
+        return; // Don't process other portals
+      }
+
+      // Normal portal (no access code required)
+      if (!portal.requiresAccessCode) {
+        const overlay = document.getElementById('loading-overlay');
+        if (overlay) {
+          overlay.style.display = 'flex';
+        }
+        setTimeout(() => {
+          window.location.href = portal.url;
+        }, 500);
+      }
+    }
+  }
+}
 
 // Collect all portal labels for billboard effect
 const portalLabels = allPortals

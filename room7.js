@@ -862,6 +862,21 @@ const portal6Obj = createLinkedPortal({
 const portalToRoom6 = portal6Obj.portal;
 const portal6Glow = portal6Obj.glow;
 
+// Portal to Room 0 (Ocean Hub) - NEW: positioned near spawn for easy return
+const portal0Obj = createLinkedPortal({
+  scene,
+  fromRoom: '7',
+  toRoom: '0',
+  x: -ROOM7_CONFIG.roomSize / 2 + 10,  // Left side of room
+  y: portalY,
+  z: ROOM7_CONFIG.spawnZ + 5,  // Near spawn, slightly forward
+  rotationY: Math.PI / 2,  // Face toward center
+  createLabel: true
+});
+
+const portalToRoom0 = portal0Obj.portal;
+const portal0Glow = portal0Obj.glow;
+
 const checkPortalProximity = createMultiPortalChecker({
   camera,
   portals: [
@@ -876,6 +891,13 @@ const checkPortalProximity = createMultiPortalChecker({
       position: new THREE.Vector3(0, portalY, ROOM7_CONFIG.spawnZ - 5),
       name: 'Lava Corridor (Room 6)',
       url: 'room6.html',
+      showDistance: 3.0,
+      triggerDistance: 1.8
+    },
+    {
+      position: new THREE.Vector3(-ROOM7_CONFIG.roomSize / 2 + 10, portalY, ROOM7_CONFIG.spawnZ + 5),
+      name: 'Ocean Hub (Room 0)',
+      url: 'room0.html',
       showDistance: 3.0,
       triggerDistance: 1.8
     }
@@ -987,6 +1009,7 @@ function animate() {
   checkPortalProximity();
   animateLinkedPortal(portalToRoom8, portal8Glow);
   animateLinkedPortal(portalToRoom6, portal6Glow);
+  animateLinkedPortal(portalToRoom0, portal0Glow);
 
   renderer.render(scene, camera);
 }
