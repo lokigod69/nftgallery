@@ -219,6 +219,19 @@ export function getRoomBNftUrl(index) {
 }
 
 /**
+ * Get texture URL for RoomB1 art assets
+ *
+ * @param {string} filename - Filename without extension
+ * @returns {string} Full URL to RoomB1 image
+ *
+ * @example
+ * getRoomB1ArtUrl('ComfyUI_03174_') → '/assets/RoomB1/ComfyUI_03174_.png'
+ */
+export function getRoomB1ArtUrl(filename) {
+  return `/assets/RoomB1/${filename}.png`;
+}
+
+/**
  * Get texture URL for Room7 art assets
  *
  * @param {string} filename - Filename without extension

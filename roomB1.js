@@ -731,69 +731,69 @@ function addMixedDecorationsToWalls() {
   // NFT Loading System - Load images first to get dimensions, then place with correct aspect ratio
   // This ensures all artwork is displayed in its original proportions
 
-  // Room B1 NFT files (60 PNG images with descriptive names)
+  // Room B1 NFT files (60 PNG images from RoomB1 folder)
   const nftFiles = [
-    'aha_its_over_--ar_34_--profile_4qkwdsq_--v_7_244e75f1-3bb1-41e0-8e04-50760d654377_0',
-    'aha_its_over_--ar_34_--profile_4qkwdsq_--v_7_244e75f1-3bb1-41e0-8e04-50760d654377_2',
-    'art_--ar_34_--profile_4qkwdsq_--v_7_94bfd84a-c95b-46b8-b1e8-d0bc8de511bf_3',
-    'discombobulating_--ar_34_--v_7_c1d1258a-272a-4089-92e0-5fc250b71120_3',
-    'dissolve_dissect_disperse_--ar_34_--profile_4qkwdsq_--v_7_cc45f451-c075-4703-a724-03c62e40d2c5_0',
-    'dissolve_dissect_disperse_--ar_34_--profile_4qkwdsq_--v_7_cc45f451-c075-4703-a724-03c62e40d2c5_3',
-    'dont_die_--ar_34_--v_7_870345a9-8c53-4805-bd11-c21f749b4403_0',
-    'fever_in_style_--ar_34_--profile_4qkwdsq_--v_7_988a066a-9e98-47a2-a2eb-d6279088a44a_3',
-    'forever_and_never_--ar_34_--profile_4qkwdsq_--v_7_cd78cef2-c57f-40ff-8af5-f79c938abd59_1',
-    'fren_jaa_ko_ok_issa_min_baba_--chaos_15_--ar_34_--stylize_600_219366e1-b082-4f34-aa6e-10075bec2445_3',
-    'frinda_lofte_berti_frassa_--chaos_35_--ar_34_--profile_4qkwds_e7a078e7-7ea6-4e3d-98d9-accee4cd5326_0',
-    'frinda_lofte_berti_frassa_--chaos_35_--ar_34_--profile_4qkwds_e7a078e7-7ea6-4e3d-98d9-accee4cd5326_1',
-    'fumbling_the_leader_--ar_34_--profile_4qkwdsq_--v_7_a7f391eb-9880-4ed6-a874-cad3bab76f73_0',
-    'fumbling_the_leader_--ar_34_--profile_4qkwdsq_--v_7_a7f391eb-9880-4ed6-a874-cad3bab76f73_3',
-    'guffaw_at_crossroad_station_--ar_34_--profile_4qkwdsq_--v_7_e430732a-e9b6-4ba1-9e4e-d621d17d65cc_0',
-    'guffaw_at_crossroad_station_--ar_34_--profile_4qkwdsq_--v_7_e430732a-e9b6-4ba1-9e4e-d621d17d65cc_1',
-    'guffaw_at_crossroad_station_--ar_34_--profile_4qkwdsq_--v_7_e430732a-e9b6-4ba1-9e4e-d621d17d65cc_3',
-    'iubwdq_quwibpd_puioqnwodim_qmpwodmq_p_mqpwdmn_oqq_nwnwpq_d_nq_1308193b-9674-49be-9a6b-f23f417b78bb_0',
-    'iubwdq_quwibpd_puioqnwodim_qmpwodmq_p_mqpwdmn_oqq_nwnwpq_d_nq_1308193b-9674-49be-9a6b-f23f417b78bb_3',
-    'juntar_robnik_grasdu_plecki_--chaos_35_--ar_34_--profile_4qkw_c917eed1-6ff2-4d4e-a5c9-d9107642d6fe_0',
-    'juntar_robnik_grasdu_plecki_--chaos_35_--ar_34_--profile_4qkw_c917eed1-6ff2-4d4e-a5c9-d9107642d6fe_3',
-    'juuuuce_in_floooodin_bunt_schwarz_weis_brei_--chaos_35_--ar_3_71ef9bbc-8d03-47ff-9503-5c1332d4a450_0',
-    'juuuuce_in_floooodin_bunt_schwarz_weis_brei_--chaos_35_--ar_3_71ef9bbc-8d03-47ff-9503-5c1332d4a450_2',
-    'juuuuce_in_floooodin_bunt_schwarz_weis_brei_--chaos_35_--ar_3_71ef9bbc-8d03-47ff-9503-5c1332d4a450_3',
-    'kin_--ar_34_--profile_4qkwdsq_--v_7_e043d59a-5db8-44d9-81d8-7a82cace814a_2',
-    'klaaar_1_waran_bvjskdj_--chaos_15_--ar_34_--stylize_600_--wei_932f8c4a-da46-466d-b46f-7f3586153e45_1',
-    'klaaar_1_waran_bvjskdj_--chaos_15_--ar_34_--stylize_600_--wei_932f8c4a-da46-466d-b46f-7f3586153e45_3',
-    'lakidaci_nagasaki_kaki_flaki_--chaos_35_--ar_34_--stylize_250_aca4c470-5a67-4d6a-9b94-24b75c80239b_1',
-    'lakidaci_nagasaki_kaki_flaki_--chaos_35_--ar_34_--stylize_250_aca4c470-5a67-4d6a-9b94-24b75c80239b_3',
-    'licking_boots_while_feeding_moods_circus_de_macabre_lemur_dan_e03846cd-e87f-4276-93e4-8aa3a2ebd13d_0',
-    'licking_boots_while_feeding_moods_circus_de_macabre_lemur_dan_e03846cd-e87f-4276-93e4-8aa3a2ebd13d_3',
-    'lokopterin_brazzs_freek_--chaos_35_--ar_34_--profile_4qkwdsq__8a07fc15-2251-4ed0-93e2-656297ddef53_0',
-    'lokopterin_brazzs_freek_--chaos_35_--ar_34_--profile_4qkwdsq__8a07fc15-2251-4ed0-93e2-656297ddef53_1',
-    'lokopterin_brazzs_freek_--chaos_35_--ar_34_--profile_4qkwdsq__8a07fc15-2251-4ed0-93e2-656297ddef53_2',
-    'lokopterin_brazzs_freek_--chaos_35_--ar_34_--profile_4qkwdsq__8a07fc15-2251-4ed0-93e2-656297ddef53_3',
-    'lugubrious_ducks_--ar_34_--profile_4qkwdsq_--v_7_625312db-00c1-4aac-810b-6d7d51b7ce5c_0',
-    'luntar_progir_dembel_kallun_--chaos_35_--ar_34_--profile_4qkw_8fecfaeb-5660-44f8-8c0c-c36279f5df31_0',
-    'obfuscate_--ar_34_--v_7_60f612de-8d3e-4365-9f5e-6a6ca22902d1_0',
-    'purgatory_--ar_34_--profile_4qkwdsq_--v_7_de305a88-c937-428a-8c55-26026821f9c8_2',
-    'simp_--ar_34_--profile_4qkwdsq_--v_7_b0c9b510-9fd7-4889-aa4e-6c3909ab19c1_0',
-    'simp_--ar_34_--profile_4qkwdsq_--v_7_b0c9b510-9fd7-4889-aa4e-6c3909ab19c1_2',
-    'smear_campaign_in_Pamplona_--ar_34_--profile_4qkwdsq_--v_7_1978fa5c-7f2c-4e04-8abc-aca640d3ff8b_1',
-    'tann_freee_q_q_2_--chaos_35_--ar_34_--profile_4qkwdsq_--styli_e85249cf-1f98-4a99-997c-1da9d49ff7ca_0',
-    'tann_freee_q_q_2_--chaos_35_--ar_34_--profile_4qkwdsq_--styli_e85249cf-1f98-4a99-997c-1da9d49ff7ca_1',
-    'tann_freee_q_q_2_--chaos_35_--ar_34_--profile_4qkwdsq_--styli_e85249cf-1f98-4a99-997c-1da9d49ff7ca_2',
-    'tann_freee_q_q_2_--chaos_35_--ar_34_--profile_4qkwdsq_--styli_e85249cf-1f98-4a99-997c-1da9d49ff7ca_3',
-    'tantalizing_idols_--chaos_35_--ar_34_--profile_4qkwdsq_--styl_c076f05f-ad0f-4da7-9978-e66e0dfc2b99_0',
-    'tantalizing_idols_--chaos_35_--ar_34_--profile_4qkwdsq_--styl_c076f05f-ad0f-4da7-9978-e66e0dfc2b99_3',
-    'tartufon_pho_n_e_ai_nut_--chaos_35_--ar_34_--stylize_250_--we_8dc61495-e5a8-4f97-8965-50ce127efec0_2',
-    'tartufon_pho_n_e_ai_nut_--chaos_35_--ar_34_--stylize_250_--we_8dc61495-e5a8-4f97-8965-50ce127efec0_3',
-    'trembling_haze_licking_one_color_code_--chaos_50_--ar_34_--pr_e61beb04-1cb4-4369-8365-8b1f6b03c9d3_2',
-    'trouble_beyond_repair_--ar_34_--profile_eamzyo3_--v_7_ca2c34b7-9c92-467f-a31a-f1dc5ca2e0fb_1',
-    'truc_sinbaa_qokaju_inpim_--chaos_35_--ar_34_--stylize_250_--w_c73a34c8-479f-46d6-90dd-07e2c1567b22_1',
-    'truc_sinbaa_qokaju_inpim_--chaos_35_--ar_34_--stylize_250_--w_c73a34c8-479f-46d6-90dd-07e2c1567b22_2',
-    'tuton_faseda_lilino_pitcha_caan_--chaos_35_--ar_34_--profile__0dcbcf1d-68a1-49e4-aa85-a6731dea5cdc_2',
-    'water_dripping_viscous_oozing_monochrome_liquids_solo_color_i_efa0881a-a126-4d45-9fc3-061253c7a22e_1',
-    'what_when_where_--ar_34_--profile_4qkwdsq_--v_7_78bc0823-14e1-43ca-ae20-0ee0f69af435_0',
-    'what_when_where_--ar_34_--profile_4qkwdsq_--v_7_78bc0823-14e1-43ca-ae20-0ee0f69af435_1',
-    'what_when_where_--ar_34_--profile_4qkwdsq_--v_7_78bc0823-14e1-43ca-ae20-0ee0f69af435_2',
-    'what_when_where_--ar_34_--profile_4qkwdsq_--v_7_78bc0823-14e1-43ca-ae20-0ee0f69af435_3'
-  ].map(name => `RoomB1/${name}`);
+    'ComfyUI_03174_',
+    'ComfyUI_03175_',
+    'ComfyUI_03176_',
+    'ComfyUI_03178_',
+    'ComfyUI_03179_',
+    'ComfyUI_03180_',
+    'ComfyUI_03181_',
+    'ComfyUI_03182_',
+    'ComfyUI_03183_',
+    'ComfyUI_03184_',
+    'ComfyUI_03185_',
+    'ComfyUI_03186_',
+    'ComfyUI_03187_',
+    'ComfyUI_03188_',
+    'ComfyUI_03189_',
+    'ComfyUI_03190_',
+    'ComfyUI_03191_',
+    'ComfyUI_03192_',
+    'ComfyUI_03193_',
+    'ComfyUI_03194_',
+    'ComfyUI_03195_',
+    'ComfyUI_03196_',
+    'ComfyUI_03197_',
+    'ComfyUI_03198_',
+    'ComfyUI_03199_',
+    'ComfyUI_03200_',
+    'ComfyUI_03201_',
+    'ComfyUI_03202_',
+    'ComfyUI_03203_',
+    'ComfyUI_03204_',
+    'ComfyUI_03205_',
+    'ComfyUI_03206_',
+    'ComfyUI_03207_',
+    'ComfyUI_03208_',
+    'ComfyUI_03209_',
+    'ComfyUI_03210_',
+    'ComfyUI_03211_',
+    'ComfyUI_03212_',
+    'ComfyUI_03213_',
+    'ComfyUI_03214_',
+    'ComfyUI_03215_',
+    'ComfyUI_03216_',
+    'ComfyUI_03217_',
+    'ComfyUI_03218_',
+    'ComfyUI_03219_',
+    'ComfyUI_03220_',
+    'ComfyUI_03221_',
+    'ComfyUI_03222_',
+    'ComfyUI_03223_',
+    'ComfyUI_03224_',
+    'ComfyUI_03225_',
+    'ComfyUI_03226_',
+    'ComfyUI_03227_',
+    'ComfyUI_03228_',
+    'ComfyUI_03229_',
+    'ComfyUI_03230_',
+    'ComfyUI_03231_',
+    'ComfyUI_03232_',
+    'ComfyUI_03233_',
+    'ComfyUI_03234_'
+  ];
 
   const minHeight = 5;
   const maxHeight = roomHeight - 5;
@@ -849,7 +849,7 @@ function addMixedDecorationsToWalls() {
       if (position) {
         // Load the actual texture
         textureLoader.load(
-          `/assets/${filename}.png`,
+          `/assets/RoomB1/${filename}.png`,
           function(tex) {
             tex.colorSpace = THREE.SRGBColorSpace;
 
@@ -878,7 +878,7 @@ function addMixedDecorationsToWalls() {
           const tryPos = findUnoccupiedPosition(tryWall, frameWidth, frameHeight, minHeight, maxHeight);
           if (tryPos) {
             textureLoader.load(
-              `/assets/${filename}.png`,
+              `/assets/RoomB1/${filename}.png`,
               function(tex) {
                 tex.colorSpace = THREE.SRGBColorSpace;
                 const artMaterial = new THREE.MeshBasicMaterial({
@@ -913,7 +913,7 @@ function addMixedDecorationsToWalls() {
     };
 
     // Start loading the image to get dimensions
-    img.src = `/assets/${filename}.png`;
+    img.src = `/assets/RoomB1/${filename}.png`;
   }
 
   // Start loading NFTs (multiple concurrent loaders for faster loading)
