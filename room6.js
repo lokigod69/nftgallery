@@ -2,6 +2,25 @@ import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { createLinkedPortal, animateLinkedPortal, createMultiPortalChecker } from './src/core/portal-utils.js';
 import { MOVEMENT_CONFIG } from './src/core/movement-config.js';
+import { hasAccessGranted, showAccessCodePrompt } from './src/core/access-code-gate.js';
+
+// ══════════════════════════════════════════════════════════════════════════
+// ACCESS CONTROL - Verify authorization before loading room
+// ══════════════════════════════════════════════════════════════════════════
+(async function checkAccess() {
+  // If already granted (via localStorage), continue loading
+  if (hasAccessGranted()) {
+    return;
+  }
+
+  // Not authorized - show access code prompt
+  const granted = await showAccessCodePrompt();
+
+  if (!granted) {
+    // Access denied - redirect to Room 5 (or Room 0 as fallback)
+    window.location.href = 'room5.html';
+  }
+})();
 
 // ══════════════════════════════════════════════════════════════════════════
 // Lava Monolith Artifacts - Ritual Shards Below Tiles
