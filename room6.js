@@ -368,7 +368,7 @@ const ROOM6_CONFIG = {
   tileFloatSpeed: 1.0,
 
   // Horizontal floating tiles configuration
-  horizontalFloatEnabled: true,     // Enable horizontal movement
+  horizontalFloatEnabled: false,    // Disable horizontal movement (was causing camera glitching)
   horizontalFloatAmplitude: 6.9,    // 69% of distance to wall (corridorWidth/2 = 10)
   horizontalFloatSpeed: 0.8,        // Speed of horizontal movement
   horizontalFloatPattern: [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0], // 1=moving, 0=stationary (final tile stationary)
