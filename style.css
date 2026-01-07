@@ -115,6 +115,36 @@ canvas {
     display: block;
 }
 
+/* Nav menu section headers */
+#nav-menu .nav-header {
+    color: rgba(255, 255, 255, 0.5);
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 8px 0 4px 0;
+    padding: 0;
+    pointer-events: none;
+}
+
+/* Nav menu dividers */
+#nav-menu .nav-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 8px 0;
+    padding: 0;
+}
+
+/* Nav menu indented items (sub-rooms) */
+#nav-menu .nav-indent {
+    padding-left: 12px;
+}
+
+#nav-menu .nav-indent a {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
 .joystick {
     position: fixed;
     width: 120px;

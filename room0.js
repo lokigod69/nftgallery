@@ -484,56 +484,57 @@ function createHubDoors() {
   const doors = [];
 
   // Door configurations - positioned at platform edge (radius 22), facing inward
+  // Display names use Roman numerals: I, II, III, IV, V
   const doorConfigs = [
-    // XXX Gallery - north edge (Rooms 1-5)
+    // I - Rooms (main gallery path 1-5) - north edge
     {
       x: 0, z: 22,
       rotation: Math.PI,
       fromRoom: '0',
       toRoom: '1',
       destination: 'room1.html',
-      name: 'XXX Gallery (1-5)',
-      label: null  // No extra label needed
+      name: 'I · Rooms',
+      label: null
     },
-    // Ocean Conservatory - northeast (Room A)
+    // II - Dome (Room A) - northeast
     {
       x: 15.56, z: 15.56,
       rotation: Math.PI + Math.PI / 4,
       fromRoom: '0',
       toRoom: 'A',
       destination: 'roomA.html',
-      name: 'Ocean Conservatory',
-      label: null  // No extra label needed
+      name: 'II · Dome',
+      label: null
     },
-    // Room B - southeast
+    // III - Box (Room B) - southeast
     {
       x: 15.56, z: -15.56,
       rotation: Math.PI + Math.PI / 1.25,
       fromRoom: '0',
       toRoom: 'B',
       destination: 'roomB.html',
-      name: 'Room B',
-      label: null  // Door name label is enough
+      name: 'III · Box',
+      label: null
     },
-    // Room C - southwest
+    // IV - Soon (Room C) - southwest
     {
       x: -15.56, z: -15.56,
       rotation: Math.PI - Math.PI / 1.25,
       fromRoom: '0',
       toRoom: 'C',
       destination: 'roomC.html',
-      name: 'Room C',
-      label: null  // Door name label is enough
+      name: 'IV · Soon',
+      label: null
     },
-    // Levels - northwest (Rooms 7-10)
+    // V - Levels (Rooms 7-10) - northwest
     {
       x: -15.56, z: 15.56,
       rotation: Math.PI - Math.PI / 4,
       fromRoom: '0',
       toRoom: '7',
       destination: 'room7.html',
-      name: 'Levels (7-10)',
-      label: null  // No extra label needed
+      name: 'V · Levels',
+      label: null
     }
   ];
 

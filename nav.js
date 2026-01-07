@@ -3,36 +3,71 @@ document.addEventListener('DOMContentLoaded', function() {
   const menu = document.getElementById('nav-menu');
   if (!toggle || !menu) return;
 
-  // Define the correct room order
-  const roomOrder = [
-    { href: 'room0.html', text: 'Room 0' },
+  // Menu structure with grouped sections
+  // Room 6 is intentionally hidden (secret/access-code content)
+  const menuStructure = [
+    // Home
+    { href: 'room0.html', text: 'Home' },
+
+    // Section: Rooms (1-5)
+    { type: 'header', text: 'Rooms' },
     { href: 'room1.html', text: 'Room 1' },
     { href: 'room2.html', text: 'Room 2' },
     { href: 'room3.html', text: 'Room 3' },
     { href: 'room4.html', text: 'Room 4' },
     { href: 'room5.html', text: 'Room 5' },
-    { href: 'room6.html', text: 'Room 6' },
-    { href: 'room7.html', text: 'Room 7' },
-    { href: 'room8.html', text: 'Room 8' },
-    { href: 'room9.html', text: 'Room 9' },
-    { href: 'room10.html', text: 'Room X' },
-    { href: 'roomA.html', text: 'Room A' },
-    { href: 'roomA1.html', text: 'Room A1' },
-    { href: 'roomB.html', text: 'Room B' },
-    { href: 'roomB1.html', text: 'Room B1' },
-    { href: 'roomB2.html', text: 'Room B2' },
-    { href: 'roomC.html', text: 'Room C' }
+
+    { type: 'divider' },
+
+    // Section: Levels (7-10)
+    { type: 'header', text: 'Levels' },
+    { href: 'room7.html', text: 'Level 7' },
+    { href: 'room8.html', text: 'Level 8' },
+    { href: 'room9.html', text: 'Level 9' },
+    { href: 'room10.html', text: 'Level 10' },
+
+    { type: 'divider' },
+
+    // Section: Special rooms
+    { href: 'roomA.html', text: 'Dome' },
+    { href: 'roomA1.html', text: 'Dome 1', indent: true },
+    { href: 'roomB.html', text: 'Box' },
+    { href: 'roomB1.html', text: 'Box 1', indent: true },
+    { href: 'roomB2.html', text: 'Box 2', indent: true },
+
+    { type: 'divider' },
+
+    // Soon (under construction)
+    { href: 'roomC.html', text: 'Soon' }
   ];
 
-  // Clear existing menu items and rebuild in correct order
+  // Clear existing menu items and rebuild
   menu.innerHTML = '';
-  roomOrder.forEach(room => {
-    const li = document.createElement('li');
-    const link = document.createElement('a');
-    link.href = room.href;
-    link.textContent = room.text;
-    li.appendChild(link);
-    menu.appendChild(li);
+
+  menuStructure.forEach(item => {
+    if (item.type === 'divider') {
+      // Create divider line
+      const divider = document.createElement('li');
+      divider.className = 'nav-divider';
+      menu.appendChild(divider);
+    } else if (item.type === 'header') {
+      // Create section header
+      const header = document.createElement('li');
+      header.className = 'nav-header';
+      header.textContent = item.text;
+      menu.appendChild(header);
+    } else {
+      // Create regular menu item
+      const li = document.createElement('li');
+      if (item.indent) {
+        li.className = 'nav-indent';
+      }
+      const link = document.createElement('a');
+      link.href = item.href;
+      link.textContent = item.text;
+      li.appendChild(link);
+      menu.appendChild(li);
+    }
   });
 
   function hideMenu() {
