@@ -182,6 +182,9 @@ function createTexturedWalls() {
 
   // Create walls with custom textures (no copper/metal decorations)
   createBaseWalls(wallThickness);
+
+  // Place NFTs on walls
+  placeNFTsOnWalls();
 }
 
 function createBaseWalls(thickness) {
@@ -302,6 +305,155 @@ function createMirrorCeiling() {
   const ceilingAccentLight2 = new THREE.PointLight(0xffc0ff, 0.5, 60);
   ceilingAccentLight2.position.set(-roomWidth * 0.25, roomHeight - 5, -roomLength * 0.25);
   scene.add(ceilingAccentLight2);
+}
+
+// Simple NFT placement - no copper tiles, just 60 PNGs evenly distributed on walls
+function placeNFTsOnWalls() {
+  const textureLoader = new THREE.TextureLoader();
+
+  // Room B2 NFT files (60 PNG images with descriptive names)
+  const nftFiles = [
+    'A_chess_game_between_a_mannequin_and_a_mirror_pieces_sculpted_2fb2d847-0753-454c-9353-dba90ba264c7_0',
+    'A_massive_cube_of_black_ink_levitating_over_a_desert_salt_fla_b17f17f7-e952-4d25-9782-7f28d398ccb6_0',
+    'Bedouin_caravan_cresting_ochre_dunes_at_golden_hour_shadows_c_d33dca3e-0218-4a20-88e3-995bd0ae3b68_0',
+    'Detroit_warehouse_inferno_at_midnight_firefighters_silhouette_51befdea-9d4d-4361-9924-74c64c14c5c0_0',
+    'Dhow_silhouette_on_the_Gulf_of_Oman_at_magenta_dusk_sail_clot_76154597-02b6-4538-a2bc-ab9f380586cb_0',
+    'Electron_microscope_view_of_snowflake_crystal_at_50000x_magni_da08dd05-97c8-4343-b60c-f3bcb398180d_0',
+    'Erupting_coralspire_volcanic_fury_towering_reef-spire_of_crim_422353f9-bc74-4ed5-a8b3-991ceeaa23c4_0',
+    'Exploding_velvet_nebula_plush_crimson_cosmos_tears_apart_into_88bfd611-c7cb-48ae-ac29-d59cd74dd784_0',
+    'Industrial_shipyard_at_sunset_silhouettes_of_gantry_cranes_co_d4547443-dfb3-48e1-a5a6-26a7dd4ed99c_0',
+    'Inside_a_barreling_wave_surf_photographer_captures_water_wall_deb2fa07-e658-46a1-bcb7-c79e7d6c6a3f_0',
+    'Inside_sapphire-blue_Antarctic_ice_cave_diffuse_skylight_make_fc937a9c-19b8-4481-9f0c-b942de0999e2_0',
+    'Kreuzberg_Berlin_after_rain_street_lights_reflect_razor-sharp_ef3fb5f7-2967-4685-a6c0-a9a6c9687194_0',
+    'Levitating_rust_monks_corroded_monks_hover_in_iron_desert_ora_6f3555e6-9da3-48f6-bf64-f39352ec109e_0',
+    'lokigod69._Ghost-town_Route_66_gas_station_at_high_noon_cracked_4e48ea26-6583-425b-91aa-49b87342bc09',
+    'lokigod69._Gleaming_marble_metro_station_in_Saint_Petersburg_fl_320f99eb-9a87-4d29-9252-74ecb1d86b69',
+    'lokigod69._Golden_wheat_field_beneath_gathering_thunderheads_so_97dea6f1-b869-4cab-98a5-a92a7eebcbd5',
+    'lokigod69._Graffiti_mural_in_narrow_city_alley_melts_pigments_f_176ee3bc-0d4f-415e-aab4-86d20ef354cf',
+    'lokigod69._Graffiti_mural_in_narrow_city_alley_melts_pigments_f_52a45485-ca41-4c7d-a998-6d53490c754b',
+    'lokigod69._Hawaiian_lava_river_meeting_Pacific_at_night_steam_p_63b97eda-98d8-44fa-b652-5163e36b46a0',
+    'lokigod69._Herd_of_Icelandic_horses_thundering_across_lupine-sp_0314757b-0b36-4e74-acfb-a040837bed73',
+    'lokigod69._High-speed_140_000_s_capture_of_artisan_chocolatier__e8cc3d31-c141-4b2b-a835-74f129a9d9ad',
+    'lokigod69._Humpback_whale_breaches_beside_small_sailboat_midday_0972ee55-a981-409c-8966-402699f622d9',
+    'lokigod69._Hyperrealistic_human_eye_macro_in_monochrome_capture_17ea5b9b-2f4a-4ace-9024-45dfbebf11b5',
+    'lokigod69._Joshua_Tree_desert_night_long_exposure_stars_appear__3ca58e0b-e85e-45e9-a57f-2924021b93fb',
+    'lokigod69._Karst_river_dawn_in_Guangxi_lone_fisherman_on_bamboo_f5885458-0581-4ed6-8466-3db685a686a0',
+    'lokigod69._Laboratory_cross-section_of_1000-year_redwood_trunk__0224490d-e752-46df-a97f-5c72a6367df8',
+    'lokigod69._Levitating_rust_monks_corroded_monks_hover_in_iron_d_6f3555e6-9da3-48f6-bf64-f39352ec109e',
+    'lokigod69._Macro_close-up_of_a_single_blade_of_prairie_grass_at_32e68126-48c6-418f-9a33-04bfcda171f2',
+    'lokigod69._Macro_dandelion_seed_head_backlit_every_filament_agl_be31f5a0-9812-4f25-8421-e71386bbb815',
+    'lokigod69._Mirror-still_alpine_lake_in_British_Columbia_at_dawn_28655554-a7ff-4ba4-bd45-2f7f8ce0ee09',
+    'lokigod69._Moonlit_salt_flats_of_Salar_de_Uyuni_during_wet_seas_aa695a69-e1e6-40cc-ab2d-4058863425e1',
+    'lokigod69._Mycelium_circuit_board_bio-luminous_fungus_traces_si_3d2a66da-9fb5-4a6a-9259-21546c10699d',
+    'lokigod69._Mycelium_circuit_board_bio-luminous_fungus_traces_si_44df0fd6-2194-4834-9342-60373353a122',
+    'lokigod69._Night_dive_beneath_Maldivian_atoll_manta_ray_swoops__6c1caf92-234e-4306-af30-7d1604ba9ea6',
+    'lokigod69._Night-shift_freight_yard_outside_Hamburg_rust-red_ca_8803256c-9038-456a-81f5-6f40da29ed8c',
+    'lokigod69._Opalescent_tide_hunters_pearl-skinned_nomads_riding__f3872ae3-7487-48b6-9678-42188c391dc0',
+    'lokigod69._Pacific_tide_pool_low_tide_ochre_starfish_its_arms_d_8368817c-0582-42ae-8c29-5c9d97a14203',
+    'lokigod69._Portrait_of_proud_Maasai_warrior_in_dusty_savanna_co_521906ca-4ee1-42cd-af30-a1dcd7ac3061',
+    'lokigod69._Pulsating_fog_armada_ghost_ships_materialize_in_thro_d6da6d85-fad5-452a-931a-6cc99d9de59a',
+    'lokigod69._Rain-drenched_back-alley_ramen_bar_in_Osaka_crimson__3d388fa3-d623-4071-ba86-b6becf4392e0',
+    'lokigod69._Rain-forest_gecko_clinging_to_leaf_skin_pattern_morp_17d231f6-82d7-4d8c-a6d5-0a1d21d66c68',
+    'lokigod69._Rhodium_skull_forge_silver_skulls_pour_from_blazing__9b1f4bac-ffb8-4b63-ba38-999243970ffc',
+    'lokigod69._Road-trip_snapshot_in_Arizona_desert_vintage_station_c14ee9b0-5f54-4574-b01a-abdf515344d4',
+    'lokigod69._Saharan_dust_storm_whipping_across_solar_array_at_no_676fb8d9-eacd-41af-a4d4-eb70a31fe722',
+    'lokigod69._Saharan_dust_storm_whipping_across_solar_array_at_no_6ca2e5f0-16f0-4e3a-90d4-0bee23dfeeeb',
+    'lokigod69._Snow_leopard_mid-pounce_frozen_at_13200_s_each_whisk_ec091e74-ec9b-4457-865b-04294831704a',
+    'lokigod69._Spinning_quartz_prison_rotating_crystal_cage_reflect_7249b37f-02a6-4b6a-a8c2-0a89eff14a40',
+    'lokigod69._Sunset_silhouette_of_lone_acacia_on_Serengeti_branch_50a43d3f-6e25-4551-90bc-9931bac1b753',
+    'lokigod69._Tibetan_yak_standing_on_snow-swept_pass_braided_harn_fad47318-6529-4c3e-aea9-b225951f1f61',
+    'lokigod69._Top-down_drone_of_Danakil_salt_flats_workers_crystal_17929bdb-9ad9-4a62-9317-25ac0d1b81e1',
+    'lokigod69._Top-down_drone_of_Danakil_salt_flats_workers_crystal_3aba4678-f9b4-43b5-aa9a-19a438c5841f',
+    'lokigod69._Top-down_drone_shot_of_Rotterdam_shipping_port_at_du_3bad76e6-5f73-4bc6-afee-833da2ec74be',
+    'lokigod69._Torrential_rain_on_Manhattans_High_Line_puddles_pool_24fc3410-4e79-4bc4-88b8-9db278a25761',
+    'Monochrome_rainforest_canopy_aerial_view_shot_from_helicopter_dbbbee82-4a03-4b61-a90a-d9fd6c60150b_0',
+    'Norwegian_fjord_cliff_base_midnight_sun_grazing_rock_waterfal_51154a84-ab03-4887-b81f-0e80c7fe30e3_0',
+    'Opalescent_tide_hunters_pearl-skinned_nomads_riding_crystal_m_f3872ae3-7487-48b6-9678-42188c391dc0_0',
+    'Pre-monsoon_Bangalore_rooftop_sari_billowing_in_hot_up-draft__1111ff21-0657-468d-8cfb-1a6326b5914a_0',
+    'Rain-forest_tree-frog_clings_to_a_glass_pane_at_night_twin_LE_eb22b6c2-bbce-4c91-bd68-736f1a71f1f9_0',
+    'Rain-slicked_alley_in_Lisbons_Alfama_district_fado_guitarist__6227acce-247f-408c-ab1a-efd1d7d216f0_0',
+    'Street-fashion_capture_of_a_woman_crossing_zebra_stripes_fabr_34b3d99c-065e-4f18-ab38-186e8562ab3b_0'
+  ];
+
+  // Distribute 15 NFTs per wall (4 walls = 60 NFTs)
+  const nftsPerWall = 15;
+  const wallSize = 8;  // NFT display size
+  const minY = 8;       // Minimum height from floor
+  const maxY = roomHeight - 8;  // Maximum height (leave space at top)
+
+  // Wall definitions: position and normal direction
+  const walls = [
+    { name: 'front', pos: new THREE.Vector3(0, 0, roomLength/2),  normal: new THREE.Vector3(0, 0, -1) },
+    { name: 'back',  pos: new THREE.Vector3(0, 0, -roomLength/2), normal: new THREE.Vector3(0, 0, 1) },
+    { name: 'left',  pos: new THREE.Vector3(-roomWidth/2, 0, 0),  normal: new THREE.Vector3(1, 0, 0) },
+    { name: 'right', pos: new THREE.Vector3(roomWidth/2, 0, 0),   normal: new THREE.Vector3(-1, 0, 0) }
+  ];
+
+  let nftIndex = 0;
+
+  walls.forEach((wall, wallIdx) => {
+    for (let i = 0; i < nftsPerWall && nftIndex < nftFiles.length; i++) {
+      const filename = nftFiles[nftIndex];
+
+      // Calculate grid position on wall
+      const cols = 5;  // 5 columns per wall
+      const rows = 3;  // 3 rows per wall
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+
+      // Calculate position along wall
+      let x, y, z;
+      const spacing = (wall.name === 'front' || wall.name === 'back')
+        ? roomWidth / (cols + 1)
+        : roomLength / (cols + 1);
+      const ySpacing = (maxY - minY) / (rows + 1);
+
+      y = minY + ySpacing * (row + 1);
+
+      if (wall.name === 'front' || wall.name === 'back') {
+        x = -roomWidth/2 + spacing * (col + 1);
+        z = wall.pos.z + wall.normal.z * 1.0;  // 1.0 unit IN FRONT of wall
+      } else {
+        z = -roomLength/2 + spacing * (col + 1);
+        x = wall.pos.x + wall.normal.x * 1.0;  // 1.0 unit IN FRONT of wall
+      }
+
+      // Load and place NFT
+      textureLoader.load(
+        `/assets/RoomB2/${filename}.png`,
+        (texture) => {
+          texture.colorSpace = THREE.SRGBColorSpace;
+
+          const material = new THREE.MeshBasicMaterial({
+            map: texture,
+            side: THREE.DoubleSide,
+            toneMapped: false
+          });
+
+          const geometry = new THREE.PlaneGeometry(wallSize, wallSize);
+          const mesh = new THREE.Mesh(geometry, material);
+          mesh.position.set(x, y, z);
+
+          // Rotate to face into room
+          if (wall.name === 'front') mesh.rotation.y = 0;
+          else if (wall.name === 'back') mesh.rotation.y = Math.PI;
+          else if (wall.name === 'left') mesh.rotation.y = Math.PI / 2;
+          else if (wall.name === 'right') mesh.rotation.y = -Math.PI / 2;
+
+          scene.add(mesh);
+          console.log(`✓ Placed NFT ${nftIndex + 1}/60: ${filename} on ${wall.name} wall`);
+        },
+        undefined,
+        (error) => {
+          console.error(`✗ Failed to load NFT ${filename}:`, error);
+        }
+      );
+
+      nftIndex++;
+    }
+  });
+
+  console.log(`Started loading ${nftFiles.length} NFTs across 4 walls`);
 }
 
 function addCopperWavePatterns() {
