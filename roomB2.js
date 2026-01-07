@@ -307,7 +307,7 @@ function createMirrorCeiling() {
   scene.add(ceilingAccentLight2);
 }
 
-// Simple NFT placement - 60 PNGs with original aspect ratios, randomly placed
+// Simple NFT placement - 60 PNGs with original aspect ratios, randomly placed WITHOUT overlapping
 function placeNFTsOnWalls() {
   const textureLoader = new THREE.TextureLoader();
 
@@ -381,11 +381,49 @@ function placeNFTsOnWalls() {
 
   // Wall definitions with width for random placement
   const walls = [
-    { name: 'front', pos: new THREE.Vector3(0, 0, roomLength/2),  normal: new THREE.Vector3(0, 0, -1), width: roomWidth },
-    { name: 'back',  pos: new THREE.Vector3(0, 0, -roomLength/2), normal: new THREE.Vector3(0, 0, 1),  width: roomWidth },
-    { name: 'left',  pos: new THREE.Vector3(-roomWidth/2, 0, 0),  normal: new THREE.Vector3(1, 0, 0),  width: roomLength },
-    { name: 'right', pos: new THREE.Vector3(roomWidth/2, 0, 0),   normal: new THREE.Vector3(-1, 0, 0), width: roomLength }
+    { name: 'front', pos: new THREE.Vector3(0, 0, roomLength/2),  normal: new THREE.Vector3(0, 0, -1), width: roomWidth, placedNFTs: [] },
+    { name: 'back',  pos: new THREE.Vector3(0, 0, -roomLength/2), normal: new THREE.Vector3(0, 0, 1),  width: roomWidth, placedNFTs: [] },
+    { name: 'left',  pos: new THREE.Vector3(-roomWidth/2, 0, 0),  normal: new THREE.Vector3(1, 0, 0),  width: roomLength, placedNFTs: [] },
+    { name: 'right', pos: new THREE.Vector3(roomWidth/2, 0, 0),   normal: new THREE.Vector3(-1, 0, 0), width: roomLength, placedNFTs: [] }
   ];
+
+  // Check if position overlaps with already placed NFTs on the same wall
+  function checkOverlap(wall, centerX, centerY, width, height, padding = 2) {
+    for (const placed of wall.placedNFTs) {
+      const dx = Math.abs(centerX - placed.centerX);
+      const dy = Math.abs(centerY - placed.centerY);
+      const minDistX = (width + placed.width) / 2 + padding;
+      const minDistY = (height + placed.height) / 2 + padding;
+
+      if (dx < minDistX && dy < minDistY) {
+        return true; // Overlaps
+      }
+    }
+    return false; // No overlap
+  }
+
+  // Find a non-overlapping position for an NFT on a wall
+  function findNonOverlappingPosition(wall, planeWidth, planeHeight, maxAttempts = 100) {
+    const margin = Math.max(planeWidth, planeHeight) / 2 + 3;
+    const xRange = wall.width - margin * 2;
+    const yRange = maxY - minY - margin * 2;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const randomX = -wall.width/2 + margin + Math.random() * xRange;
+      const randomY = minY + margin + Math.random() * yRange;
+
+      if (!checkOverlap(wall, randomX, randomY, planeWidth, planeHeight)) {
+        return { x: randomX, y: randomY };
+      }
+    }
+
+    // Fallback: return position even if overlapping (after max attempts)
+    console.warn(`Could not find non-overlapping position after ${maxAttempts} attempts`);
+    return {
+      x: -wall.width/2 + margin + Math.random() * xRange,
+      y: minY + margin + Math.random() * yRange
+    };
+  }
 
   let nftIndex = 0;
   const nftsPerWall = 15; // 15 per wall = 60 total
@@ -412,13 +450,18 @@ function placeNFTsOnWalls() {
           planeWidth = baseSize * aspectRatio;
         }
 
-        // Random position on wall with margin
-        const margin = Math.max(planeWidth, planeHeight) / 2 + 5;
-        const xRange = wall.width - margin * 2;
-        const yRange = maxY - minY - margin * 2;
+        // Find non-overlapping position on wall
+        const pos = findNonOverlappingPosition(wall, planeWidth, planeHeight);
+        const randomX = pos.x;
+        const randomY = pos.y;
 
-        const randomX = -wall.width/2 + margin + Math.random() * xRange;
-        const randomY = minY + margin + Math.random() * yRange;
+        // Record this NFT as placed
+        wall.placedNFTs.push({
+          centerX: randomX,
+          centerY: randomY,
+          width: planeWidth,
+          height: planeHeight
+        });
 
         let x, y, z;
         y = randomY;
@@ -472,7 +515,7 @@ function placeNFTsOnWalls() {
     }
   });
 
-  console.log(`Started loading ${nftFiles.length} NFTs with original aspect ratios, randomly placed`);
+  console.log(`Started loading ${nftFiles.length} NFTs with original aspect ratios, randomly placed WITHOUT overlapping`);
 }
 
 function addCopperWavePatterns() {
