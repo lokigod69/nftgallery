@@ -804,18 +804,22 @@ function animate() {
   requestAnimationFrame(animate);
   const delta = clock.getDelta();
 
-  // Update jump physics and ensure camera stays on the ground level.
+  // Get player object (the parent of camera in PointerLockControls)
+  const player = controls.getObject();
+
+  // Update jump physics and ensure player stays on the ground level.
+  // Note: Must set player.position.y, not camera.position.y (camera is a child of player)
   const groundLevel = groundLevels[1];
   if (isJumping) {
-    camera.position.y += jumpVelocity * delta;
+    player.position.y += jumpVelocity * delta;
     jumpVelocity += gravity * delta;
-    if (camera.position.y < groundLevel) {
-      camera.position.y = groundLevel;
+    if (player.position.y < groundLevel) {
+      player.position.y = groundLevel;
       isJumping = false;
       jumpVelocity = 0;
     }
   } else {
-    camera.position.y = groundLevel;
+    player.position.y = groundLevel;
   }
 
   // Update mobile controls

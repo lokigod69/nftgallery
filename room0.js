@@ -683,17 +683,20 @@ function animate() {
   });
   
   if (controls.isLocked === true) {
+    // Get player object (camera parent in PointerLockControls)
+    const player = controls.getObject();
+
     // Handle jumping and gravity
     if (isMobile) {
       camera.rotation.y = yaw;
       camera.rotation.x = pitch;
     }
     if (isJumping) {
-      camera.position.y += jumpVelocity * delta;
+      player.position.y += jumpVelocity * delta;
       jumpVelocity += gravity * delta;
-      
-      if (camera.position.y <= groundLevel + eyeHeight) {
-        camera.position.y = groundLevel + eyeHeight;
+
+      if (player.position.y <= groundLevel + eyeHeight) {
+        player.position.y = groundLevel + eyeHeight;
         isJumping = false;
         jumpVelocity = 0;
       }

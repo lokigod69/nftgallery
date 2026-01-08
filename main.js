@@ -2,20 +2,21 @@ import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { createLinkedPortal, animateLinkedPortal, createMultiPortalChecker } from './src/core/portal-utils.js';
 // Room 1 NFT files (28 PNG images from Room1 folder)
-// Special placement: 1-4.png on back wall (visible when spawning)
-// Back wall order: 3.png (left), 1.png (left-center), 2.png (right-center), 4.png (right), then ComfyUI
+// Special placement: 1-4.png on divider front side (visible when spawning)
+// Divider front order: 3.png (left), 1.png (left-center), 2.png (right-center), 4.png (right)
 // Wall layout: back wall (0-4), left wall (5-9), right wall (10-14), front wall (15-19), dividers (20-27)
 const ROOM1_NFTS = [
-  // Back wall (indices 0-4) - special placement: 3, 1, 2, 4 from left to right
-  '3', '1', '2', '4', 'ComfyUI_02887_',
+  // Back wall (indices 0-4)
+  'ComfyUI_02919_', 'ComfyUI_02920_', 'ComfyUI_02921_', 'ComfyUI_02923_', 'ComfyUI_02887_',
   // Left wall (indices 5-9)
   'ComfyUI_02894_', 'ComfyUI_02896_', 'ComfyUI_02898_', 'ComfyUI_02900_', 'ComfyUI_02901_',
   // Right wall (indices 10-14)
   'ComfyUI_02903_', 'ComfyUI_02905_', 'ComfyUI_02906_', 'ComfyUI_02907_', 'ComfyUI_02910_',
   // Front wall (indices 15-19)
   'ComfyUI_02914_', 'ComfyUI_02915_', 'ComfyUI_02916_', 'ComfyUI_02917_', 'ComfyUI_02918_',
-  // Dividers (indices 20-27)
-  'ComfyUI_02919_', 'ComfyUI_02920_', 'ComfyUI_02921_', 'ComfyUI_02923_',
+  // Dividers front (indices 20-23) - special: 3, 1, 2, 4 from left to right
+  '3', '1', '2', '4',
+  // Dividers back (indices 24-27)
   'ComfyUI_02924_', 'ComfyUI_02925_', 'ComfyUI_02926_', 'ComfyUI_02928_'
 ];
 
@@ -722,18 +723,22 @@ function animate() {
   requestAnimationFrame(animate);
   const delta = clock.getDelta();
 
-  // Update jump physics and ensure camera stays on the ground level.
+  // Get player object (the parent of camera in PointerLockControls)
+  const player = controls.getObject();
+
+  // Update jump physics and ensure player stays on the ground level.
+  // Note: Must set player.position.y, not camera.position.y (camera is a child of player)
   const groundLevel = groundLevels[1];
   if (isJumping) {
-    camera.position.y += jumpVelocity * delta;
+    player.position.y += jumpVelocity * delta;
     jumpVelocity += gravity * delta;
-    if (camera.position.y < groundLevel) {
-      camera.position.y = groundLevel;
+    if (player.position.y < groundLevel) {
+      player.position.y = groundLevel;
       isJumping = false;
       jumpVelocity = 0;
     }
   } else {
-    camera.position.y = groundLevel;
+    player.position.y = groundLevel;
   }
 
   // Mobile controls update (auto-level and camera rotation)

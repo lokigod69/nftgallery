@@ -1697,6 +1697,8 @@ function animate() {
   }
   
   if (controls.isLocked) {
+    // Get player object (camera parent in PointerLockControls)
+    const player = controls.getObject();
     const delta = clock.getDelta();
 
     // Get time delta for smooth movement
@@ -1716,14 +1718,14 @@ function animate() {
       controls.moveRight(speedDelta);
     }
 
-    // Handle jumping and gravity with hover zone near ceiling
+    // Handle jumping and gravity with hover zone near ceiling (use player.position)
     if (isJumping) {
       // Apply hover gravity when near ceiling, normal gravity otherwise
-      const currentGravity = camera.position.y >= hoverZoneHeight ? hoverGravity : gravity;
+      const currentGravity = player.position.y >= hoverZoneHeight ? hoverGravity : gravity;
       jumpVelocity += currentGravity * delta;
 
       // Update position based on velocity
-      let newY = camera.position.y + jumpVelocity * delta;
+      let newY = player.position.y + jumpVelocity * delta;
 
       // Ceiling collision - bounce off
       if (newY >= roomHeight - eyeHeight) {
@@ -1745,7 +1747,7 @@ function animate() {
         }
       }
 
-      camera.position.y = newY;
+      player.position.y = newY;
     }
 
     // Handle falling through the hole
@@ -1755,17 +1757,17 @@ function animate() {
     const boundaryBuffer = 2;
 
     // Keep X position inside room boundaries
-    if (camera.position.x < -roomWidth/2 + boundaryBuffer) {
-      camera.position.x = -roomWidth/2 + boundaryBuffer;
-    } else if (camera.position.x > roomWidth/2 - boundaryBuffer) {
-      camera.position.x = roomWidth/2 - boundaryBuffer;
+    if (player.position.x < -roomWidth/2 + boundaryBuffer) {
+      player.position.x = -roomWidth/2 + boundaryBuffer;
+    } else if (player.position.x > roomWidth/2 - boundaryBuffer) {
+      player.position.x = roomWidth/2 - boundaryBuffer;
     }
 
     // Keep Z position inside room boundaries
-    if (camera.position.z < -roomLength/2 + boundaryBuffer) {
-      camera.position.z = -roomLength/2 + boundaryBuffer;
-    } else if (camera.position.z > roomLength/2 - boundaryBuffer) {
-      camera.position.z = roomLength/2 - boundaryBuffer;
+    if (player.position.z < -roomLength/2 + boundaryBuffer) {
+      player.position.z = -roomLength/2 + boundaryBuffer;
+    } else if (player.position.z > roomLength/2 - boundaryBuffer) {
+      player.position.z = roomLength/2 - boundaryBuffer;
     }
   }
   

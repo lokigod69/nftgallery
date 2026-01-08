@@ -2220,9 +2220,12 @@ function animate() {
   
   // Handle movement
   if (controls.isLocked === true) {
+    // Get player object (camera parent in PointerLockControls)
+    const player = controls.getObject();
+
     // Get time delta for smooth movement
     const speedDelta = speed * delta;
-    
+
     // Apply movement in the direction the camera is facing
     if (moveForward) {
       controls.moveForward(speedDelta);
@@ -2236,41 +2239,41 @@ function animate() {
     if (moveRight) {
       controls.moveRight(speedDelta);
     }
-    
-    // Handle jumping and gravity
+
+    // Handle jumping and gravity (use player.position, not camera.position)
     if (isJumping) {
       // Apply gravity
       jumpVelocity += gravity * delta;
-      
+
       // Update position
-      const newY = camera.position.y + jumpVelocity * delta;
-      
+      const newY = player.position.y + jumpVelocity * delta;
+
       // Check if back on ground
       if (newY <= groundLevel + eyeHeight) {
-        camera.position.y = groundLevel + eyeHeight;
+        player.position.y = groundLevel + eyeHeight;
         isJumping = false;
         jumpVelocity = 0;
       } else {
-        camera.position.y = newY;
+        player.position.y = newY;
       }
     }
-    
+
     // Add boundary check to keep player inside the dome
     const horizontalDistFromCenter = Math.sqrt(
-      camera.position.x * camera.position.x + 
-      camera.position.z * camera.position.z
+      player.position.x * player.position.x +
+      player.position.z * player.position.z
     );
-    
+
     // If player is too close to dome edge (with 1.5 units buffer for comfort)
     if (horizontalDistFromCenter > roomRadius - 1.5) {
       // Calculate angle from center to current position
-      const angle = Math.atan2(camera.position.z, camera.position.x);
-      
+      const angle = Math.atan2(player.position.z, player.position.x);
+
       // Move player back to the boundary with buffer
-      camera.position.x = (roomRadius - 1.5) * Math.cos(angle);
-      camera.position.z = (roomRadius - 1.5) * Math.sin(angle);
+      player.position.x = (roomRadius - 1.5) * Math.cos(angle);
+      player.position.z = (roomRadius - 1.5) * Math.sin(angle);
     }
-    
+
     // Check if player is near the portal
     checkPortalProximity();
   }

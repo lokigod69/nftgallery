@@ -917,23 +917,26 @@ function animate() {
   const cfg = ROOM7_CONFIG;
 
   if (controls.isLocked) {
-    const onPlatform = detectPlatformCollision(camera.position);
+    // Get player object (camera parent in PointerLockControls)
+    const player = controls.getObject();
+
+    const onPlatform = detectPlatformCollision(player.position);
 
     // ─────────────────────────────────────────────────────────────────
     // Vertical Physics (Jumping, Falling, Platform Landing)
     // ─────────────────────────────────────────────────────────────────
 
     if (isJumping) {
-      // Apply jump velocity
-      camera.position.y += jumpVelocity * delta;
+      // Apply jump velocity (use player.position, not camera.position)
+      player.position.y += jumpVelocity * delta;
       jumpVelocity += gravity * delta;
 
       // Check if landed on platform
       if (onPlatform && jumpVelocity <= 0) {
         const platformTop = onPlatform.position.y + cfg.platformThickness / 2;
-        const feetY = camera.position.y - cfg.eyeHeight;
+        const feetY = player.position.y - cfg.eyeHeight;
         if (feetY <= platformTop + 0.5) {
-          camera.position.y = platformTop + cfg.eyeHeight;
+          player.position.y = platformTop + cfg.eyeHeight;
           isJumping = false;
           jumpVelocity = 0;
           currentPlatform = onPlatform;
@@ -941,26 +944,26 @@ function animate() {
       }
 
       // Check if fallen to floor (respawn)
-      if (hasFallenToFloor(camera.position)) {
+      if (hasFallenToFloor(player.position)) {
         respawnPlayer();
       }
 
     } else if (isFalling) {
       // Apply fall velocity
-      camera.position.y += fallVelocity * delta;
+      player.position.y += fallVelocity * delta;
       fallVelocity += gravity * delta * 0.8;
 
       // Check if landed on platform
       if (onPlatform) {
         const platformTop = onPlatform.position.y + cfg.platformThickness / 2;
-        camera.position.y = platformTop + cfg.eyeHeight;
+        player.position.y = platformTop + cfg.eyeHeight;
         isFalling = false;
         fallVelocity = 0;
         currentPlatform = onPlatform;
       }
 
       // Check if fallen to floor (respawn)
-      if (hasFallenToFloor(camera.position)) {
+      if (hasFallenToFloor(player.position)) {
         respawnPlayer();
       }
 
@@ -969,7 +972,7 @@ function animate() {
       if (onPlatform) {
         // Standing on platform - keep aligned
         const platformTop = onPlatform.position.y + cfg.platformThickness / 2;
-        camera.position.y = platformTop + cfg.eyeHeight;
+        player.position.y = platformTop + cfg.eyeHeight;
         currentPlatform = onPlatform;
       } else {
         // Not on any platform - start falling

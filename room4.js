@@ -954,13 +954,16 @@ function animate() {
 
   const isActiveControls = controls.isLocked || (mobileControls && mobileControls.enabled);
   if (isActiveControls) {
-    // Handle jumping and gravity
+    // Get player object (camera parent in PointerLockControls)
+    const player = controls.getObject();
+
+    // Handle jumping and gravity (use player.position.y, not camera.position.y)
     if (isJumping) {
-      camera.position.y += jumpVelocity * delta;
+      player.position.y += jumpVelocity * delta;
       jumpVelocity += gravity * delta;
 
-      if (camera.position.y <= groundLevel + eyeHeight) {
-        camera.position.y = groundLevel + eyeHeight;
+      if (player.position.y <= groundLevel + eyeHeight) {
+        player.position.y = groundLevel + eyeHeight;
         isJumping = false;
         jumpVelocity = 0;
       }
@@ -988,26 +991,26 @@ function animate() {
 
     // Keep player on the island - boundary check for larger island
     const distanceFromCenter = Math.sqrt(
-      camera.position.x * camera.position.x +
-      camera.position.z * camera.position.z
+      player.position.x * player.position.x +
+      player.position.z * player.position.z
     );
 
     if (distanceFromCenter > 19.5) { // Slightly less than island radius
       // Push player back toward center
-      const angle = Math.atan2(camera.position.z, camera.position.x);
-      camera.position.x = Math.cos(angle) * 19.5;
-      camera.position.z = Math.sin(angle) * 19.5;
+      const angle = Math.atan2(player.position.z, player.position.x);
+      player.position.x = Math.cos(angle) * 19.5;
+      player.position.z = Math.sin(angle) * 19.5;
     }
 
     // If player falls off
-    if (camera.position.y < -10) {
-      camera.position.set(0, groundLevel + eyeHeight, 0);
+    if (player.position.y < -10) {
+      player.position.set(0, groundLevel + eyeHeight, 0);
       velocity.set(0, 0, 0);
     }
 
-    // Maintain camera height when not jumping
+    // Maintain player height when not jumping
     if (!isJumping) {
-      camera.position.y = groundLevel + eyeHeight;
+      player.position.y = groundLevel + eyeHeight;
     }
 
     // Check if near portal

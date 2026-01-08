@@ -740,13 +740,16 @@ function animate() {
   animateMovingTiles(time);
 
   if (controls.isLocked) {
+    // Get player object (camera parent in PointerLockControls)
+    const player = controls.getObject();
+
     // Check tile collision FIRST to get tile movement
     const collision = checkTileCollision();
 
     // If standing on a moving tile, apply tile movement to player FIRST
     if (collision.onPlatform && collision.activeTile) {
-      camera.position.x += collision.activeTile.velocityX;
-      camera.position.z += collision.activeTile.velocityZ;
+      player.position.x += collision.activeTile.velocityX;
+      player.position.z += collision.activeTile.velocityZ;
     }
 
     // Then apply player's own movement
@@ -770,18 +773,18 @@ function animate() {
     if (finalCollision.onPlatform) {
       const groundLevel = finalCollision.platformY + EYE_HEIGHT;
 
-      // Gravity and jumping
+      // Gravity and jumping (use player.position, not camera.position)
       if (isJumping) {
-        camera.position.y += jumpVelocity * delta;
+        player.position.y += jumpVelocity * delta;
         jumpVelocity += GRAVITY * delta;
 
-        if (camera.position.y <= groundLevel) {
-          camera.position.y = groundLevel;
+        if (player.position.y <= groundLevel) {
+          player.position.y = groundLevel;
           isJumping = false;
           jumpVelocity = 0;
         }
       } else {
-        camera.position.y = groundLevel;
+        player.position.y = groundLevel;
       }
 
       // Reset fall state
@@ -799,7 +802,7 @@ function animate() {
       }
 
       // Apply gravity while falling
-      camera.position.y += jumpVelocity * delta;
+      player.position.y += jumpVelocity * delta;
       jumpVelocity += GRAVITY * delta;
 
       // Count fall time
@@ -812,8 +815,8 @@ function animate() {
     }
 
     // Boundary check (walls)
-    camera.position.x = Math.max(-ROOM_WIDTH / 2 + 1, Math.min(ROOM_WIDTH / 2 - 1, camera.position.x));
-    camera.position.z = Math.max(-ROOM_DEPTH / 2 + 1, Math.min(ROOM_DEPTH / 2 - 1, camera.position.z));
+    player.position.x = Math.max(-ROOM_WIDTH / 2 + 1, Math.min(ROOM_WIDTH / 2 - 1, player.position.x));
+    player.position.z = Math.max(-ROOM_DEPTH / 2 + 1, Math.min(ROOM_DEPTH / 2 - 1, player.position.z));
 
     checkPortalProximity();
   }

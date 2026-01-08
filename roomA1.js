@@ -867,11 +867,13 @@ function animate() {
   
   // Handle controls and movement
   if (controls.isLocked) {
+    // Get player object (camera parent in PointerLockControls)
+    const player = controls.getObject();
     const delta = clock.getDelta();
-    
+
     // Get time delta for smooth movement
     const speedDelta = speed * delta;
-    
+
     // Apply movement in the direction the camera is facing
     if (moveForward) {
       controls.moveForward(speedDelta);
@@ -885,40 +887,40 @@ function animate() {
     if (moveRight) {
       controls.moveRight(speedDelta);
     }
-    
-    // Handle jumping and gravity
+
+    // Handle jumping and gravity (use player.position, not camera.position)
     if (isJumping) {
       // Apply gravity
       jumpVelocity += gravity * delta;
-      
+
       // Update position based on velocity
-      let newY = camera.position.y + jumpVelocity * delta;
-      
+      let newY = player.position.y + jumpVelocity * delta;
+
       if (newY <= groundLevel + eyeHeight) {
         // If we're at ground level
         newY = groundLevel + eyeHeight;
         isJumping = false;
         jumpVelocity = 0;
       }
-      
-      camera.position.y = newY;
+
+      player.position.y = newY;
     }
-    
+
     // Add boundary check to keep player inside the room
     const boundaryBuffer = 2;
-    
+
     // Keep X position inside room boundaries
-    if (camera.position.x < -roomWidth/2 + boundaryBuffer) {
-      camera.position.x = -roomWidth/2 + boundaryBuffer;
-    } else if (camera.position.x > roomWidth/2 - boundaryBuffer) {
-      camera.position.x = roomWidth/2 - boundaryBuffer;
+    if (player.position.x < -roomWidth/2 + boundaryBuffer) {
+      player.position.x = -roomWidth/2 + boundaryBuffer;
+    } else if (player.position.x > roomWidth/2 - boundaryBuffer) {
+      player.position.x = roomWidth/2 - boundaryBuffer;
     }
-    
+
     // Keep Z position inside room boundaries
-    if (camera.position.z < -roomLength/2 + boundaryBuffer) {
-      camera.position.z = -roomLength/2 + boundaryBuffer;
-    } else if (camera.position.z > roomLength/2 - boundaryBuffer) {
-      camera.position.z = roomLength/2 - boundaryBuffer;
+    if (player.position.z < -roomLength/2 + boundaryBuffer) {
+      player.position.z = -roomLength/2 + boundaryBuffer;
+    } else if (player.position.z > roomLength/2 - boundaryBuffer) {
+      player.position.z = roomLength/2 - boundaryBuffer;
     }
     
     // Check portal proximity

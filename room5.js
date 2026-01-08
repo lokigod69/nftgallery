@@ -948,13 +948,16 @@ function animate() {
 
   const isActiveControls = controls.isLocked || (mobileControls && mobileControls.enabled);
   if (isActiveControls) {
-    // Handle jumping and gravity
+    // Get player object (camera parent in PointerLockControls)
+    const player = controls.getObject();
+
+    // Handle jumping and gravity (use player.position.y, not camera.position.y)
     if (isJumping) {
-      camera.position.y += jumpVelocity * delta;
+      player.position.y += jumpVelocity * delta;
       jumpVelocity += gravity * delta;
 
-      if (camera.position.y <= groundLevel + eyeHeight) {
-        camera.position.y = groundLevel + eyeHeight;
+      if (player.position.y <= groundLevel + eyeHeight) {
+        player.position.y = groundLevel + eyeHeight;
         isJumping = false;
         jumpVelocity = 0;
       }
@@ -981,21 +984,21 @@ function animate() {
     controls.moveForward(-velocity.z * delta);
 
     // Room boundary check - keep player inside the circular room but closer to walls
-    const playerX = camera.position.x;
-    const playerZ = camera.position.z;
+    const playerX = player.position.x;
+    const playerZ = player.position.z;
     const distanceFromCenter = Math.sqrt(playerX * playerX + playerZ * playerZ);
 
     if (distanceFromCenter > roomRadius - 0.5) { // Reduced boundary buffer (1 -> 0.5)
       // Calculate normalized direction from center
       const angle = Math.atan2(playerZ, playerX);
       // Move back inside but closer to wall
-      camera.position.x = (roomRadius - 0.5) * Math.cos(angle);
-      camera.position.z = (roomRadius - 0.5) * Math.sin(angle);
+      player.position.x = (roomRadius - 0.5) * Math.cos(angle);
+      player.position.z = (roomRadius - 0.5) * Math.sin(angle);
     }
 
-    // UPDATED: Maintain camera at NFT level when not jumping
+    // Maintain player at NFT level when not jumping
     if (!isJumping) {
-      camera.position.y = groundLevel + eyeHeight;
+      player.position.y = groundLevel + eyeHeight;
     }
 
     // Check if near portal

@@ -1155,8 +1155,9 @@ function checkCollisions() {
     camera.position.z = cubicStructure.dimensions.shortSide / 2 + (camera.position.z < cubicStructure.dimensions.shortSide / 2 ? -1 : 1);
   }
   
-  // Maintain camera height
-  camera.position.y = isJumping ? camera.position.y : groundLevels[1];
+  // Maintain player height (use player object, not camera directly)
+  const player = controls.getObject();
+  player.position.y = isJumping ? player.position.y : groundLevels[1];
 }
 
 // ----------------------------------------------------------------------
@@ -1315,13 +1316,16 @@ function animate() {
 
   const isActiveControls = controls.isLocked || (mobileControls && mobileControls.enabled);
   if (isActiveControls) {
-    // Handle jumping and gravity
+    // Get player object (camera parent in PointerLockControls)
+    const player = controls.getObject();
+
+    // Handle jumping and gravity (use player.position.y, not camera.position.y)
     if (isJumping) {
-      camera.position.y += jumpVelocity * delta;
+      player.position.y += jumpVelocity * delta;
       jumpVelocity += gravity * delta;
 
-      if (camera.position.y <= groundLevels[1]) {
-        camera.position.y = groundLevels[1];
+      if (player.position.y <= groundLevels[1]) {
+        player.position.y = groundLevels[1];
         isJumping = false;
         jumpVelocity = 0;
       }
