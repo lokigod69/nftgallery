@@ -57,8 +57,8 @@ const textureLoader = new THREE.TextureLoader(); // Texture loader for NFTs
 // Unified viewer will be initialized after scene setup
 let nftViewer = null;
 
-// Placeholder for viewer overlay element (will be created by unified viewer)
-const viewerOverlay = null;
+// Viewer overlay element for NFT display
+const viewerOverlay = document.createElement('div');
 viewerOverlay.style.position = 'fixed';
 viewerOverlay.style.top = '0';
 viewerOverlay.style.left = '0';
