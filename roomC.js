@@ -652,7 +652,9 @@ function createPortal() {
 function checkPortalProximity() {
   if (!portalToRoom0) return;
 
-  const distance = camera.position.distanceTo(portalToRoom0.position);
+  // Use player position for accurate distance, not camera.position
+  const player = controls.getObject();
+  const distance = player.position.distanceTo(portalToRoom0.position);
   const controlsDesc = document.getElementById('controls-description');
 
   if (distance < 3.0) {
@@ -676,9 +678,11 @@ function checkPortalProximity() {
 // Platform Collision Detection
 // ============================================
 function checkTileCollision() {
-  const playerX = camera.position.x;
-  const playerZ = camera.position.z;
-  const playerY = camera.position.y;
+  // Use player object position for accurate world coordinates, not camera.position
+  const player = controls.getObject();
+  const playerX = player.position.x;
+  const playerZ = player.position.z;
+  const playerY = player.position.y;
   const feetY = playerY - EYE_HEIGHT;
 
   let onPlatform = false;
