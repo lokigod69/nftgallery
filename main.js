@@ -2,14 +2,21 @@ import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { createLinkedPortal, animateLinkedPortal, createMultiPortalChecker } from './src/core/portal-utils.js';
 // Room 1 NFT files (28 PNG images from Room1 folder)
+// Special placement: 1-4.png on back wall (visible when spawning)
+// Back wall order: 3.png (left), 1.png (left-center), 2.png (right-center), 4.png (right), then ComfyUI
+// Wall layout: back wall (0-4), left wall (5-9), right wall (10-14), front wall (15-19), dividers (20-27)
 const ROOM1_NFTS = [
-  'ComfyUI_02887_', 'ComfyUI_02890_', 'ComfyUI_02894_', 'ComfyUI_02896_',
-  'ComfyUI_02898_', 'ComfyUI_02899_', 'ComfyUI_02900_', 'ComfyUI_02901_',
-  'ComfyUI_02903_', 'ComfyUI_02904_', 'ComfyUI_02905_', 'ComfyUI_02906_',
-  'ComfyUI_02907_', 'ComfyUI_02910_', 'ComfyUI_02914_', 'ComfyUI_02915_',
-  'ComfyUI_02916_', 'ComfyUI_02917_', 'ComfyUI_02918_', 'ComfyUI_02919_',
-  'ComfyUI_02920_', 'ComfyUI_02921_', 'ComfyUI_02923_', 'ComfyUI_02924_',
-  'ComfyUI_02925_', 'ComfyUI_02926_', 'ComfyUI_03325_', 'ComfyUI_02928_'
+  // Back wall (indices 0-4) - special placement: 3, 1, 2, 4 from left to right
+  '3', '1', '2', '4', 'ComfyUI_02887_',
+  // Left wall (indices 5-9)
+  'ComfyUI_02894_', 'ComfyUI_02896_', 'ComfyUI_02898_', 'ComfyUI_02900_', 'ComfyUI_02901_',
+  // Right wall (indices 10-14)
+  'ComfyUI_02903_', 'ComfyUI_02905_', 'ComfyUI_02906_', 'ComfyUI_02907_', 'ComfyUI_02910_',
+  // Front wall (indices 15-19)
+  'ComfyUI_02914_', 'ComfyUI_02915_', 'ComfyUI_02916_', 'ComfyUI_02917_', 'ComfyUI_02918_',
+  // Dividers (indices 20-27)
+  'ComfyUI_02919_', 'ComfyUI_02920_', 'ComfyUI_02921_', 'ComfyUI_02923_',
+  'ComfyUI_02924_', 'ComfyUI_02925_', 'ComfyUI_02926_', 'ComfyUI_02928_'
 ];
 
 function getRoom1NftUrl(index) {

@@ -41,10 +41,8 @@ import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUti
 
 // Room 9 NFT Files - 18 PNG images from Room9 folder
 const room9NftFiles = [
-  'ComfyUI_03156_',
   'ComfyUI_03157_',
   'ComfyUI_03158_',
-  'ComfyUI_03159_',
   'ComfyUI_03160_',
   'ComfyUI_03161_',
   'ComfyUI_03162_',
@@ -53,12 +51,14 @@ const room9NftFiles = [
   'ComfyUI_03165_',
   'ComfyUI_03166_',
   'ComfyUI_03167_',
-  'ComfyUI_03168_',
-  'ComfyUI_03169_',
-  'ComfyUI_03170_',
   'ComfyUI_03171_',
-  'ComfyUI_03172_',
-  'ComfyUI_03173_'
+  'ComfyUI_03173_',
+  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_6bc3d1ca-bbef-44ae-9fc0-e69c79804d51',
+  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_7e3556a5-641c-44c6-b6a6-6ec302a9ae24',
+  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_caa0e3d0-1a4a-4f18-899b-af6fc4f6d701',
+  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_da1a421f-2e6c-43d8-b738-18b3188408aa',
+  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_e0aa6ceb-d808-4589-b659-09ade63ef468',
+  'lokigod69._Cinematic_monochromatic_photograph_with_gentle_depth_f2c690f6-7093-467b-b177-42ee6ab79043'
 ];
 
 // ═══════════════════════════════════════════════════════════════════════

@@ -596,15 +596,15 @@ const portalToRoom1 = createLinkedPortal({
   createLabel: true
 });
 
-// Portal to Room 3 (ground portal in corner)
+// Portal to Room 3 (vertical portal in corner at NFT height)
 const portalToRoom3 = createLinkedPortal({
   scene,
   fromRoom: '2',
   toRoom: '3',
   x: 18,
-  y: 1.2,
+  y: 4,
   z: -18,
-  rotationX: -Math.PI / 2,  // Flat on ground (horizontal orientation)
+  rotationY: -Math.PI / 4,  // Angled to face center of room
   createLabel: true
 });
 
@@ -613,7 +613,7 @@ const allPortals = [
   { ...portalToRoom1, name: 'Room 1 (Main Gallery)', url: 'index.html',
     position: new THREE.Vector3(0, 2, 0) },
   { ...portalToRoom3, name: 'Room 3', url: 'room3.html',
-    position: new THREE.Vector3(18, 1.2, -18) }
+    position: new THREE.Vector3(18, 4, -18) }
 ];
 
 const portalConfigs = allPortals.map(p => ({
