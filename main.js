@@ -9,7 +9,7 @@ const ROOM1_NFTS = [
   'ComfyUI_02907_', 'ComfyUI_02910_', 'ComfyUI_02914_', 'ComfyUI_02915_',
   'ComfyUI_02916_', 'ComfyUI_02917_', 'ComfyUI_02918_', 'ComfyUI_02919_',
   'ComfyUI_02920_', 'ComfyUI_02921_', 'ComfyUI_02923_', 'ComfyUI_02924_',
-  'ComfyUI_02925_', 'ComfyUI_02926_', 'ComfyUI_02927_', 'ComfyUI_02928_'
+  'ComfyUI_02925_', 'ComfyUI_02926_', 'ComfyUI_03325_', 'ComfyUI_02928_'
 ];
 
 function getRoom1NftUrl(index) {

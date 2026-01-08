@@ -1,11 +1,32 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { createLinkedPortal, animateLinkedPortal, createMultiPortalChecker } from './src/core/portal-utils.js';
-import { getNftUrl } from './src/core/asset-utils.js';
 import { MOVEMENT_CONFIG } from './src/core/movement-config.js';
 import { initSpeedControl } from './src/ui/speed-control.js';
 import { initMobileControls } from './src/core/mobile-controls.js';
 import { initUnifiedNFTViewer, MAX_NFT_INTERACTION_DISTANCE } from './src/core/nft-viewer.js';
+
+// Room 2 NFT files (44 PNG images from Room2 folder)
+const ROOM2_NFTS = [
+  'ComfyUI_00166_', 'ComfyUI_00179_', 'ComfyUI_00188_', 'ComfyUI_00190_',
+  'ComfyUI_00215_', 'ComfyUI_00237_', 'ComfyUI_00243_', 'ComfyUI_00248_',
+  'ComfyUI_00335_', 'ComfyUI_00336_', 'ComfyUI_00340_', 'ComfyUI_00344_',
+  'ComfyUI_00369_', 'ComfyUI_00374_', 'ComfyUI_00388_', 'ComfyUI_00389_',
+  'ComfyUI_00394_', 'ComfyUI_00399_', 'ComfyUI_00415_', 'ComfyUI_00427_',
+  'ComfyUI_00429_', 'ComfyUI_00433_', 'ComfyUI_00450_', 'ComfyUI_00497_',
+  'ComfyUI_00514_', 'ComfyUI_00516_', 'ComfyUI_00532_', 'ComfyUI_00577_',
+  'ComfyUI_00581_', 'ComfyUI_00780_', 'ComfyUI_00865_', 'ComfyUI_00886_',
+  'ComfyUI_00902_', 'ComfyUI_00907_', 'ComfyUI_00913_', 'ComfyUI_00919_',
+  'ComfyUI_00927_', 'ComfyUI_00945_', 'ComfyUI_00961_', 'ComfyUI_00977_',
+  'ComfyUI_00981_', 'ComfyUI_00984_', 'ComfyUI_00992_', 'ComfyUI_01032_'
+];
+
+function getRoom2NftUrl(index) {
+  if (index >= 0 && index < ROOM2_NFTS.length) {
+    return `/assets/Room2/${ROOM2_NFTS[index]}.png`;
+  }
+  return `/assets/Room2/${ROOM2_NFTS[0]}.png`; // Fallback
+}
 
 // ----------------------------------------------------------------------
 // Global Variables for Jump Physics
@@ -281,8 +302,8 @@ function createNFT(index, position, rotation) {
   );
   frameGroup.add(frameBox);
 
-  const nftIndex = index + 29; // Adjusted to start from nft29
-  const imageUrl = getNftUrl(nftIndex);
+  // Use Room2 folder images (index 0-27 for outer walls)
+  const imageUrl = getRoom2NftUrl(index);
 
   const loader = new THREE.TextureLoader();
   loader.load(
@@ -299,7 +320,7 @@ function createNFT(index, position, rotation) {
       // Add necessary userData properties for click detection and viewer
       picturePlane.userData = {
         isNFT: true,
-        index: nftIndex,
+        index: index,
         imageUrl: imageUrl
       };
       picturePlane.position.z = 0.11;
@@ -330,7 +351,7 @@ function createNFT(index, position, rotation) {
 // ----------------------------------------------------------------------
 // Separate handler for divider NFTs
 // ----------------------------------------------------------------------
-function createDividerNFT(nftNumber, localX, localZ, rotationY, parentGroup) {
+function createDividerNFT(nftIndex, localX, localZ, rotationY, parentGroup) {
   const frameGroup = new THREE.Group();
   const frameWidth = 2.0, frameHeight = 3.0;
   const pictureWidth = 1.8, pictureHeight = 2.7;
@@ -342,8 +363,8 @@ function createDividerNFT(nftNumber, localX, localZ, rotationY, parentGroup) {
   );
   frameGroup.add(frameBox);
 
-  // Load NFT texture
-  const textureUrl = getNftUrl(nftNumber);
+  // Load NFT texture from Room2 folder (indices 28-43 for dividers)
+  const textureUrl = getRoom2NftUrl(nftIndex);
   const loader = new THREE.TextureLoader();
   loader.load(
     textureUrl,
@@ -358,7 +379,7 @@ function createDividerNFT(nftNumber, localX, localZ, rotationY, parentGroup) {
       );
       picturePlane.userData = {
         isNFT: true,
-        index: nftNumber,
+        index: nftIndex,
         imageUrl: textureUrl
       };
       picturePlane.position.z = 0.11;
@@ -383,22 +404,22 @@ const walls = createWallsAndFloor();
 createCeiling();
 createLights();
 
-// Create NFTs on outer walls (28 NFTs, numbers 29-56)
+// Create NFTs on outer walls (28 NFTs from Room2 folder, indices 0-27)
 const wallPositions7 = getPositions(40, 7); // 7 NFTs per wall
 
-// Back wall NFTs (29-35)
+// Back wall NFTs (indices 0-6)
 const backWallNFTPositions = wallPositions7.map(x => ({ pos: { x: x, y: 4, z: -19.5 }, rot: { x: 0, y: 0, z: 0 } }));
 backWallNFTPositions.forEach((data, i) => createNFT(i, data.pos, data.rot));
 
-// Left wall NFTs (36-42)
+// Left wall NFTs (indices 7-13)
 const leftWallNFTPositions = wallPositions7.map(z => ({ pos: { x: -19.5, y: 4, z: z }, rot: { x: 0, y: Math.PI / 2, z: 0 } }));
 leftWallNFTPositions.forEach((data, i) => createNFT(i + 7, data.pos, data.rot));
 
-// Right wall NFTs (43-49)
+// Right wall NFTs (indices 14-20)
 const rightWallNFTPositions = wallPositions7.map(z => ({ pos: { x: 19.5, y: 4, z: z }, rot: { x: 0, y: -Math.PI / 2, z: 0 } }));
 rightWallNFTPositions.forEach((data, i) => createNFT(i + 14, data.pos, data.rot));
 
-// Front wall NFTs (50-56)
+// Front wall NFTs (indices 21-27)
 const frontWallNFTPositions = wallPositions7.map(x => ({ pos: { x: x, y: 4, z: 19.5 }, rot: { x: 0, y: Math.PI, z: 0 } }));
 frontWallNFTPositions.forEach((data, i) => createNFT(i + 21, data.pos, data.rot));
 
@@ -437,28 +458,28 @@ function createDivider() {
   const spacing = usableLength / 3; // Space between frames (3 gaps for 4 frames)
   const frameOffset = 0.4; // Offset from wall surface
 
-  // Left divider - front side (NFTs 57-60)
+  // Left divider - front side (indices 28-31)
   for (let i = 0; i < 4; i++) {
     const localX = -wallLength/2 + margin + (i * spacing);
-    createDividerNFT(57 + i, localX, frameOffset, 0, leftDividerGroup);
+    createDividerNFT(28 + i, localX, frameOffset, 0, leftDividerGroup);
   }
 
-  // Left divider - back side (NFTs 61-64)
+  // Left divider - back side (indices 32-35)
   for (let i = 0; i < 4; i++) {
     const localX = -wallLength/2 + margin + (i * spacing);
-    createDividerNFT(61 + i, localX, -frameOffset, Math.PI, leftDividerGroup);
+    createDividerNFT(32 + i, localX, -frameOffset, Math.PI, leftDividerGroup);
   }
 
-  // Right divider - front side (NFTs 65-68)
+  // Right divider - front side (indices 36-39)
   for (let i = 0; i < 4; i++) {
     const localX = -wallLength/2 + margin + (i * spacing);
-    createDividerNFT(65 + i, localX, frameOffset, 0, rightDividerGroup);
+    createDividerNFT(36 + i, localX, frameOffset, 0, rightDividerGroup);
   }
 
-  // Right divider - back side (NFTs 69-72)
+  // Right divider - back side (indices 40-43)
   for (let i = 0; i < 4; i++) {
     const localX = -wallLength/2 + margin + (i * spacing);
-    createDividerNFT(69 + i, localX, -frameOffset, Math.PI, rightDividerGroup);
+    createDividerNFT(40 + i, localX, -frameOffset, Math.PI, rightDividerGroup);
   }
 }
 
