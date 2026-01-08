@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
-import { getNftUrl } from './src/core/asset-utils.js';
+// Room C uses local assets from /assets/roomC/ instead of getNftUrl
 
 // ============================================
 // Configuration
@@ -31,9 +31,18 @@ const TILE_MOVE_SPEED = 0.6;     // Same speed
 const SPAWN_X = 0;
 const SPAWN_Z = ROOM_DEPTH / 2 - 10;  // Near south wall/portal, facing forward into room
 
-// NFT configuration
-const NFT_START_INDEX = 50;
-const NFT_SPACING = 30;  // Wider spacing for larger room
+// NFT configuration - 40 images from /assets/roomC/
+const NFT_SPACING = 12;  // Reduced spacing to fit 40 NFTs (20 per wall)
+const ROOM_C_NFTS = [
+  // 6a through 6z (26 images)
+  '6a.png', '6b.png', '6c.png', '6d.png', '6e.png', '6f.png', '6g.png', '6h.png',
+  '6i.png', '6j.png', '6k.png', '6l.png', '6m.png', '6n.png', '6o.png', '6p.png',
+  '6q.png', '6r.png', '6s.png', '6t.png', '6u.png', '6v.png', '6w.png', '6x.png',
+  '6y.png', '6z.png',
+  // 7a through 7n (14 images)
+  '7a.png', '7b.png', '7c.png', '7d.png', '7e.png', '7f.png', '7g.png', '7h.png',
+  '7i.png', '7j.png', '7k.png', '7l.png', '7m.png', '7n.png'
+];
 
 // Fall reset configuration
 const FALL_RESET_TIME = 3.0;  // Seconds before reset when falling
@@ -482,26 +491,28 @@ const NFT_Y_POSITION = ROOM_HEIGHT / 2;  // Centered vertically on wall
 function createNFTFrames() {
   const textureLoader = new THREE.TextureLoader();
 
-  // Calculate how many NFTs fit along the room length
-  const nftCount = Math.floor((ROOM_DEPTH - 20) / NFT_SPACING);
-  let nftIndex = NFT_START_INDEX;
+  // Split 40 NFTs between two walls (20 per wall)
+  const nftsPerWall = Math.ceil(ROOM_C_NFTS.length / 2);
+  let nftIndex = 0;
 
-  // West wall NFTs (left side) - facing into the room
-  for (let i = 0; i < nftCount; i++) {
-    const z = -ROOM_DEPTH / 2 + 10 + i * NFT_SPACING;
-    createNFTFrame(textureLoader, -ROOM_WIDTH / 2 + 0.5, NFT_Y_POSITION, z, 'west', nftIndex++);
+  // West wall NFTs (left side) - first 20 images
+  for (let i = 0; i < nftsPerWall && nftIndex < ROOM_C_NFTS.length; i++) {
+    const z = -ROOM_DEPTH / 2 + 15 + i * NFT_SPACING;
+    const imageFile = ROOM_C_NFTS[nftIndex++];
+    createNFTFrame(textureLoader, -ROOM_WIDTH / 2 + 0.5, NFT_Y_POSITION, z, 'west', imageFile);
   }
 
-  // East wall NFTs (right side) - facing into the room
-  for (let i = 0; i < nftCount; i++) {
-    const z = -ROOM_DEPTH / 2 + 10 + i * NFT_SPACING;
-    createNFTFrame(textureLoader, ROOM_WIDTH / 2 - 0.5, NFT_Y_POSITION, z, 'east', nftIndex++);
+  // East wall NFTs (right side) - remaining 20 images
+  for (let i = 0; i < nftsPerWall && nftIndex < ROOM_C_NFTS.length; i++) {
+    const z = -ROOM_DEPTH / 2 + 15 + i * NFT_SPACING;
+    const imageFile = ROOM_C_NFTS[nftIndex++];
+    createNFTFrame(textureLoader, ROOM_WIDTH / 2 - 0.5, NFT_Y_POSITION, z, 'east', imageFile);
   }
 
-  console.log(`Created ${(nftIndex - NFT_START_INDEX)} NFT frames on side walls`);
+  console.log(`Created ${nftIndex} NFT frames on side walls (from /assets/roomC/)`);
 }
 
-function createNFTFrame(textureLoader, x, y, z, wall, nftIndex) {
+function createNFTFrame(textureLoader, x, y, z, wall, imageFile) {
   const frameGroup = new THREE.Group();
 
   // Frame backing - oriented to lie flat against wall (larger size)
@@ -515,12 +526,15 @@ function createNFTFrame(textureLoader, x, y, z, wall, nftIndex) {
   );
   frameGroup.add(frameBox);
 
-  // Load NFT image
-  const imageUrl = getNftUrl(nftIndex);
+  // Load NFT image from /assets/roomC/
+  const imageUrl = `/assets/roomC/${imageFile}`;
 
   textureLoader.load(
     imageUrl,
     (texture) => {
+      // Ensure proper color space
+      texture.colorSpace = THREE.SRGBColorSpace;
+
       // Use MeshBasicMaterial for true original colors (no lighting influence)
       const picturePlane = new THREE.Mesh(
         new THREE.PlaneGeometry(NFT_FRAME_WIDTH, NFT_FRAME_HEIGHT),
@@ -541,7 +555,7 @@ function createNFTFrame(textureLoader, x, y, z, wall, nftIndex) {
     },
     undefined,
     (error) => {
-      console.warn(`NFT ${nftIndex} failed to load, using placeholder`);
+      console.warn(`NFT ${imageFile} failed to load, using placeholder`);
       const placeholderPlane = new THREE.Mesh(
         new THREE.PlaneGeometry(NFT_FRAME_WIDTH, NFT_FRAME_HEIGHT),
         new THREE.MeshBasicMaterial({ color: 0x333333 })

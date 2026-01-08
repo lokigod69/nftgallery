@@ -10,6 +10,18 @@ import { hasAccessGranted, showAccessCodePrompt } from './src/core/access-code-g
 // Access gate flag - room won't be interactive until this is true
 let accessVerified = hasAccessGranted();
 
+// Deferred NFT loading function - only called after access is verified
+// This prevents images from appearing in browser dev tools/network until authorized
+let nftsLoaded = false;
+function loadNFTsIfAuthorized() {
+  if (nftsLoaded) return; // Already loaded
+  nftsLoaded = true;
+
+  // NFT loading happens in the main code section below
+  // This function just sets the flag - actual loading is deferred via the nftsLoaded check
+  console.log('✓ Access verified - NFT loading authorized');
+}
+
 // If not already verified, show access code prompt immediately
 if (!accessVerified) {
   // Create blocking overlay to hide room content
@@ -29,19 +41,29 @@ if (!accessVerified) {
   // Show access code prompt
   showAccessCodePrompt().then((granted) => {
     if (granted) {
-      // Access granted - remove blocking overlay and allow interaction
+      // Access granted - remove blocking overlay, allow interaction, and load NFTs
       accessVerified = true;
       blockingOverlay.remove();
+      loadNFTsIfAuthorized();
+      loadRoom6NFTs(); // Actually load the NFT textures now
     } else {
       // Access denied - redirect to Room 5
       window.location.href = 'room5.html';
     }
   });
+} else {
+  // Already verified - mark NFTs as loadable
+  loadNFTsIfAuthorized();
 }
 
 // Export access check function for use in animation loop
 function isAccessVerified() {
   return accessVerified;
+}
+
+// Check if NFTs should be loaded
+function shouldLoadNFTs() {
+  return nftsLoaded;
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -410,7 +432,7 @@ const ROOM6_CONFIG = {
 
   // Horizontal floating tiles configuration
   horizontalFloatEnabled: true,     // Enable horizontal movement (tiles float left-right)
-  horizontalFloatAmplitude: 6.9,    // 69% of distance to wall (corridorWidth/2 = 10)
+  horizontalFloatAmplitude: 9.0,    // 90% of distance to wall - tiles reach almost to walls and connect to spawn platform
   horizontalFloatSpeed: 0.8,        // Speed of horizontal movement
   horizontalFloatPattern: [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0], // 1=moving, 0=stationary (final tile stationary)
   
@@ -1056,42 +1078,55 @@ for (let z = -15; z >= -90; z -= 15) {
 // ----------------------------------------------------------------------
 // NFT Wall Art - Room 6 Collection
 // ----------------------------------------------------------------------
-// Using static NFT images from /assets/Room6/1.webp through 16.webp
-// 16 NFTs displayed, alternating walls
+// SECURITY: NFTs are ONLY loaded after access code is verified
+// This prevents images from appearing in browser dev tools until authorized
 
 const nftPlanes = [];
-const textureLoader = new THREE.TextureLoader();
 const nftCount = 16; // Display 16 NFTs (1.webp through 16.webp)
 const nftSpacing = corridorLength / (nftCount + 1);
 
-for (let i = 0; i < nftCount; i++) {
-  // Use numbered files: 1.webp through 16.webp
-  const fileNumber = i + 1;
-  const texture = textureLoader.load(
-    `/assets/Room6/${fileNumber}.webp`,
-    // onLoad callback to ensure proper color space
-    (loadedTexture) => {
-      loadedTexture.colorSpace = THREE.SRGBColorSpace; // Ensure correct color space
-    }
-  );
-  const material = new THREE.MeshBasicMaterial({
-    map: texture,
-    side: THREE.DoubleSide,
-    // Ensure NFTs are completely unlit and display original colors
-    transparent: false,
-    alphaTest: 0,
-    toneMapped: false // Disable tone mapping to preserve original colors
-  });
-  const plane = new THREE.Mesh(new THREE.PlaneGeometry(3.5, 3.5), material);
+// Deferred NFT loading function - called only after access is verified
+function loadRoom6NFTs() {
+  if (nftPlanes.length > 0) return; // Already loaded
 
-  const z = -nftSpacing * (i + 1);
-  const side = i % 2 === 0 ? -1 : 1; // Alternate left/right
+  const textureLoader = new THREE.TextureLoader();
 
-  plane.position.set(side * (corridorWidth / 2 - 0.1), eyeHeight + 0.5, z);
-  plane.rotation.y = side === 1 ? -Math.PI / 2 : Math.PI / 2;
+  for (let i = 0; i < nftCount; i++) {
+    // Use numbered files: 1.webp through 16.webp
+    const fileNumber = i + 1;
+    const texture = textureLoader.load(
+      `/assets/Room6/${fileNumber}.webp`,
+      // onLoad callback to ensure proper color space
+      (loadedTexture) => {
+        loadedTexture.colorSpace = THREE.SRGBColorSpace; // Ensure correct color space
+      }
+    );
+    const material = new THREE.MeshBasicMaterial({
+      map: texture,
+      side: THREE.DoubleSide,
+      // Ensure NFTs are completely unlit and display original colors
+      transparent: false,
+      alphaTest: 0,
+      toneMapped: false // Disable tone mapping to preserve original colors
+    });
+    const plane = new THREE.Mesh(new THREE.PlaneGeometry(3.5, 3.5), material);
 
-  scene.add(plane);
-  nftPlanes.push(plane);
+    const z = -nftSpacing * (i + 1);
+    const side = i % 2 === 0 ? -1 : 1; // Alternate left/right
+
+    plane.position.set(side * (corridorWidth / 2 - 0.1), eyeHeight + 0.5, z);
+    plane.rotation.y = side === 1 ? -Math.PI / 2 : Math.PI / 2;
+
+    scene.add(plane);
+    nftPlanes.push(plane);
+  }
+
+  console.log(`✓ Loaded ${nftCount} NFTs (access verified)`);
+}
+
+// If access was already granted (localStorage), load NFTs immediately
+if (shouldLoadNFTs()) {
+  loadRoom6NFTs();
 }
 
 // ----------------------------------------------------------------------
@@ -1259,9 +1294,9 @@ function onKeyDown(event) {
       // Only jump if on solid ground (not jumping, not falling, on a tile)
       const player = controls.getObject();
       const onTile = isOnSafeTile(player.position);
-      if (!isJumping && !isFalling && onTile) { 
-        jumpVelocity = 10; 
-        isJumping = true; 
+      if (!isJumping && !isFalling && onTile) {
+        jumpVelocity = 14; // Increased for more airtime to reach floating tiles
+        isJumping = true;
       }
       break;
   }
