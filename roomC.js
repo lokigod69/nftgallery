@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
-// Room C uses local assets from /assets/roomC/ instead of getNftUrl
+// Room C uses local assets from /assets/RoomC/ instead of getNftUrl
 
 // ============================================
 // Configuration
@@ -31,7 +31,7 @@ const TILE_MOVE_SPEED = 0.6;     // Same speed
 const SPAWN_X = 0;
 const SPAWN_Z = ROOM_DEPTH / 2 - 10;  // Near south wall/portal, facing forward into room
 
-// NFT configuration - 40 images from /assets/roomC/
+// NFT configuration - 40 images from /assets/RoomC/
 const NFT_SPACING = 12;  // Reduced spacing to fit 40 NFTs (20 per wall)
 const ROOM_C_NFTS = [
   // 6a through 6z (26 images)
@@ -509,7 +509,7 @@ function createNFTFrames() {
     createNFTFrame(textureLoader, ROOM_WIDTH / 2 - 0.5, NFT_Y_POSITION, z, 'east', imageFile);
   }
 
-  console.log(`Created ${nftIndex} NFT frames on side walls (from /assets/roomC/)`);
+  console.log(`Created ${nftIndex} NFT frames on side walls (from /assets/RoomC/)`);
 }
 
 function createNFTFrame(textureLoader, x, y, z, wall, imageFile) {
@@ -526,8 +526,8 @@ function createNFTFrame(textureLoader, x, y, z, wall, imageFile) {
   );
   frameGroup.add(frameBox);
 
-  // Load NFT image from /assets/roomC/
-  const imageUrl = `/assets/roomC/${imageFile}`;
+  // Load NFT image from /assets/RoomC/
+  const imageUrl = `/assets/RoomC/${imageFile}`;
 
   textureLoader.load(
     imageUrl,
