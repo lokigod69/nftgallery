@@ -616,8 +616,8 @@ const portalConfigs = doors.map(door => {
   const doorZ = door.location.z;
   const distFromCenter = Math.sqrt(doorX * doorX + doorZ * doorZ);
 
-  // Move portal position 4 units further out from door (onto the water)
-  const offsetDistance = 4;
+  // Move portal position just past the door (triggers quickly when entering)
+  const offsetDistance = 1.5;
   const portalX = doorX + (doorX / distFromCenter) * offsetDistance;
   const portalZ = doorZ + (doorZ / distFromCenter) * offsetDistance;
 
@@ -626,7 +626,7 @@ const portalConfigs = doors.map(door => {
     name: door.location.name,
     url: door.location.destination,
     showDistance: 5.0,   // Show prompt when near door
-    triggerDistance: 2.5 // Teleport when reaching the portal point on the water
+    triggerDistance: 2.0 // Teleport almost immediately when stepping through door
   };
 });
 

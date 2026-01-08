@@ -30,7 +30,7 @@ const roomWidth = 120;
 const roomLength = 120;
 const roomHeight = 60;
 const groundLevel = 0;
-const eyeHeight = 8.0; // Increased from 5.5 to give a higher viewpoint
+const eyeHeight = 16.0; // Doubled for better viewing angle
 let isJumping = false;
 let jumpVelocity = 0;
 const gravity = -10; // Slow fall gravity
@@ -231,7 +231,7 @@ function createBaseWalls(thickness) {
   createMirrorCeiling();
 }
 
-// Simple NFT placement - 60 PNGs with original aspect ratios, randomly placed WITHOUT overlapping
+// Organized NFT placement - 2 columns per wall, evenly spaced grid
 function placeNFTsOnWalls() {
   const textureLoader = new THREE.TextureLoader();
 
@@ -254,63 +254,53 @@ function placeNFTsOnWalls() {
     'ComfyUI_03231_', 'ComfyUI_03232_', 'ComfyUI_03233_', 'ComfyUI_03234_'
   ];
 
-  const baseSize = 10;  // Base size for NFT display
-  const minY = 8;       // Minimum height from floor
-  const maxY = roomHeight - 10;  // Maximum height
+  const frameSize = 12;  // Size for NFT display
+  const minY = 10;       // Minimum height from floor
+  const maxY = roomHeight - 8;  // Maximum height
+  const columns = 2;     // 2 columns per wall
+  const nftsPerWall = 15; // 15 per wall = 60 total
+  const rowsPerWall = Math.ceil(nftsPerWall / columns); // 8 rows
 
-  // Wall definitions with width for random placement
+  // Wall definitions
   const walls = [
-    { name: 'front', pos: new THREE.Vector3(0, 0, roomLength/2),  normal: new THREE.Vector3(0, 0, -1), width: roomWidth, placedNFTs: [] },
-    { name: 'back',  pos: new THREE.Vector3(0, 0, -roomLength/2), normal: new THREE.Vector3(0, 0, 1),  width: roomWidth, placedNFTs: [] },
-    { name: 'left',  pos: new THREE.Vector3(-roomWidth/2, 0, 0),  normal: new THREE.Vector3(1, 0, 0),  width: roomLength, placedNFTs: [] },
-    { name: 'right', pos: new THREE.Vector3(roomWidth/2, 0, 0),   normal: new THREE.Vector3(-1, 0, 0), width: roomLength, placedNFTs: [] }
+    { name: 'front', pos: new THREE.Vector3(0, 0, roomLength/2),  normal: new THREE.Vector3(0, 0, -1), width: roomWidth },
+    { name: 'back',  pos: new THREE.Vector3(0, 0, -roomLength/2), normal: new THREE.Vector3(0, 0, 1),  width: roomWidth },
+    { name: 'left',  pos: new THREE.Vector3(-roomWidth/2, 0, 0),  normal: new THREE.Vector3(1, 0, 0),  width: roomLength },
+    { name: 'right', pos: new THREE.Vector3(roomWidth/2, 0, 0),   normal: new THREE.Vector3(-1, 0, 0), width: roomLength }
   ];
 
-  // Check if position overlaps with already placed NFTs on the same wall
-  function checkOverlap(wall, centerX, centerY, width, height, padding = 2) {
-    for (const placed of wall.placedNFTs) {
-      const dx = Math.abs(centerX - placed.centerX);
-      const dy = Math.abs(centerY - placed.centerY);
-      const minDistX = (width + placed.width) / 2 + padding;
-      const minDistY = (height + placed.height) / 2 + padding;
+  // Calculate grid positions for organized layout
+  function getGridPosition(wall, index, totalOnWall) {
+    const col = index % columns;
+    const row = Math.floor(index / columns);
+    const actualRows = Math.ceil(totalOnWall / columns);
 
-      if (dx < minDistX && dy < minDistY) {
-        return true; // Overlaps
-      }
-    }
-    return false; // No overlap
-  }
+    // Calculate spacing
+    const wallMargin = 15; // Margin from wall edges
+    const usableWidth = wall.width - (wallMargin * 2);
+    const usableHeight = maxY - minY;
 
-  // Find a non-overlapping position for an NFT on a wall
-  function findNonOverlappingPosition(wall, planeWidth, planeHeight, maxAttempts = 100) {
-    const margin = Math.max(planeWidth, planeHeight) / 2 + 3;
-    const xRange = wall.width - margin * 2;
-    const yRange = maxY - minY - margin * 2;
+    // Even spacing between columns and rows
+    const colSpacing = usableWidth / (columns + 1);
+    const rowSpacing = usableHeight / (actualRows + 1);
 
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      const randomX = -wall.width/2 + margin + Math.random() * xRange;
-      const randomY = minY + margin + Math.random() * yRange;
+    // Calculate position (centered)
+    const xPos = -wall.width/2 + wallMargin + colSpacing * (col + 1);
+    const yPos = minY + rowSpacing * (row + 1);
 
-      if (!checkOverlap(wall, randomX, randomY, planeWidth, planeHeight)) {
-        return { x: randomX, y: randomY };
-      }
-    }
-
-    // Fallback: return position even if overlapping (after max attempts)
-    console.warn(`Could not find non-overlapping position after ${maxAttempts} attempts`);
-    return {
-      x: -wall.width/2 + margin + Math.random() * xRange,
-      y: minY + margin + Math.random() * yRange
-    };
+    return { x: xPos, y: yPos };
   }
 
   let nftIndex = 0;
-  const nftsPerWall = 15; // 15 per wall = 60 total
 
   walls.forEach((wall) => {
-    for (let i = 0; i < nftsPerWall && nftIndex < nftFiles.length; i++) {
+    const nftsOnThisWall = Math.min(nftsPerWall, nftFiles.length - nftIndex);
+
+    for (let i = 0; i < nftsOnThisWall && nftIndex < nftFiles.length; i++) {
       const filename = nftFiles[nftIndex];
       const imgPath = `/assets/RoomB1/${filename}.png`;
+      const currentIndex = i;
+      const currentWall = wall;
 
       // Load image first to get dimensions
       const img = new Image();
@@ -320,37 +310,25 @@ function placeNFTsOnWalls() {
         // Calculate plane dimensions preserving aspect ratio
         let planeWidth, planeHeight;
         if (aspectRatio >= 1) {
-          // Landscape or square
-          planeWidth = baseSize;
-          planeHeight = baseSize / aspectRatio;
+          planeWidth = frameSize;
+          planeHeight = frameSize / aspectRatio;
         } else {
-          // Portrait
-          planeHeight = baseSize;
-          planeWidth = baseSize * aspectRatio;
+          planeHeight = frameSize;
+          planeWidth = frameSize * aspectRatio;
         }
 
-        // Find non-overlapping position on wall
-        const pos = findNonOverlappingPosition(wall, planeWidth, planeHeight);
-        const randomX = pos.x;
-        const randomY = pos.y;
-
-        // Record this NFT as placed
-        wall.placedNFTs.push({
-          centerX: randomX,
-          centerY: randomY,
-          width: planeWidth,
-          height: planeHeight
-        });
+        // Get organized grid position
+        const pos = getGridPosition(currentWall, currentIndex, nftsOnThisWall);
 
         let x, y, z;
-        y = randomY;
+        y = pos.y;
 
-        if (wall.name === 'front' || wall.name === 'back') {
-          x = randomX;
-          z = wall.pos.z + wall.normal.z * 1.0;
+        if (currentWall.name === 'front' || currentWall.name === 'back') {
+          x = pos.x;
+          z = currentWall.pos.z + currentWall.normal.z * 1.0;
         } else {
-          z = randomX;
-          x = wall.pos.x + wall.normal.x * 1.0;
+          z = pos.x;
+          x = currentWall.pos.x + currentWall.normal.x * 1.0;
         }
 
         // Load texture and create mesh
@@ -370,13 +348,13 @@ function placeNFTsOnWalls() {
             mesh.position.set(x, y, z);
 
             // Rotate to face into room
-            if (wall.name === 'front') mesh.rotation.y = 0;
-            else if (wall.name === 'back') mesh.rotation.y = Math.PI;
-            else if (wall.name === 'left') mesh.rotation.y = Math.PI / 2;
-            else if (wall.name === 'right') mesh.rotation.y = -Math.PI / 2;
+            if (currentWall.name === 'front') mesh.rotation.y = 0;
+            else if (currentWall.name === 'back') mesh.rotation.y = Math.PI;
+            else if (currentWall.name === 'left') mesh.rotation.y = Math.PI / 2;
+            else if (currentWall.name === 'right') mesh.rotation.y = -Math.PI / 2;
 
             scene.add(mesh);
-            console.log(`✓ Placed ${filename} (${img.width}x${img.height}, ratio ${aspectRatio.toFixed(2)}) on ${wall.name}`);
+            console.log(`✓ Placed ${filename} on ${currentWall.name} at grid position (${currentIndex})`);
           },
           undefined,
           (error) => {
@@ -394,7 +372,7 @@ function placeNFTsOnWalls() {
     }
   });
 
-  console.log(`Started loading ${nftFiles.length} NFTs with original aspect ratios, randomly placed WITHOUT overlapping`);
+  console.log(`Started loading ${nftFiles.length} NFTs in organized 2-column grid layout`);
 }
 
 function createMirrorCeiling() {

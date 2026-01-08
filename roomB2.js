@@ -30,7 +30,7 @@ const roomWidth = 120;
 const roomLength = 120;
 const roomHeight = 60;
 const groundLevel = 0;
-const eyeHeight = 8.0; // Increased from 5.5 to give a higher viewpoint
+const eyeHeight = 16.0; // Doubled for better viewing angle
 let isJumping = false;
 let jumpVelocity = 0;
 const gravity = -10; // Slow fall gravity
@@ -307,7 +307,7 @@ function createMirrorCeiling() {
   scene.add(ceilingAccentLight2);
 }
 
-// Simple NFT placement - 60 PNGs with original aspect ratios, randomly placed WITHOUT overlapping
+// Organized NFT placement - landscape on front/back walls, portrait on left/right walls, evenly spaced
 function placeNFTsOnWalls() {
   const textureLoader = new THREE.TextureLoader();
 
@@ -375,147 +375,158 @@ function placeNFTsOnWalls() {
     'Street-fashion_capture_of_a_woman_crossing_zebra_stripes_fabr_34b3d99c-065e-4f18-ab38-186e8562ab3b_0'
   ];
 
-  const baseSize = 10;  // Base size for NFT display
-  const minY = 8;       // Minimum height from floor
-  const maxY = roomHeight - 10;  // Maximum height
+  const minY = 10;       // Minimum height from floor
+  const maxY = roomHeight - 8;  // Maximum height
+  const landscapeFrameWidth = 14;  // Wider frame for landscape
+  const portraitFrameHeight = 14;  // Taller frame for portrait
 
-  // Wall definitions with width for random placement
-  const walls = [
-    { name: 'front', pos: new THREE.Vector3(0, 0, roomLength/2),  normal: new THREE.Vector3(0, 0, -1), width: roomWidth, placedNFTs: [] },
-    { name: 'back',  pos: new THREE.Vector3(0, 0, -roomLength/2), normal: new THREE.Vector3(0, 0, 1),  width: roomWidth, placedNFTs: [] },
-    { name: 'left',  pos: new THREE.Vector3(-roomWidth/2, 0, 0),  normal: new THREE.Vector3(1, 0, 0),  width: roomLength, placedNFTs: [] },
-    { name: 'right', pos: new THREE.Vector3(roomWidth/2, 0, 0),   normal: new THREE.Vector3(-1, 0, 0), width: roomLength, placedNFTs: [] }
-  ];
+  // Wall definitions
+  const walls = {
+    front: { pos: new THREE.Vector3(0, 0, roomLength/2),  normal: new THREE.Vector3(0, 0, -1), width: roomWidth },
+    back:  { pos: new THREE.Vector3(0, 0, -roomLength/2), normal: new THREE.Vector3(0, 0, 1),  width: roomWidth },
+    left:  { pos: new THREE.Vector3(-roomWidth/2, 0, 0),  normal: new THREE.Vector3(1, 0, 0),  width: roomLength },
+    right: { pos: new THREE.Vector3(roomWidth/2, 0, 0),   normal: new THREE.Vector3(-1, 0, 0), width: roomLength }
+  };
 
-  // Check if position overlaps with already placed NFTs on the same wall
-  function checkOverlap(wall, centerX, centerY, width, height, padding = 2) {
-    for (const placed of wall.placedNFTs) {
-      const dx = Math.abs(centerX - placed.centerX);
-      const dy = Math.abs(centerY - placed.centerY);
-      const minDistX = (width + placed.width) / 2 + padding;
-      const minDistY = (height + placed.height) / 2 + padding;
+  // First pass: analyze all images to separate landscape from portrait
+  const imageData = [];
+  let loadedCount = 0;
 
-      if (dx < minDistX && dy < minDistY) {
-        return true; // Overlaps
+  console.log('Analyzing NFT dimensions to separate landscape/portrait...');
+
+  nftFiles.forEach((filename, index) => {
+    const imgPath = `/assets/RoomB2/${filename}.png`;
+    const img = new Image();
+
+    img.onload = function() {
+      const aspectRatio = img.width / img.height;
+      imageData[index] = {
+        filename,
+        imgPath,
+        aspectRatio,
+        isLandscape: aspectRatio >= 1,
+        width: img.width,
+        height: img.height
+      };
+
+      loadedCount++;
+      if (loadedCount === nftFiles.length) {
+        // All images analyzed, now place them
+        placeOrganizedNFTs();
       }
-    }
-    return false; // No overlap
-  }
-
-  // Find a non-overlapping position for an NFT on a wall
-  function findNonOverlappingPosition(wall, planeWidth, planeHeight, maxAttempts = 100) {
-    const margin = Math.max(planeWidth, planeHeight) / 2 + 3;
-    const xRange = wall.width - margin * 2;
-    const yRange = maxY - minY - margin * 2;
-
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      const randomX = -wall.width/2 + margin + Math.random() * xRange;
-      const randomY = minY + margin + Math.random() * yRange;
-
-      if (!checkOverlap(wall, randomX, randomY, planeWidth, planeHeight)) {
-        return { x: randomX, y: randomY };
-      }
-    }
-
-    // Fallback: return position even if overlapping (after max attempts)
-    console.warn(`Could not find non-overlapping position after ${maxAttempts} attempts`);
-    return {
-      x: -wall.width/2 + margin + Math.random() * xRange,
-      y: minY + margin + Math.random() * yRange
     };
-  }
 
-  let nftIndex = 0;
-  const nftsPerWall = 15; // 15 per wall = 60 total
+    img.onerror = function() {
+      console.error(`✗ Failed to analyze image ${filename}`);
+      loadedCount++;
+      if (loadedCount === nftFiles.length) {
+        placeOrganizedNFTs();
+      }
+    };
 
-  walls.forEach((wall) => {
-    for (let i = 0; i < nftsPerWall && nftIndex < nftFiles.length; i++) {
-      const filename = nftFiles[nftIndex];
-      const imgPath = `/assets/RoomB2/${filename}.png`;
-
-      // Load image first to get dimensions
-      const img = new Image();
-      img.onload = function() {
-        const aspectRatio = img.width / img.height;
-
-        // Calculate plane dimensions preserving aspect ratio
-        let planeWidth, planeHeight;
-        if (aspectRatio >= 1) {
-          // Landscape or square
-          planeWidth = baseSize;
-          planeHeight = baseSize / aspectRatio;
-        } else {
-          // Portrait
-          planeHeight = baseSize;
-          planeWidth = baseSize * aspectRatio;
-        }
-
-        // Find non-overlapping position on wall
-        const pos = findNonOverlappingPosition(wall, planeWidth, planeHeight);
-        const randomX = pos.x;
-        const randomY = pos.y;
-
-        // Record this NFT as placed
-        wall.placedNFTs.push({
-          centerX: randomX,
-          centerY: randomY,
-          width: planeWidth,
-          height: planeHeight
-        });
-
-        let x, y, z;
-        y = randomY;
-
-        if (wall.name === 'front' || wall.name === 'back') {
-          x = randomX;
-          z = wall.pos.z + wall.normal.z * 1.0;
-        } else {
-          z = randomX;
-          x = wall.pos.x + wall.normal.x * 1.0;
-        }
-
-        // Load texture and create mesh
-        textureLoader.load(
-          imgPath,
-          (texture) => {
-            texture.colorSpace = THREE.SRGBColorSpace;
-
-            const material = new THREE.MeshBasicMaterial({
-              map: texture,
-              side: THREE.DoubleSide,
-              toneMapped: false
-            });
-
-            const geometry = new THREE.PlaneGeometry(planeWidth, planeHeight);
-            const mesh = new THREE.Mesh(geometry, material);
-            mesh.position.set(x, y, z);
-
-            // Rotate to face into room
-            if (wall.name === 'front') mesh.rotation.y = 0;
-            else if (wall.name === 'back') mesh.rotation.y = Math.PI;
-            else if (wall.name === 'left') mesh.rotation.y = Math.PI / 2;
-            else if (wall.name === 'right') mesh.rotation.y = -Math.PI / 2;
-
-            scene.add(mesh);
-            console.log(`✓ Placed ${filename} (${img.width}x${img.height}, ratio ${aspectRatio.toFixed(2)}) on ${wall.name}`);
-          },
-          undefined,
-          (error) => {
-            console.error(`✗ Failed to load texture ${filename}:`, error);
-          }
-        );
-      };
-
-      img.onerror = function() {
-        console.error(`✗ Failed to load image ${filename}`);
-      };
-
-      img.src = imgPath;
-      nftIndex++;
-    }
+    img.src = imgPath;
   });
 
-  console.log(`Started loading ${nftFiles.length} NFTs with original aspect ratios, randomly placed WITHOUT overlapping`);
+  function placeOrganizedNFTs() {
+    // Separate landscape and portrait
+    const landscape = imageData.filter(d => d && d.isLandscape);
+    const portrait = imageData.filter(d => d && !d.isLandscape);
+
+    console.log(`Sorted: ${landscape.length} landscape, ${portrait.length} portrait NFTs`);
+
+    // Place landscape on front/back walls (opposite walls)
+    const landscapePerWall = Math.ceil(landscape.length / 2);
+    placeOnWall('front', landscape.slice(0, landscapePerWall), true);
+    placeOnWall('back', landscape.slice(landscapePerWall), true);
+
+    // Place portrait on left/right walls (opposite walls)
+    const portraitPerWall = Math.ceil(portrait.length / 2);
+    placeOnWall('left', portrait.slice(0, portraitPerWall), false);
+    placeOnWall('right', portrait.slice(portraitPerWall), false);
+  }
+
+  function placeOnWall(wallName, nfts, isLandscape) {
+    if (nfts.length === 0) return;
+
+    const wall = walls[wallName];
+    const columns = 2;
+    const rows = Math.ceil(nfts.length / columns);
+
+    // Calculate spacing
+    const wallMargin = 15;
+    const usableWidth = wall.width - (wallMargin * 2);
+    const usableHeight = maxY - minY;
+
+    const colSpacing = usableWidth / (columns + 1);
+    const rowSpacing = usableHeight / (rows + 1);
+
+    nfts.forEach((nftData, index) => {
+      if (!nftData) return;
+
+      const col = index % columns;
+      const row = Math.floor(index / columns);
+
+      // Calculate position
+      const xPos = -wall.width/2 + wallMargin + colSpacing * (col + 1);
+      const yPos = minY + rowSpacing * (row + 1);
+
+      // Calculate frame dimensions preserving aspect ratio
+      let planeWidth, planeHeight;
+      if (isLandscape) {
+        planeWidth = landscapeFrameWidth;
+        planeHeight = landscapeFrameWidth / nftData.aspectRatio;
+      } else {
+        planeHeight = portraitFrameHeight;
+        planeWidth = portraitFrameHeight * nftData.aspectRatio;
+      }
+
+      let x, y, z;
+      y = yPos;
+
+      if (wallName === 'front' || wallName === 'back') {
+        x = xPos;
+        z = wall.pos.z + wall.normal.z * 1.0;
+      } else {
+        z = xPos;
+        x = wall.pos.x + wall.normal.x * 1.0;
+      }
+
+      // Load texture and create mesh
+      textureLoader.load(
+        nftData.imgPath,
+        (texture) => {
+          texture.colorSpace = THREE.SRGBColorSpace;
+
+          const material = new THREE.MeshBasicMaterial({
+            map: texture,
+            side: THREE.DoubleSide,
+            toneMapped: false
+          });
+
+          const geometry = new THREE.PlaneGeometry(planeWidth, planeHeight);
+          const mesh = new THREE.Mesh(geometry, material);
+          mesh.position.set(x, y, z);
+
+          // Rotate to face into room
+          if (wallName === 'front') mesh.rotation.y = 0;
+          else if (wallName === 'back') mesh.rotation.y = Math.PI;
+          else if (wallName === 'left') mesh.rotation.y = Math.PI / 2;
+          else if (wallName === 'right') mesh.rotation.y = -Math.PI / 2;
+
+          scene.add(mesh);
+          console.log(`✓ Placed ${nftData.filename.substring(0, 30)}... on ${wallName} (${isLandscape ? 'landscape' : 'portrait'})`);
+        },
+        undefined,
+        (error) => {
+          console.error(`✗ Failed to load texture ${nftData.filename}:`, error);
+        }
+      );
+    });
+
+    console.log(`Placed ${nfts.length} ${isLandscape ? 'landscape' : 'portrait'} NFTs on ${wallName} wall`);
+  }
+
+  console.log(`Started analyzing ${nftFiles.length} NFTs for organized placement`);
 }
 
 function addCopperWavePatterns() {
