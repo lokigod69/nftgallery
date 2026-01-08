@@ -5,22 +5,44 @@ import { MOVEMENT_CONFIG } from './src/core/movement-config.js';
 import { hasAccessGranted, showAccessCodePrompt } from './src/core/access-code-gate.js';
 
 // ══════════════════════════════════════════════════════════════════════════
-// ACCESS CONTROL - Verify authorization before loading room
+// ACCESS CONTROL - Verify authorization before allowing room interaction
 // ══════════════════════════════════════════════════════════════════════════
-(async function checkAccess() {
-  // If already granted (via localStorage), continue loading
-  if (hasAccessGranted()) {
-    return;
-  }
+// Access gate flag - room won't be interactive until this is true
+let accessVerified = hasAccessGranted();
 
-  // Not authorized - show access code prompt
-  const granted = await showAccessCodePrompt();
+// If not already verified, show access code prompt immediately
+if (!accessVerified) {
+  // Create blocking overlay to hide room content
+  const blockingOverlay = document.createElement('div');
+  blockingOverlay.id = 'access-blocking-overlay';
+  blockingOverlay.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #000000;
+    z-index: 9999;
+  `;
+  document.body.appendChild(blockingOverlay);
 
-  if (!granted) {
-    // Access denied - redirect to Room 5 (or Room 0 as fallback)
-    window.location.href = 'room5.html';
-  }
-})();
+  // Show access code prompt
+  showAccessCodePrompt().then((granted) => {
+    if (granted) {
+      // Access granted - remove blocking overlay and allow interaction
+      accessVerified = true;
+      blockingOverlay.remove();
+    } else {
+      // Access denied - redirect to Room 5
+      window.location.href = 'room5.html';
+    }
+  });
+}
+
+// Export access check function for use in animation loop
+function isAccessVerified() {
+  return accessVerified;
+}
 
 // ══════════════════════════════════════════════════════════════════════════
 // Lava Monolith Artifacts - Ritual Shards Below Tiles
@@ -387,7 +409,7 @@ const ROOM6_CONFIG = {
   tileFloatSpeed: 1.0,
 
   // Horizontal floating tiles configuration
-  horizontalFloatEnabled: false,    // Disable horizontal movement (was causing camera glitching)
+  horizontalFloatEnabled: true,     // Enable horizontal movement (tiles float left-right)
   horizontalFloatAmplitude: 6.9,    // 69% of distance to wall (corridorWidth/2 = 10)
   horizontalFloatSpeed: 0.8,        // Speed of horizontal movement
   horizontalFloatPattern: [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0], // 1=moving, 0=stationary (final tile stationary)
@@ -428,7 +450,8 @@ const controls = new PointerLockControls(camera, document.body);
 scene.add(controls.getObject());
 
 document.addEventListener('click', () => {
-  if (!controls.isLocked) controls.lock();
+  // Only allow pointer lock if access has been verified
+  if (!controls.isLocked && isAccessVerified()) controls.lock();
 });
 
 controls.addEventListener('lock', () => {
@@ -1033,27 +1056,26 @@ for (let z = -15; z >= -90; z -= 15) {
 // ----------------------------------------------------------------------
 // NFT Wall Art - Room 6 Collection
 // ----------------------------------------------------------------------
-// Using static NFT images from /assets/Room6/ instead of videos
-// 16 NFTs displayed (6a.png through 6p.png), alternating walls like original videos
+// Using static NFT images from /assets/Room6/1.webp through 16.webp
+// 16 NFTs displayed, alternating walls
 
 const nftPlanes = [];
 const textureLoader = new THREE.TextureLoader();
-const nftCount = 16; // Display 16 NFTs (6a through 6p)
+const nftCount = 16; // Display 16 NFTs (1.webp through 16.webp)
 const nftSpacing = corridorLength / (nftCount + 1);
 
 for (let i = 0; i < nftCount; i++) {
-  // Convert index to letter: 0→'a', 1→'b', ..., 15→'p'
-  const letter = String.fromCharCode(97 + i); // 97 is 'a' in ASCII
-  const filename = `6${letter}`;
+  // Use numbered files: 1.webp through 16.webp
+  const fileNumber = i + 1;
   const texture = textureLoader.load(
-    `/assets/Room6/${filename}.png`,
+    `/assets/Room6/${fileNumber}.webp`,
     // onLoad callback to ensure proper color space
     (loadedTexture) => {
       loadedTexture.colorSpace = THREE.SRGBColorSpace; // Ensure correct color space
     }
   );
-  const material = new THREE.MeshBasicMaterial({ 
-    map: texture, 
+  const material = new THREE.MeshBasicMaterial({
+    map: texture,
     side: THREE.DoubleSide,
     // Ensure NFTs are completely unlit and display original colors
     transparent: false,
@@ -1061,13 +1083,13 @@ for (let i = 0; i < nftCount; i++) {
     toneMapped: false // Disable tone mapping to preserve original colors
   });
   const plane = new THREE.Mesh(new THREE.PlaneGeometry(3.5, 3.5), material);
-  
+
   const z = -nftSpacing * (i + 1);
   const side = i % 2 === 0 ? -1 : 1; // Alternate left/right
-  
+
   plane.position.set(side * (corridorWidth / 2 - 0.1), eyeHeight + 0.5, z);
   plane.rotation.y = side === 1 ? -Math.PI / 2 : Math.PI / 2;
-  
+
   scene.add(plane);
   nftPlanes.push(plane);
 }
