@@ -86,7 +86,7 @@ window.addEventListener('error', function(event) {
 // Global Variables
 // ----------------------------------------------------------------------
 const groundLevel = 0;
-const eyeHeight = 2.0;
+const eyeHeight = 2.5;
 let isJumping = false;
 let jumpVelocity = 0;
 const gravity = -30;
