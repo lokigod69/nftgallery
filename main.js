@@ -1,7 +1,23 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { createLinkedPortal, animateLinkedPortal, createMultiPortalChecker } from './src/core/portal-utils.js';
-import { getNftUrl } from './src/core/asset-utils.js';
+// Room 1 NFT files (28 PNG images from Room1 folder)
+const ROOM1_NFTS = [
+  'ComfyUI_02887_', 'ComfyUI_02890_', 'ComfyUI_02894_', 'ComfyUI_02896_',
+  'ComfyUI_02898_', 'ComfyUI_02899_', 'ComfyUI_02900_', 'ComfyUI_02901_',
+  'ComfyUI_02903_', 'ComfyUI_02904_', 'ComfyUI_02905_', 'ComfyUI_02906_',
+  'ComfyUI_02907_', 'ComfyUI_02910_', 'ComfyUI_02914_', 'ComfyUI_02915_',
+  'ComfyUI_02916_', 'ComfyUI_02917_', 'ComfyUI_02918_', 'ComfyUI_02919_',
+  'ComfyUI_02920_', 'ComfyUI_02921_', 'ComfyUI_02923_', 'ComfyUI_02924_',
+  'ComfyUI_02925_', 'ComfyUI_02926_', 'ComfyUI_02927_', 'ComfyUI_02928_'
+];
+
+function getRoom1NftUrl(index) {
+  if (index >= 0 && index < ROOM1_NFTS.length) {
+    return `/assets/Room1/${ROOM1_NFTS[index]}.png`;
+  }
+  return `/assets/Room1/${ROOM1_NFTS[0]}.png`; // Fallback
+}
 import { MOVEMENT_CONFIG } from './src/core/movement-config.js';
 import { initSpeedControl } from './src/ui/speed-control.js';
 import { initScene } from './src/core/scene-setup.js';
@@ -256,8 +272,9 @@ function createNFT(index, position, rotation) {
   frameGroup.add(frameBox);
 
   const loader = new THREE.TextureLoader();
+  const nftUrl = getRoom1NftUrl(index);
   loader.load(
-    getNftUrl(index + 1),
+    nftUrl,
     (tex) => {
       tex.encoding = THREE.LinearEncoding;
       const picturePlane = new THREE.Mesh(
@@ -268,15 +285,15 @@ function createNFT(index, position, rotation) {
         })
       );
       picturePlane.userData.isNFT = true;
-      picturePlane.userData.index = index + 1;
-      picturePlane.userData.imageUrl = getNftUrl(index + 1);
+      picturePlane.userData.index = index;
+      picturePlane.userData.imageUrl = nftUrl;
       picturePlane.position.z = 0.11;
       frameGroup.add(picturePlane);
       picturePlanes.push(picturePlane);
     },
     undefined,
     (err) => {
-      console.error(`Error loading texture: nft${index + 1}.webp`, err);
+      console.error(`Error loading texture: ${ROOM1_NFTS[index]}.png`, err);
     }
   );
 
@@ -355,7 +372,7 @@ function createDivider() {
   dividerGroup.position.set(0, 1.5, 0);
   scene.add(dividerGroup);
 
-  function createDividerNFT(nftNumber, localX, localZ, rotationY) {
+  function createDividerNFT(nftIndex, localX, localZ, rotationY) {
     const frameGroup = new THREE.Group();
     const frameWidth = 2.0, frameHeight = 3.0;
     const pictureWidth = 1.8, pictureHeight = 2.7;
@@ -366,8 +383,9 @@ function createDivider() {
     frameGroup.add(frameBox);
 
     const loader = new THREE.TextureLoader();
+    const nftUrl = getRoom1NftUrl(nftIndex);
     loader.load(
-      getNftUrl(nftNumber),
+      nftUrl,
       (tex) => {
         tex.encoding = THREE.LinearEncoding;
         const picturePlane = new THREE.Mesh(
@@ -378,14 +396,14 @@ function createDivider() {
           })
         );
         picturePlane.userData.isNFT = true;
-        picturePlane.userData.index = nftNumber;
-        picturePlane.userData.imageUrl = getNftUrl(nftNumber);
+        picturePlane.userData.index = nftIndex;
+        picturePlane.userData.imageUrl = nftUrl;
         picturePlane.position.z = 0.11;
         frameGroup.add(picturePlane);
         picturePlanes.push(picturePlane);
       },
       undefined,
-      (err) => { console.error(`Error loading texture: nft${nftNumber}.webp`, err); }
+      (err) => { console.error(`Error loading texture: ${ROOM1_NFTS[nftIndex]}.png`, err); }
     );
     frameGroup.position.set(localX, 0.5, localZ);
     frameGroup.rotation.y = rotationY;
@@ -394,10 +412,10 @@ function createDivider() {
 
   const dividerPositions = getPositions(30, 4);
   dividerPositions.forEach((localX, i) => {
-    createDividerNFT(21 + i, localX, 0.21, 0);
+    createDividerNFT(20 + i, localX, 0.21, 0);  // Indices 20-23 (4 on front)
   });
   dividerPositions.forEach((localX, i) => {
-    createDividerNFT(25 + i, localX, -0.21, Math.PI);
+    createDividerNFT(24 + i, localX, -0.21, Math.PI);  // Indices 24-27 (4 on back)
   });
 }
 createDivider();
