@@ -28,10 +28,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     { type: 'divider' },
 
-    // Section: Special rooms
-    { href: 'roomA.html', text: 'Dome' },
+    // Section: Dome
+    { type: 'header', text: 'Dome' },
     { href: 'roomA1.html', text: 'Dome 1', indent: true },
-    { href: 'roomB.html', text: 'Box' },
+
+    // Section: Box
+    { type: 'header', text: 'Box' },
+    { href: 'roomB.html', text: 'Box 0', indent: true },
     { href: 'roomB1.html', text: 'Box 1', indent: true },
     { href: 'roomB2.html', text: 'Box 2', indent: true },
 
