@@ -267,7 +267,7 @@ function placeNFTsOnWalls() {
   const nftsPerWall = 15;
   const wallMargin = 15;
   const spacingBuffer = 2; // Min gap between frames
-  const maxFrameSize = 14; // Max dimension
+  const defaultFrameSize = 12; // Default size (updated when image loads)
 
   // Position registry for collision detection
   const positionRegistry = { front: [], back: [], left: [], right: [] };
@@ -293,7 +293,7 @@ function placeNFTsOnWalls() {
   }
 
   function calculateFrameSize(aspectRatio) {
-    const maxDim = maxFrameSize;
+    const maxDim = 14;
     if (aspectRatio > 1.5) {
       return { width: maxDim, height: maxDim / aspectRatio };
     } else if (aspectRatio < 0.67) {
@@ -343,7 +343,7 @@ function placeNFTsOnWalls() {
         return pos;
       }
     }
-    return basePos; // Return base even if occupied (rarer case)
+    return basePos;
   }
 
   let nftIndex = 0;
@@ -357,71 +357,99 @@ function placeNFTsOnWalls() {
       const gridIndex = nftIndex;
       const currentWall = wall;
 
-      // Load image to get dimensions BEFORE creating geometry
+      // STEP 1: Calculate position using DEFAULT size (before image loads)
+      const basePos = getGridPosition(currentWall, i, nftsOnThisWall);
+      const defaultSize = { width: defaultFrameSize, height: defaultFrameSize };
+
+      // Check collisions with default size
+      let finalPos = basePos;
+      if (isPositionOccupied(currentWall.name, basePos.x, basePos.y, defaultSize.width, defaultSize.height)) {
+        finalPos = findNearbyPosition(currentWall.name, basePos, defaultSize, 3);
+      }
+      registerPosition(currentWall.name, finalPos.x, finalPos.y, defaultSize.width, defaultSize.height);
+
+      // STEP 2: Get placeholder material IMMEDIATELY
+      const { placeholderMaterial, upgradePromise } = progressiveLoader.loadWithPlaceholder(imgPath, {
+        side: THREE.DoubleSide
+      });
+
+      // STEP 3: Create frame group with PLACEHOLDER geometry (instant, visible immediately)
+      const frameGroup = new THREE.Group();
+
+      // Frame backing with default size
+      const backingGeometry = new THREE.BoxGeometry(defaultSize.width, defaultSize.height, 0.2);
+      const backingMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 });
+      const frameBacking = new THREE.Mesh(backingGeometry, backingMaterial);
+      frameGroup.add(frameBacking);
+
+      // Plane with placeholder material
+      const planeGeometry = new THREE.PlaneGeometry(defaultSize.width * 0.95, defaultSize.height * 0.95);
+      const plane = new THREE.Mesh(planeGeometry, placeholderMaterial);
+      plane.position.z = 0.5;
+      plane.userData = { isNFT: true, index: gridIndex, imageUrl: imgPath };
+      frameGroup.add(plane);
+      picturePlanes.push(plane);
+
+      // Position on wall
+      let x = finalPos.x, y = finalPos.y, z;
+      if (currentWall.name === 'front' || currentWall.name === 'back') {
+        z = currentWall.pos.z + currentWall.normal.z * 0.25;
+      } else {
+        z = finalPos.x;
+        x = currentWall.pos.x + currentWall.normal.x * 0.25;
+      }
+
+      frameGroup.position.set(x, y, z);
+
+      // Rotate to face room
+      if (currentWall.name === 'front') frameGroup.rotation.y = 0;
+      else if (currentWall.name === 'back') frameGroup.rotation.y = Math.PI;
+      else if (currentWall.name === 'left') frameGroup.rotation.y = Math.PI / 2;
+      else if (currentWall.name === 'right') frameGroup.rotation.y = -Math.PI / 2;
+
+      // ADD TO SCENE IMMEDIATELY (placeholder visible)
+      scene.add(frameGroup);
+
+      // STEP 4: Load image asynchronously to get real dimensions
       const img = new Image();
       img.onload = () => {
-        const aspectRatio = img.width / img.height;
-        const frameSize = calculateFrameSize(aspectRatio);
-        const basePos = getGridPosition(currentWall, i, nftsOnThisWall);
+        try {
+          const aspectRatio = img.width / img.height;
+          const newSize = calculateFrameSize(aspectRatio);
 
-        // Check for collisions and adjust if needed
-        let finalPos = basePos;
-        if (isPositionOccupied(currentWall.name, basePos.x, basePos.y, frameSize.width, frameSize.height)) {
-          finalPos = findNearbyPosition(currentWall.name, basePos, frameSize, 3);
+          // Only resize if dimensions differ significantly from default
+          if (Math.abs(newSize.width - defaultSize.width) > 0.5 ||
+              Math.abs(newSize.height - defaultSize.height) > 0.5) {
+
+            // Update backing geometry
+            backingGeometry.dispose();
+            const newBackingGeometry = new THREE.BoxGeometry(newSize.width, newSize.height, 0.2);
+            frameBacking.geometry = newBackingGeometry;
+
+            // Update plane geometry
+            planeGeometry.dispose();
+            const newPlaneGeometry = new THREE.PlaneGeometry(newSize.width * 0.95, newSize.height * 0.95);
+            plane.geometry = newPlaneGeometry;
+          }
+        } catch (err) {
+          console.error(`Error processing image dimensions for ${filename}:`, err);
         }
-        registerPosition(currentWall.name, finalPos.x, finalPos.y, frameSize.width, frameSize.height);
-
-        // Create frame backing
-        const frameGroup = new THREE.Group();
-        const backingGeometry = new THREE.BoxGeometry(frameSize.width, frameSize.height, 0.2);
-        const backingMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 });
-        const frameBacking = new THREE.Mesh(backingGeometry, backingMaterial);
-        frameGroup.add(frameBacking);
-
-        // Load with progressive system
-        const { placeholderMaterial, upgradePromise } = progressiveLoader.loadWithPlaceholder(imgPath, {
-          side: THREE.DoubleSide
-        });
-
-        // Create plane with placeholder (instant)
-        const planeGeometry = new THREE.PlaneGeometry(frameSize.width * 0.95, frameSize.height * 0.95);
-        const plane = new THREE.Mesh(planeGeometry, placeholderMaterial);
-        plane.position.z = 0.5;
-        plane.userData = { isNFT: true, index: gridIndex, imageUrl: imgPath };
-        frameGroup.add(plane);
-        picturePlanes.push(plane);
-
-        // Position frame
-        let x = finalPos.x, y = finalPos.y, z;
-        if (currentWall.name === 'front' || currentWall.name === 'back') {
-          z = currentWall.pos.z + currentWall.normal.z * 0.25;
-        } else {
-          z = finalPos.x;
-          x = currentWall.pos.x + currentWall.normal.x * 0.25;
-        }
-
-        frameGroup.position.set(x, y, z);
-
-        // Rotate to face room
-        if (currentWall.name === 'front') frameGroup.rotation.y = 0;
-        else if (currentWall.name === 'back') frameGroup.rotation.y = Math.PI;
-        else if (currentWall.name === 'left') frameGroup.rotation.y = Math.PI / 2;
-        else if (currentWall.name === 'right') frameGroup.rotation.y = -Math.PI / 2;
-
-        scene.add(frameGroup);
-
-        // Upgrade to full-res when ready
-        upgradePromise.then((fullResMaterial) => {
-          plane.material = fullResMaterial;
-          plane.material.needsUpdate = true;
-        });
       };
 
       img.onerror = () => {
-        console.error(`Failed to load image ${filename}`);
+        console.warn(`Failed to load image ${filename} - using placeholder`);
       };
 
       img.src = imgPath;
+
+      // STEP 5: Upgrade material when texture loads
+      upgradePromise.then((fullResMaterial) => {
+        plane.material = fullResMaterial;
+        plane.material.needsUpdate = true;
+      }).catch(err => {
+        console.error(`Failed to load texture for ${filename}:`, err);
+      });
+
       nftIndex++;
     }
   });

@@ -10,6 +10,7 @@ import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { loadTextureWithDiagnostics, logTextureLoadingSummary, getTextureUrl, getRoomBNftUrl } from './src/core/asset-utils.js';
+import { ProgressiveTextureLoader } from './src/core/progressive-loader.js';
 
 // ----------------------------------------------------------------------
 // Scene Setup
@@ -307,11 +308,14 @@ function createMirrorCeiling() {
   scene.add(ceilingAccentLight2);
 }
 
-// Organized NFT placement - landscape on front/back walls, portrait on left/right walls, evenly spaced
+// Organized NFT placement with progressive loading (15 per wall, 2 columns)
 function placeNFTsOnWalls() {
-  const textureLoader = new THREE.TextureLoader();
+  console.log('Placing NFTs with progressive loading...');
 
-  // Room B2 NFT files (60 PNG images with descriptive names)
+  const progressiveLoader = new ProgressiveTextureLoader((loaded, total) => {
+    console.log(`Room B2: Loaded ${loaded}/${total} NFTs`);
+  });
+
   const nftFiles = [
     'A_chess_game_between_a_mannequin_and_a_mirror_pieces_sculpted_2fb2d847-0753-454c-9353-dba90ba264c7_0',
     'A_massive_cube_of_black_ink_levitating_over_a_desert_salt_fla_b17f17f7-e952-4d25-9782-7f28d398ccb6_0',
@@ -375,158 +379,68 @@ function placeNFTsOnWalls() {
     'Street-fashion_capture_of_a_woman_crossing_zebra_stripes_fabr_34b3d99c-065e-4f18-ab38-186e8562ab3b_0'
   ];
 
-  const minY = 10;       // Minimum height from floor
-  const maxY = roomHeight - 8;  // Maximum height
-  const landscapeFrameWidth = 14;  // Wider frame for landscape
-  const portraitFrameHeight = 14;  // Taller frame for portrait
+  const nftsPerWall = 15;
+  const wallMargin = 15;
+  const minY = 10;
+  const maxY = roomHeight - 8;
+  const columns = 2;
+  const defaultFrameSize = 12;
 
-  // Wall definitions
-  const walls = {
-    front: { pos: new THREE.Vector3(0, 0, roomLength/2),  normal: new THREE.Vector3(0, 0, -1), width: roomWidth },
-    back:  { pos: new THREE.Vector3(0, 0, -roomLength/2), normal: new THREE.Vector3(0, 0, 1),  width: roomWidth },
-    left:  { pos: new THREE.Vector3(-roomWidth/2, 0, 0),  normal: new THREE.Vector3(1, 0, 0),  width: roomLength },
-    right: { pos: new THREE.Vector3(roomWidth/2, 0, 0),   normal: new THREE.Vector3(-1, 0, 0), width: roomLength }
+  const wallNames = ['front', 'back', 'left', 'right'];
+  const wallDims = {
+    front: { width: roomWidth },
+    back: { width: roomWidth },
+    left: { width: roomLength },
+    right: { width: roomLength }
   };
 
-  // First pass: analyze all images to separate landscape from portrait
-  const imageData = [];
-  let loadedCount = 0;
-
-  console.log('Analyzing NFT dimensions to separate landscape/portrait...');
-
+  // Place 60 NFTs with instant placeholders
   nftFiles.forEach((filename, index) => {
-    const imgPath = `/assets/RoomB2/${filename}.webp`;
-    const img = new Image();
+    const wallIndex = Math.floor(index / nftsPerWall) % 4;
+    const wallName = wallNames[wallIndex];
+    const posInWall = index % nftsPerWall;
+    const wallDim = wallDims[wallName];
 
-    img.onload = function() {
-      const aspectRatio = img.width / img.height;
-      imageData[index] = {
-        filename,
-        imgPath,
-        aspectRatio,
-        isLandscape: aspectRatio >= 1,
-        width: img.width,
-        height: img.height
-      };
-
-      loadedCount++;
-      if (loadedCount === nftFiles.length) {
-        // All images analyzed, now place them
-        placeOrganizedNFTs();
-      }
-    };
-
-    img.onerror = function() {
-      console.error(`✗ Failed to analyze image ${filename}`);
-      loadedCount++;
-      if (loadedCount === nftFiles.length) {
-        placeOrganizedNFTs();
-      }
-    };
-
-    img.src = imgPath;
-  });
-
-  function placeOrganizedNFTs() {
-    // Separate landscape and portrait
-    const landscape = imageData.filter(d => d && d.isLandscape);
-    const portrait = imageData.filter(d => d && !d.isLandscape);
-
-    console.log(`Sorted: ${landscape.length} landscape, ${portrait.length} portrait NFTs`);
-
-    // Place landscape on front/back walls (opposite walls)
-    const landscapePerWall = Math.ceil(landscape.length / 2);
-    placeOnWall('front', landscape.slice(0, landscapePerWall), true);
-    placeOnWall('back', landscape.slice(landscapePerWall), true);
-
-    // Place portrait on left/right walls (opposite walls)
-    const portraitPerWall = Math.ceil(portrait.length / 2);
-    placeOnWall('left', portrait.slice(0, portraitPerWall), false);
-    placeOnWall('right', portrait.slice(portraitPerWall), false);
-  }
-
-  function placeOnWall(wallName, nfts, isLandscape) {
-    if (nfts.length === 0) return;
-
-    const wall = walls[wallName];
-    const columns = 2;
-    const rows = Math.ceil(nfts.length / columns);
-
-    // Calculate spacing
-    const wallMargin = 15;
-    const usableWidth = wall.width - (wallMargin * 2);
+    // Calculate grid position
+    const col = posInWall % columns;
+    const row = Math.floor(posInWall / columns);
+    const usableWidth = wallDim.width - (wallMargin * 2);
     const usableHeight = maxY - minY;
-
     const colSpacing = usableWidth / (columns + 1);
-    const rowSpacing = usableHeight / (rows + 1);
+    const actualRows = Math.ceil(nftsPerWall / columns);
+    const rowSpacing = usableHeight / (actualRows + 1);
+    const xPos = -wallDim.width / 2 + wallMargin + colSpacing * (col + 1);
+    const yPos = minY + rowSpacing * (row + 1);
 
-    nfts.forEach((nftData, index) => {
-      if (!nftData) return;
+    const textureUrl = `/assets/RoomB2/${filename}.webp`;
 
-      const col = index % columns;
-      const row = Math.floor(index / columns);
-
-      // Calculate position
-      const xPos = -wall.width/2 + wallMargin + colSpacing * (col + 1);
-      const yPos = minY + rowSpacing * (row + 1);
-
-      // Calculate frame dimensions preserving aspect ratio
-      let planeWidth, planeHeight;
-      if (isLandscape) {
-        planeWidth = landscapeFrameWidth;
-        planeHeight = landscapeFrameWidth / nftData.aspectRatio;
-      } else {
-        planeHeight = portraitFrameHeight;
-        planeWidth = portraitFrameHeight * nftData.aspectRatio;
-      }
-
-      let x, y, z;
-      y = yPos;
-
-      if (wallName === 'front' || wallName === 'back') {
-        x = xPos;
-        z = wall.pos.z + wall.normal.z * 1.0;
-      } else {
-        z = xPos;
-        x = wall.pos.x + wall.normal.x * 1.0;
-      }
-
-      // Load texture and create mesh
-      textureLoader.load(
-        nftData.imgPath,
-        (texture) => {
-          texture.colorSpace = THREE.SRGBColorSpace;
-
-          const material = new THREE.MeshBasicMaterial({
-            map: texture,
-            side: THREE.DoubleSide,
-            toneMapped: false
-          });
-
-          const geometry = new THREE.PlaneGeometry(planeWidth, planeHeight);
-          const mesh = new THREE.Mesh(geometry, material);
-          mesh.position.set(x, y, z);
-
-          // Rotate to face into room
-          if (wallName === 'front') mesh.rotation.y = 0;
-          else if (wallName === 'back') mesh.rotation.y = Math.PI;
-          else if (wallName === 'left') mesh.rotation.y = Math.PI / 2;
-          else if (wallName === 'right') mesh.rotation.y = -Math.PI / 2;
-
-          scene.add(mesh);
-          console.log(`✓ Placed ${nftData.filename.substring(0, 30)}... on ${wallName} (${isLandscape ? 'landscape' : 'portrait'})`);
-        },
-        undefined,
-        (error) => {
-          console.error(`✗ Failed to load texture ${nftData.filename}:`, error);
-        }
-      );
+    // Get placeholder material immediately
+    const { placeholderMaterial, upgradePromise } = progressiveLoader.loadWithPlaceholder(textureUrl, {
+      side: THREE.DoubleSide
     });
 
-    console.log(`Placed ${nfts.length} ${isLandscape ? 'landscape' : 'portrait'} NFTs on ${wallName} wall`);
-  }
+    // Create frame with placeholder (instant visible)
+    placeArtFrameOnWallWithMaterial(wallName, placeholderMaterial, defaultFrameSize, defaultFrameSize, xPos, yPos);
 
-  console.log(`Started analyzing ${nftFiles.length} NFTs for organized placement`);
+    // Upgrade when texture loads
+    upgradePromise.then((fullResMaterial) => {
+      const planes = picturePlanes.filter(p => p.userData && p.userData.imageUrl === textureUrl);
+      planes.forEach(plane => {
+        plane.material = fullResMaterial;
+        plane.material.needsUpdate = true;
+      });
+    }).catch(err => {
+      console.error(`Failed to load texture for ${filename}:`, err);
+    });
+  });
+
+  // DEFER COPPER LOADING by 2 seconds
+  setTimeout(() => {
+    console.log('Starting copper wave patterns...');
+    addCopperWavePatterns();
+  }, 2000);
+
+  console.log(`Room B2: Placed ${nftFiles.length} NFTs in organized grid`);
 }
 
 function addCopperWavePatterns() {

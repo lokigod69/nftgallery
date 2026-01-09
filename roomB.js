@@ -21,6 +21,7 @@ import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { loadTextureWithDiagnostics, logTextureLoadingSummary, getTextureUrl, getRoomBNftUrl } from './src/core/asset-utils.js';
+import { ProgressiveTextureLoader } from './src/core/progressive-loader.js';
 
 // ----------------------------------------------------------------------
 // Scene Setup
@@ -938,129 +939,52 @@ function addMixedDecorationsToWalls() {
   const maxFrameDimension = 12; // Maximum size for any dimension
   const minFrameDimension = 6;  // Minimum size for any dimension
 
-  let loadedCount = 0;
-  let currentWallIndex = 0;
+  console.log('Placing NFTs with progressive loading...');
 
-  console.log('Loading NFTs with proper aspect ratios...');
+  // Create progressive loader for textures
+  const progressiveLoader = new ProgressiveTextureLoader((loaded, total) => {
+    console.log(`Room B: Loaded ${loaded}/${total} NFTs`);
+  });
 
-  // Load each NFT, get its dimensions, then place it with correct aspect ratio
-  function loadAndPlaceNFT(index) {
-    if (index >= nftFiles.length) {
-      console.log(`Finished loading ${loadedCount} NFTs with proper aspect ratios`);
-      return;
+  // Place all NFTs with instant placeholders
+  nftFiles.forEach((filename, index) => {
+    const frameSize = maxFrameDimension; // Room B: all square frames
+    const textureUrl = getTextureUrl(filename);
+
+    // Find position for this NFT
+    const position = findUnoccupiedPosition(wallTypes[index % 4], frameSize, frameSize, minHeight, maxHeight);
+
+    if (position) {
+      const wallType = wallTypes[index % 4];
+
+      // Get placeholder material immediately
+      const { placeholderMaterial, upgradePromise } = progressiveLoader.loadWithPlaceholder(textureUrl, {
+        side: THREE.DoubleSide
+      });
+
+      // Create frame with placeholder (instant, visible immediately)
+      placeArtFrameOnWallWithMaterial(wallType, placeholderMaterial, frameSize, frameSize, position.x, position.y);
+
+      // Upgrade to full-res when ready
+      upgradePromise.then((fullResMaterial) => {
+        console.log(`Upgraded NFT ${index + 1}/${nftFiles.length}: ${filename}`);
+        // Get all planes on this wall and update the last one added
+        const planes = picturePlanes.filter(p => p.userData && p.userData.imageUrl === textureUrl);
+        planes.forEach(plane => {
+          plane.material = fullResMaterial;
+          plane.material.needsUpdate = true;
+        });
+      }).catch(err => {
+        console.error(`Failed to load texture for ${filename}:`, err);
+      });
     }
+  });
 
-    const filename = nftFiles[index];
-    const img = new Image();
-
-    img.onload = function() {
-      // Calculate aspect ratio and frame dimensions
-      const aspectRatio = img.width / img.height;
-      let frameWidth, frameHeight;
-
-      if (aspectRatio >= 1) {
-        // Wider than tall (landscape or square)
-        frameWidth = maxFrameDimension;
-        frameHeight = maxFrameDimension / aspectRatio;
-        if (frameHeight < minFrameDimension) {
-          frameHeight = minFrameDimension;
-          frameWidth = frameHeight * aspectRatio;
-        }
-      } else {
-        // Taller than wide (portrait)
-        frameHeight = maxFrameDimension;
-        frameWidth = maxFrameDimension * aspectRatio;
-        if (frameWidth < minFrameDimension) {
-          frameWidth = minFrameDimension;
-          frameHeight = frameWidth / aspectRatio;
-        }
-      }
-
-      // Distribute across walls evenly
-      const wallType = wallTypes[currentWallIndex % 4];
-      currentWallIndex++;
-
-      // Find position for this NFT
-      const position = findUnoccupiedPosition(wallType, frameWidth, frameHeight, minHeight, maxHeight);
-
-      if (position) {
-        // Load the actual texture
-        textureLoader.load(
-          getTextureUrl(filename),
-          function(tex) {
-            tex.colorSpace = THREE.SRGBColorSpace;
-
-            const artMaterial = new THREE.MeshBasicMaterial({
-              map: tex,
-              side: THREE.DoubleSide
-            });
-
-            placeArtFrameOnWallWithMaterial(wallType, artMaterial, frameWidth, frameHeight, position.x, position.y);
-            loadedCount++;
-            console.log(`Placed NFT ${loadedCount}/${nftFiles.length}: ${filename} (${img.width}x${img.height} -> ${frameWidth.toFixed(1)}x${frameHeight.toFixed(1)})`);
-
-            // Load next NFT
-            setTimeout(() => loadAndPlaceNFT(index + 1), 30);
-          },
-          undefined,
-          function(error) {
-            console.error(`Error loading NFT texture ${filename}:`, error);
-            setTimeout(() => loadAndPlaceNFT(index + 1), 30);
-          }
-        );
-      } else {
-        // Try other walls if first choice didn't work
-        let placed = false;
-        for (const tryWall of wallTypes) {
-          const tryPos = findUnoccupiedPosition(tryWall, frameWidth, frameHeight, minHeight, maxHeight);
-          if (tryPos) {
-            textureLoader.load(
-              getTextureUrl(filename),
-              function(tex) {
-                tex.colorSpace = THREE.SRGBColorSpace;
-                const artMaterial = new THREE.MeshBasicMaterial({
-                  map: tex,
-                  side: THREE.DoubleSide
-                });
-                placeArtFrameOnWallWithMaterial(tryWall, artMaterial, frameWidth, frameHeight, tryPos.x, tryPos.y);
-                loadedCount++;
-                console.log(`Placed NFT ${loadedCount}/${nftFiles.length}: ${filename}`);
-                setTimeout(() => loadAndPlaceNFT(index + 1), 30);
-              },
-              undefined,
-              function(error) {
-                console.error(`Error loading NFT texture ${filename}:`, error);
-                setTimeout(() => loadAndPlaceNFT(index + 1), 30);
-              }
-            );
-            placed = true;
-            break;
-          }
-        }
-        if (!placed) {
-          console.warn(`Could not place NFT ${index + 1}: ${filename}`);
-          setTimeout(() => loadAndPlaceNFT(index + 1), 30);
-        }
-      }
-    };
-
-    img.onerror = function() {
-      console.error(`Error loading image dimensions for ${filename}`);
-      setTimeout(() => loadAndPlaceNFT(index + 1), 30);
-    };
-
-    // Start loading the image to get dimensions
-    img.src = getTextureUrl(filename);
-  }
-
-  // Start loading NFTs (multiple concurrent loaders for faster loading)
-  const CONCURRENT_LOADERS = 4;
-  for (let i = 0; i < CONCURRENT_LOADERS; i++) {
-    setTimeout(() => loadAndPlaceNFT(i * Math.ceil(nftFiles.length / CONCURRENT_LOADERS)), i * 100);
-  }
-
-  // STEP 3: Start loading copper textures (they run in parallel)
-  loadCopperBatch(0);
+  // STEP 2: Start loading copper textures AFTER 2 seconds (gives time for NFT placeholders)
+  setTimeout(() => {
+    console.log('Starting copper tile loading...');
+    loadCopperBatch(0);
+  }, 2000);
 
   // STEP 4: Place copper tiles in remaining spaces (after NFT positions are reserved)
 

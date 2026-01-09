@@ -87,9 +87,7 @@ export class ProgressiveTextureLoader {
     return new THREE.MeshBasicMaterial({
       map: texture,
       transparent: true,
-      opacity: 0.6,
-      emissive: 0x1a1a1a,
-      emissiveIntensity: 0.3,
+      opacity: 0.8,
       side: config.side || THREE.FrontSide,
       ...config
     });
