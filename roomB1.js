@@ -10,6 +10,7 @@ import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { loadTextureWithDiagnostics, logTextureLoadingSummary, getTextureUrl, getRoomBNftUrl } from './src/core/asset-utils.js';
+import { ProgressiveTextureLoader } from './src/core/progressive-loader.js';
 
 // ----------------------------------------------------------------------
 // Scene Setup
@@ -231,11 +232,17 @@ function createBaseWalls(thickness) {
   createMirrorCeiling();
 }
 
-// Organized NFT placement - 2 columns per wall, evenly spaced grid
+// Organized NFT placement with progressive loading
+// - 2 columns per wall (15 per wall = 60 total)
+// - Dynamic sizing based on aspect ratio (vertical/horizontal/square)
+// - Instant 128×128 gray placeholders for camera responsiveness
+// - Progressive upgrade to full-res textures (max 3 concurrent)
 function placeNFTsOnWalls() {
-  const textureLoader = new THREE.TextureLoader();
+  const progressiveLoader = new ProgressiveTextureLoader((loaded, total) => {
+    console.log(`Room B1: Loaded ${loaded}/${total} NFTs`);
+  });
 
-  // Room B1 NFT files (60 PNG images from RoomB1 folder)
+  // Room B1 NFT files (60 WebP images from RoomB1 folder)
   const nftFiles = [
     'ComfyUI_03174_', 'ComfyUI_03175_', 'ComfyUI_03176_', 'ComfyUI_03178_',
     'ComfyUI_03179_', 'ComfyUI_03180_', 'ComfyUI_03181_', 'ComfyUI_03182_',
@@ -254,14 +261,17 @@ function placeNFTsOnWalls() {
     'ComfyUI_03231_', 'ComfyUI_03232_', 'ComfyUI_03233_', 'ComfyUI_03234_'
   ];
 
-  const frameSize = 12;  // Size for NFT display
-  const minY = 10;       // Minimum height from floor
-  const maxY = roomHeight - 8;  // Maximum height
-  const columns = 2;     // 2 columns per wall
-  const nftsPerWall = 15; // 15 per wall = 60 total
-  const rowsPerWall = Math.ceil(nftsPerWall / columns); // 8 rows
+  const minY = 10;
+  const maxY = roomHeight - 8;
+  const columns = 2;
+  const nftsPerWall = 15;
+  const wallMargin = 15;
+  const spacingBuffer = 2; // Min gap between frames
+  const maxFrameSize = 14; // Max dimension
 
-  // Wall definitions
+  // Position registry for collision detection
+  const positionRegistry = { front: [], back: [], left: [], right: [] };
+
   const walls = [
     { name: 'front', pos: new THREE.Vector3(0, 0, roomLength/2),  normal: new THREE.Vector3(0, 0, -1), width: roomWidth },
     { name: 'back',  pos: new THREE.Vector3(0, 0, -roomLength/2), normal: new THREE.Vector3(0, 0, 1),  width: roomWidth },
@@ -269,26 +279,71 @@ function placeNFTsOnWalls() {
     { name: 'right', pos: new THREE.Vector3(roomWidth/2, 0, 0),   normal: new THREE.Vector3(-1, 0, 0), width: roomLength }
   ];
 
-  // Calculate grid positions for organized layout
   function getGridPosition(wall, index, totalOnWall) {
     const col = index % columns;
     const row = Math.floor(index / columns);
     const actualRows = Math.ceil(totalOnWall / columns);
-
-    // Calculate spacing
-    const wallMargin = 15; // Margin from wall edges
     const usableWidth = wall.width - (wallMargin * 2);
     const usableHeight = maxY - minY;
-
-    // Even spacing between columns and rows
     const colSpacing = usableWidth / (columns + 1);
     const rowSpacing = usableHeight / (actualRows + 1);
-
-    // Calculate position (centered)
     const xPos = -wall.width/2 + wallMargin + colSpacing * (col + 1);
     const yPos = minY + rowSpacing * (row + 1);
-
     return { x: xPos, y: yPos };
+  }
+
+  function calculateFrameSize(aspectRatio) {
+    const maxDim = maxFrameSize;
+    if (aspectRatio > 1.5) {
+      return { width: maxDim, height: maxDim / aspectRatio };
+    } else if (aspectRatio < 0.67) {
+      return { width: maxDim * aspectRatio, height: maxDim };
+    } else {
+      const avgDim = 12;
+      return {
+        width: avgDim * Math.sqrt(aspectRatio),
+        height: avgDim / Math.sqrt(aspectRatio)
+      };
+    }
+  }
+
+  function isPositionOccupied(wallName, centerX, centerY, width, height) {
+    const rect1 = {
+      left: centerX - width / 2 - spacingBuffer,
+      right: centerX + width / 2 + spacingBuffer,
+      top: centerY - height / 2 - spacingBuffer,
+      bottom: centerY + height / 2 + spacingBuffer
+    };
+    return positionRegistry[wallName].some(rect2 => {
+      return !(rect1.right < rect2.left || rect1.left > rect2.right ||
+               rect1.bottom < rect2.top || rect1.top > rect2.bottom);
+    });
+  }
+
+  function registerPosition(wallName, centerX, centerY, width, height) {
+    positionRegistry[wallName].push({
+      left: centerX - width / 2 - spacingBuffer,
+      right: centerX + width / 2 + spacingBuffer,
+      top: centerY - height / 2 - spacingBuffer,
+      bottom: centerY + height / 2 + spacingBuffer
+    });
+  }
+
+  function findNearbyPosition(wallName, basePos, frameSize, maxOffset = 3) {
+    const attempts = [
+      basePos,
+      { x: basePos.x + maxOffset, y: basePos.y },
+      { x: basePos.x - maxOffset, y: basePos.y },
+      { x: basePos.x, y: basePos.y + maxOffset },
+      { x: basePos.x, y: basePos.y - maxOffset }
+    ];
+
+    for (const pos of attempts) {
+      if (!isPositionOccupied(wallName, pos.x, pos.y, frameSize.width, frameSize.height)) {
+        return pos;
+      }
+    }
+    return basePos; // Return base even if occupied (rarer case)
   }
 
   let nftIndex = 0;
@@ -299,72 +354,71 @@ function placeNFTsOnWalls() {
     for (let i = 0; i < nftsOnThisWall && nftIndex < nftFiles.length; i++) {
       const filename = nftFiles[nftIndex];
       const imgPath = `/assets/RoomB1/${filename}.webp`;
-      const currentIndex = i;
+      const gridIndex = nftIndex;
       const currentWall = wall;
 
-      // Load image first to get dimensions
+      // Load image to get dimensions BEFORE creating geometry
       const img = new Image();
-      img.onload = function() {
+      img.onload = () => {
         const aspectRatio = img.width / img.height;
+        const frameSize = calculateFrameSize(aspectRatio);
+        const basePos = getGridPosition(currentWall, i, nftsOnThisWall);
 
-        // Calculate plane dimensions preserving aspect ratio
-        let planeWidth, planeHeight;
-        if (aspectRatio >= 1) {
-          planeWidth = frameSize;
-          planeHeight = frameSize / aspectRatio;
-        } else {
-          planeHeight = frameSize;
-          planeWidth = frameSize * aspectRatio;
+        // Check for collisions and adjust if needed
+        let finalPos = basePos;
+        if (isPositionOccupied(currentWall.name, basePos.x, basePos.y, frameSize.width, frameSize.height)) {
+          finalPos = findNearbyPosition(currentWall.name, basePos, frameSize, 3);
         }
+        registerPosition(currentWall.name, finalPos.x, finalPos.y, frameSize.width, frameSize.height);
 
-        // Get organized grid position
-        const pos = getGridPosition(currentWall, currentIndex, nftsOnThisWall);
+        // Create frame backing
+        const frameGroup = new THREE.Group();
+        const backingGeometry = new THREE.BoxGeometry(frameSize.width, frameSize.height, 0.2);
+        const backingMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 });
+        const frameBacking = new THREE.Mesh(backingGeometry, backingMaterial);
+        frameGroup.add(frameBacking);
 
-        let x, y, z;
-        y = pos.y;
+        // Load with progressive system
+        const { placeholderMaterial, upgradePromise } = progressiveLoader.loadWithPlaceholder(imgPath, {
+          side: THREE.DoubleSide
+        });
 
+        // Create plane with placeholder (instant)
+        const planeGeometry = new THREE.PlaneGeometry(frameSize.width * 0.95, frameSize.height * 0.95);
+        const plane = new THREE.Mesh(planeGeometry, placeholderMaterial);
+        plane.position.z = 0.5;
+        plane.userData = { isNFT: true, index: gridIndex, imageUrl: imgPath };
+        frameGroup.add(plane);
+        picturePlanes.push(plane);
+
+        // Position frame
+        let x = finalPos.x, y = finalPos.y, z;
         if (currentWall.name === 'front' || currentWall.name === 'back') {
-          x = pos.x;
-          z = currentWall.pos.z + currentWall.normal.z * 1.0;
+          z = currentWall.pos.z + currentWall.normal.z * 0.25;
         } else {
-          z = pos.x;
-          x = currentWall.pos.x + currentWall.normal.x * 1.0;
+          z = finalPos.x;
+          x = currentWall.pos.x + currentWall.normal.x * 0.25;
         }
 
-        // Load texture and create mesh
-        textureLoader.load(
-          imgPath,
-          (texture) => {
-            texture.colorSpace = THREE.SRGBColorSpace;
+        frameGroup.position.set(x, y, z);
 
-            const material = new THREE.MeshBasicMaterial({
-              map: texture,
-              side: THREE.DoubleSide,
-              toneMapped: false
-            });
+        // Rotate to face room
+        if (currentWall.name === 'front') frameGroup.rotation.y = 0;
+        else if (currentWall.name === 'back') frameGroup.rotation.y = Math.PI;
+        else if (currentWall.name === 'left') frameGroup.rotation.y = Math.PI / 2;
+        else if (currentWall.name === 'right') frameGroup.rotation.y = -Math.PI / 2;
 
-            const geometry = new THREE.PlaneGeometry(planeWidth, planeHeight);
-            const mesh = new THREE.Mesh(geometry, material);
-            mesh.position.set(x, y, z);
+        scene.add(frameGroup);
 
-            // Rotate to face into room
-            if (currentWall.name === 'front') mesh.rotation.y = 0;
-            else if (currentWall.name === 'back') mesh.rotation.y = Math.PI;
-            else if (currentWall.name === 'left') mesh.rotation.y = Math.PI / 2;
-            else if (currentWall.name === 'right') mesh.rotation.y = -Math.PI / 2;
-
-            scene.add(mesh);
-            console.log(`✓ Placed ${filename} on ${currentWall.name} at grid position (${currentIndex})`);
-          },
-          undefined,
-          (error) => {
-            console.error(`✗ Failed to load texture ${filename}:`, error);
-          }
-        );
+        // Upgrade to full-res when ready
+        upgradePromise.then((fullResMaterial) => {
+          plane.material = fullResMaterial;
+          plane.material.needsUpdate = true;
+        });
       };
 
-      img.onerror = function() {
-        console.error(`✗ Failed to load image ${filename}`);
+      img.onerror = () => {
+        console.error(`Failed to load image ${filename}`);
       };
 
       img.src = imgPath;
@@ -372,7 +426,7 @@ function placeNFTsOnWalls() {
     }
   });
 
-  console.log(`Started loading ${nftFiles.length} NFTs in organized 2-column grid layout`);
+  console.log(`Room B1: Placing ${nftFiles.length} NFTs in organized grid with progressive loading`);
 }
 
 function createMirrorCeiling() {
@@ -818,635 +872,6 @@ function getWallDimensions(wallType) {
   }
 }
 
-function addMixedDecorationsToWalls() {
-  // Load copper textures (different subset for Room B1)
-  const textureLoader = new THREE.TextureLoader();
-  const copperTextures = [];
-
-  const copperFiles = [
-    getTextureUrl('copper1'),
-    getTextureUrl('copper4a'),
-    getTextureUrl('copper4b'),
-    getTextureUrl('copper4c')
-  ];
-
-  // Batched loading configuration
-  const BATCH_SIZE = 10;
-  const BATCH_DELAY = 400; // 400ms delay between batches
-
-  // Load copper textures in batches
-  function loadCopperBatch(startIndex) {
-    const endIndex = Math.min(startIndex + BATCH_SIZE, copperFiles.length);
-
-    for (let i = startIndex; i < endIndex; i++) {
-      const file = copperFiles[i];
-      const texture = textureLoader.load(file, function(texture) {
-        texture.wrapS = THREE.RepeatWrapping;
-        texture.wrapT = THREE.RepeatWrapping;
-        texture.repeat.set(1, 1);
-        console.log(`Copper texture ${i+1}/${copperFiles.length} loaded`);
-      }, undefined, function(error) {
-        console.error(`Error loading copper texture ${i+1}:`, error);
-      });
-      copperTextures.push(texture);
-    }
-
-    // Load next batch if there are more textures
-    if (endIndex < copperFiles.length) {
-      setTimeout(() => loadCopperBatch(endIndex), BATCH_DELAY);
-    } else {
-      // Start loading NFT textures after copper textures are queued
-      setTimeout(() => loadAndPlaceNFT(0), BATCH_DELAY);
-    }
-  }
-
-  // Create materials for each copper texture (will be populated as textures load)
-  const copperMaterials = copperFiles.map(() => {
-    return new THREE.MeshStandardMaterial({
-      roughness: 0.6,
-      metalness: 0.8,
-      color: 0xddaa88 // Slight copper tint
-    });
-  });
-
-  // Update materials as textures load
-  copperTextures.forEach((texture, index) => {
-    copperMaterials[index].map = texture;
-    copperMaterials[index].needsUpdate = true;
-  });
-
-  // NFT Loading System - Load images first to get dimensions, then place with correct aspect ratio
-  // This ensures all artwork is displayed in its original proportions
-
-  // Room B1 NFT files (60 PNG images from RoomB1 folder)
-  const nftFiles = [
-    'ComfyUI_03174_',
-    'ComfyUI_03175_',
-    'ComfyUI_03176_',
-    'ComfyUI_03178_',
-    'ComfyUI_03179_',
-    'ComfyUI_03180_',
-    'ComfyUI_03181_',
-    'ComfyUI_03182_',
-    'ComfyUI_03183_',
-    'ComfyUI_03184_',
-    'ComfyUI_03185_',
-    'ComfyUI_03186_',
-    'ComfyUI_03187_',
-    'ComfyUI_03188_',
-    'ComfyUI_03189_',
-    'ComfyUI_03190_',
-    'ComfyUI_03191_',
-    'ComfyUI_03192_',
-    'ComfyUI_03193_',
-    'ComfyUI_03194_',
-    'ComfyUI_03195_',
-    'ComfyUI_03196_',
-    'ComfyUI_03197_',
-    'ComfyUI_03198_',
-    'ComfyUI_03199_',
-    'ComfyUI_03200_',
-    'ComfyUI_03201_',
-    'ComfyUI_03202_',
-    'ComfyUI_03203_',
-    'ComfyUI_03204_',
-    'ComfyUI_03205_',
-    'ComfyUI_03206_',
-    'ComfyUI_03207_',
-    'ComfyUI_03208_',
-    'ComfyUI_03209_',
-    'ComfyUI_03210_',
-    'ComfyUI_03211_',
-    'ComfyUI_03212_',
-    'ComfyUI_03213_',
-    'ComfyUI_03214_',
-    'ComfyUI_03215_',
-    'ComfyUI_03216_',
-    'ComfyUI_03217_',
-    'ComfyUI_03218_',
-    'ComfyUI_03219_',
-    'ComfyUI_03220_',
-    'ComfyUI_03221_',
-    'ComfyUI_03222_',
-    'ComfyUI_03223_',
-    'ComfyUI_03224_',
-    'ComfyUI_03225_',
-    'ComfyUI_03226_',
-    'ComfyUI_03227_',
-    'ComfyUI_03228_',
-    'ComfyUI_03229_',
-    'ComfyUI_03230_',
-    'ComfyUI_03231_',
-    'ComfyUI_03232_',
-    'ComfyUI_03233_',
-    'ComfyUI_03234_'
-  ];
-
-  const minHeight = 5;
-  const maxHeight = roomHeight - 5;
-  const wallTypes = ['front', 'back', 'left', 'right'];
-  const maxFrameDimension = 12; // Maximum size for any dimension
-  const minFrameDimension = 6;  // Minimum size for any dimension
-
-  let loadedCount = 0;
-  let currentWallIndex = 0;
-
-  console.log('Loading NFTs with proper aspect ratios...');
-
-  // Load each NFT, get its dimensions, then place it with correct aspect ratio
-  function loadAndPlaceNFT(index) {
-    if (index >= nftFiles.length) {
-      console.log(`Finished loading ${loadedCount} NFTs with proper aspect ratios`);
-      return;
-    }
-
-    const filename = nftFiles[index];
-    const img = new Image();
-
-    img.onload = function() {
-      // Calculate aspect ratio and frame dimensions
-      const aspectRatio = img.width / img.height;
-      let frameWidth, frameHeight;
-
-      if (aspectRatio >= 1) {
-        // Wider than tall (landscape or square)
-        frameWidth = maxFrameDimension;
-        frameHeight = maxFrameDimension / aspectRatio;
-        if (frameHeight < minFrameDimension) {
-          frameHeight = minFrameDimension;
-          frameWidth = frameHeight * aspectRatio;
-        }
-      } else {
-        // Taller than wide (portrait)
-        frameHeight = maxFrameDimension;
-        frameWidth = maxFrameDimension * aspectRatio;
-        if (frameWidth < minFrameDimension) {
-          frameWidth = minFrameDimension;
-          frameHeight = frameWidth / aspectRatio;
-        }
-      }
-
-      // Distribute across walls evenly
-      const wallType = wallTypes[currentWallIndex % 4];
-      currentWallIndex++;
-
-      // Find position for this NFT
-      const position = findUnoccupiedPosition(wallType, frameWidth, frameHeight, minHeight, maxHeight);
-
-      if (position) {
-        // Load the actual texture
-        textureLoader.load(
-          `/assets/RoomB1/${filename}.webp`,
-          function(tex) {
-            tex.colorSpace = THREE.SRGBColorSpace;
-
-            const artMaterial = new THREE.MeshBasicMaterial({
-              map: tex,
-              side: THREE.DoubleSide
-            });
-
-            placeArtFrameOnWallWithMaterial(wallType, artMaterial, frameWidth, frameHeight, position.x, position.y);
-            loadedCount++;
-            console.log(`Placed NFT ${loadedCount}/${nftFiles.length}: ${filename} (${img.width}x${img.height} -> ${frameWidth.toFixed(1)}x${frameHeight.toFixed(1)})`);
-
-            // Load next NFT
-            setTimeout(() => loadAndPlaceNFT(index + 1), 30);
-          },
-          undefined,
-          function(error) {
-            console.error(`Error loading NFT texture ${filename}:`, error);
-            setTimeout(() => loadAndPlaceNFT(index + 1), 30);
-          }
-        );
-      } else {
-        // Try other walls if first choice didn't work
-        let placed = false;
-        for (const tryWall of wallTypes) {
-          const tryPos = findUnoccupiedPosition(tryWall, frameWidth, frameHeight, minHeight, maxHeight);
-          if (tryPos) {
-            textureLoader.load(
-              `/assets/RoomB1/${filename}.webp`,
-              function(tex) {
-                tex.colorSpace = THREE.SRGBColorSpace;
-                const artMaterial = new THREE.MeshBasicMaterial({
-                  map: tex,
-                  side: THREE.DoubleSide
-                });
-                placeArtFrameOnWallWithMaterial(tryWall, artMaterial, frameWidth, frameHeight, tryPos.x, tryPos.y);
-                loadedCount++;
-                console.log(`Placed NFT ${loadedCount}/${nftFiles.length}: ${filename}`);
-                setTimeout(() => loadAndPlaceNFT(index + 1), 30);
-              },
-              undefined,
-              function(error) {
-                console.error(`Error loading NFT texture ${filename}:`, error);
-                setTimeout(() => loadAndPlaceNFT(index + 1), 30);
-              }
-            );
-            placed = true;
-            break;
-          }
-        }
-        if (!placed) {
-          console.warn(`Could not place NFT ${index + 1}: ${filename}`);
-          setTimeout(() => loadAndPlaceNFT(index + 1), 30);
-        }
-      }
-    };
-
-    img.onerror = function() {
-      console.error(`Error loading image dimensions for ${filename}`);
-      setTimeout(() => loadAndPlaceNFT(index + 1), 30);
-    };
-
-    // Start loading the image to get dimensions
-    img.src = `/assets/RoomB1/${filename}.webp`;
-  }
-
-  // Start loading NFTs (multiple concurrent loaders for faster loading)
-  const CONCURRENT_LOADERS = 4;
-  for (let i = 0; i < CONCURRENT_LOADERS; i++) {
-    setTimeout(() => loadAndPlaceNFT(i * Math.ceil(nftFiles.length / CONCURRENT_LOADERS)), i * 100);
-  }
-
-  // STEP 3: Start loading copper textures (they run in parallel)
-  loadCopperBatch(0);
-
-  // STEP 4: Place copper tiles in remaining spaces (after NFT positions are reserved)
-
-  // Define copper tile dimensions
-  const tileWidth = 3.5;
-  const tileHeight = 3.5;
-  const phi = 1.618033988749895; // Golden ratio for reference
-  
-  // Calculate the number of copper tiles per wall (many more than NFTs)
-  const maxCopperTilesPerWall = 80; // Increased number for better filling
-  
-  // For each wall type, place copper tiles
-  wallTypes.forEach(wallType => {
-    let tilesPlaced = 0;
-    let consecutiveFailures = 0;
-    
-    while (tilesPlaced < maxCopperTilesPerWall && consecutiveFailures < 50) {
-      // Randomly vary the tile size
-      const randomScale = 0.3 + Math.random() * 1.2;
-      let aspectRatio = 1.0;
-      
-      // Select a shape type
-      const shapeType = Math.floor(Math.random() * 3);
-      let actualWidth, actualHeight;
-      
-      switch(shapeType) {
-        case 0: // Square
-          actualWidth = tileWidth * randomScale;
-          actualHeight = tileHeight * randomScale;
-          break;
-        case 1: // Wider
-          actualWidth = tileWidth * randomScale * 1.2;
-          actualHeight = tileHeight * randomScale * 0.8;
-          aspectRatio = 1.5;
-          break;
-        case 2: // Taller
-          actualWidth = tileWidth * randomScale * 0.8;
-          actualHeight = tileHeight * randomScale * 1.2;
-          aspectRatio = 0.75;
-          break;
-      }
-      
-      // Randomize vertical position more freely now
-      const position = findUnoccupiedPosition(wallType, actualWidth, actualHeight, 1, roomHeight - 1);
-      
-      if (position) {
-        // Place copper tile
-        placeCopperTileOnWall(
-          wallType,
-          copperMaterials,
-          actualWidth,
-          actualHeight,
-          position.x,
-          position.y,
-          aspectRatio
-        );
-        
-        tilesPlaced++;
-        consecutiveFailures = 0;
-      } else {
-        consecutiveFailures++;
-      }
-    }
-    
-    console.log(`Placed ${tilesPlaced} copper tiles on ${wallType} wall`);
-  });
-}
-
-// Function to place an art frame with a pre-created material (for progressive loading)
-function placeArtFrameOnWallWithMaterial(wallType, artMaterial, frameWidth, frameHeight, xPosition, yPosition) {
-  // Determine the wall position and orientation
-  let wallX, wallZ, rotationY;
-
-  switch(wallType) {
-    case 'front':
-      wallX = 0;
-      wallZ = roomLength/2 - 0.3;
-      rotationY = 0;
-      break;
-    case 'back':
-      wallX = 0;
-      wallZ = -roomLength/2 + 0.3;
-      rotationY = Math.PI;
-      break;
-    case 'left':
-      wallX = -roomWidth/2 + 0.3;
-      wallZ = 0;
-      rotationY = Math.PI / 2;
-      break;
-    case 'right':
-      wallX = roomWidth/2 - 0.3;
-      wallZ = 0;
-      rotationY = -Math.PI / 2;
-      break;
-  }
-
-  // Calculate the final position based on wall orientation
-  let finalX, finalZ;
-
-  if (wallType === 'front' || wallType === 'back') {
-    finalX = xPosition;
-    finalZ = 0;
-  } else {
-    finalX = 0;
-    finalZ = xPosition;
-  }
-
-  // Create frame backing
-  const frameBackGeometry = new THREE.BoxGeometry(frameWidth + 0.8, frameHeight + 0.8, 0.2);
-  const frameBackMat = new THREE.MeshStandardMaterial({
-    color: 0x332211,
-    roughness: 0.8,
-    metalness: 0.2
-  });
-  const frameBack = new THREE.Mesh(frameBackGeometry, frameBackMat);
-  frameBack.position.set(wallX + finalX, yPosition, wallZ + finalZ);
-  frameBack.rotation.y = rotationY;
-  frameBack.castShadow = true;
-  scene.add(frameBack);
-
-  // Create actual artwork with the provided material
-  const artGeometry = new THREE.PlaneGeometry(frameWidth, frameHeight);
-  const artwork = new THREE.Mesh(artGeometry, artMaterial);
-
-  // Position just in front of the frame backing
-  // Increased from 0.15 to 0.5 to ensure NFTs render in front of copper tiles (which are at 0.25)
-  let artOffset = 0.5;
-  let zOffset = 0, xOffset = 0;
-
-  if (rotationY === 0) {
-    zOffset = -artOffset;
-  } else if (rotationY === Math.PI) {
-    zOffset = artOffset;
-  } else if (rotationY === Math.PI / 2) {
-    xOffset = artOffset;
-  } else if (rotationY === -Math.PI / 2) {
-    xOffset = -artOffset;
-  }
-
-  artwork.position.set(wallX + finalX + xOffset, yPosition, wallZ + finalZ + zOffset);
-
-  if (rotationY === Math.PI / 2 || rotationY === -Math.PI / 2) {
-    artwork.rotation.y = rotationY + Math.PI;
-  } else {
-    artwork.rotation.y = rotationY;
-  }
-
-  scene.add(artwork);
-
-  // Add spotlight
-  const spotLight = new THREE.SpotLight(0xffffff, 0.3, 30, Math.PI/8, 0.8, 1);
-
-  if (rotationY === 0) {
-    spotLight.position.set(wallX + finalX, yPosition + 5, wallZ + finalZ + 8);
-  } else if (rotationY === Math.PI) {
-    spotLight.position.set(wallX + finalX, yPosition + 5, wallZ + finalZ - 8);
-  } else if (rotationY === Math.PI / 2) {
-    spotLight.position.set(wallX + finalX - 8, yPosition + 5, wallZ + finalZ);
-  } else if (rotationY === -Math.PI / 2) {
-    spotLight.position.set(wallX + finalX + 8, yPosition + 5, wallZ + finalZ);
-  }
-
-  spotLight.target.position.set(wallX + finalX, yPosition, wallZ + finalZ);
-  scene.add(spotLight);
-  scene.add(spotLight.target);
-}
-
-// Function to place an art frame on a specific wall (legacy - used by copper tiles)
-function placeArtFrameOnWall(wallType, texture, dimensions, frameWidth, frameHeight, xPosition, yPosition) {
-  // Determine the wall position and orientation
-  let wallX, wallZ, rotationY;
-
-  switch(wallType) {
-    case 'front':
-      wallX = 0;
-      wallZ = roomLength/2 - 0.3;
-      rotationY = 0;
-      break;
-    case 'back':
-      wallX = 0;
-      wallZ = -roomLength/2 + 0.3;
-      rotationY = Math.PI;
-      break;
-    case 'left':
-      wallX = -roomWidth/2 + 0.3;
-      wallZ = 0;
-      rotationY = Math.PI / 2;
-      break;
-    case 'right':
-      wallX = roomWidth/2 - 0.3;
-      wallZ = 0;
-      rotationY = -Math.PI / 2;
-      break;
-  }
-
-  // Calculate the final position based on wall orientation
-  let finalX, finalZ;
-
-  if (wallType === 'front' || wallType === 'back') {
-    finalX = xPosition;
-    finalZ = 0;
-  } else { // left or right
-    finalX = 0;
-    finalZ = xPosition; // Use xPosition as z-coordinate for side walls
-  }
-
-  // Create frame backing
-  const frameBackGeometry = new THREE.BoxGeometry(frameWidth + 0.8, frameHeight + 0.8, 0.2);
-  const frameBackMaterial = new THREE.MeshStandardMaterial({
-    color: 0x332211, // Dark wood color
-    roughness: 0.8,
-    metalness: 0.2
-  });
-  const frameBack = new THREE.Mesh(frameBackGeometry, frameBackMaterial);
-  frameBack.position.set(wallX + finalX, yPosition, wallZ + finalZ);
-  frameBack.rotation.y = rotationY;
-  frameBack.castShadow = true;
-  scene.add(frameBack);
-  
-  // Create actual artwork
-  const artGeometry = new THREE.PlaneGeometry(frameWidth, frameHeight);
-  const artMaterial = new THREE.MeshBasicMaterial({
-    map: texture,
-    side: THREE.DoubleSide // Allow viewing from both sides to be safe
-  });
-  const artwork = new THREE.Mesh(artGeometry, artMaterial);
-  
-  // Position just in front of the frame backing
-  // Increased from 0.15 to 0.5 to ensure NFTs render in front of copper tiles (which are at 0.25)
-  let artOffset = 0.5;
-  let zOffset = 0, xOffset = 0;
-  
-  // Calculate offset direction based on wall orientation
-  // Ensure artwork faces inward for all walls
-  if (rotationY === 0) { // Front wall
-    zOffset = -artOffset; // Offset toward room center
-  } else if (rotationY === Math.PI) { // Back wall
-    zOffset = artOffset; // Offset toward room center
-  } else if (rotationY === Math.PI / 2) { // Left wall
-    xOffset = artOffset; // Offset toward room center
-  } else if (rotationY === -Math.PI / 2) { // Right wall
-    xOffset = -artOffset; // Offset toward room center
-  }
-  
-  artwork.position.set(wallX + finalX + xOffset, yPosition, wallZ + finalZ + zOffset);
-  
-  // Set artwork rotation to face inward for all walls
-  // For left and right walls, we need to adjust the rotation by 180 degrees
-  if (rotationY === Math.PI / 2) { // Left wall
-    artwork.rotation.y = rotationY + Math.PI; // Add 180 degrees to face inward
-  } else if (rotationY === -Math.PI / 2) { // Right wall
-    artwork.rotation.y = rotationY + Math.PI; // Add 180 degrees to face inward
-  } else {
-  artwork.rotation.y = rotationY;
-  }
-  
-  scene.add(artwork);
-  
-  // Add a subtle spotlight to illuminate the artwork
-  const spotLight = new THREE.SpotLight(0xffffff, 0.3, 30, Math.PI/8, 0.8, 1);
-  
-  // Adjust spotlight position to shine toward the artwork from inside the room
-  if (rotationY === 0) { // Front wall
-    spotLight.position.set(wallX + finalX, yPosition + 5, wallZ + finalZ + 8); // Position inside room
-  } else if (rotationY === Math.PI) { // Back wall
-    spotLight.position.set(wallX + finalX, yPosition + 5, wallZ + finalZ - 8); // Position inside room
-  } else if (rotationY === Math.PI / 2) { // Left wall
-    spotLight.position.set(wallX + finalX - 8, yPosition + 5, wallZ + finalZ); // Position inside room
-  } else if (rotationY === -Math.PI / 2) { // Right wall
-    spotLight.position.set(wallX + finalX + 8, yPosition + 5, wallZ + finalZ); // Position inside room
-  }
-  
-  spotLight.target.position.set(wallX + finalX, yPosition, wallZ + finalZ);
-  scene.add(spotLight);
-  scene.add(spotLight.target);
-}
-
-// Function to place a copper tile on a specific wall
-function placeCopperTileOnWall(wallType, materials, tileWidth, tileHeight, xPosition, yPosition, aspectRatio) {
-  // Determine the wall position and orientation
-  let wallX, wallZ, rotationY;
-  const wallOffset = 0.25;
-  
-  switch(wallType) {
-    case 'front':
-      wallX = 0;
-      wallZ = roomLength/2 - wallOffset;
-      rotationY = 0;
-      break;
-    case 'back':
-      wallX = 0;
-      wallZ = -roomLength/2 + wallOffset;
-      rotationY = Math.PI;
-      break;
-    case 'left':
-      wallX = -roomWidth/2 + wallOffset;
-      wallZ = 0;
-      rotationY = Math.PI / 2;
-      break;
-    case 'right':
-      wallX = roomWidth/2 - wallOffset;
-      wallZ = 0;
-      rotationY = -Math.PI / 2;
-      break;
-  }
-  
-  // Calculate the final position based on wall orientation
-  let finalX, finalZ;
-  
-  if (wallType === 'front' || wallType === 'back') {
-    finalX = xPosition;
-    finalZ = 0;
-  } else { // left or right
-    finalX = 0;
-    finalZ = xPosition; // Use xPosition as z-coordinate for side walls
-  }
-  
-  // Select a random copper material
-  const randomMaterialIndex = Math.floor(Math.random() * materials.length);
-  const selectedMaterial = materials[randomMaterialIndex].clone();
-  
-  // Enhance material settings to make tiles more visible
-  selectedMaterial.roughness = 0.4; // More shiny
-  selectedMaterial.metalness = 0.9; // More metallic
-  selectedMaterial.emissive = new THREE.Color(0x331100); // Subtle glow
-  selectedMaterial.emissiveIntensity = 0.15;
-  
-  // Create tile geometry
-  const tileGeometry = new THREE.BoxGeometry(tileWidth, tileHeight, 0.1);
-  const tile = new THREE.Mesh(tileGeometry, selectedMaterial);
-  
-  // Position tile with small random depth variation
-  const depthVariation = (Math.random() * 0.1) + 0.05;
-  
-  // Position based on wall type
-  if (wallType === 'front') {
-    tile.position.set(wallX + finalX, yPosition, wallZ - depthVariation);
-    tile.rotation.y = Math.PI; // Face inward
-  } else if (wallType === 'back') {
-    tile.position.set(wallX + finalX, yPosition, wallZ + depthVariation);
-    tile.rotation.y = 0; // Face inward
-  } else if (wallType === 'left') {
-    tile.position.set(wallX + depthVariation, yPosition, wallZ + finalZ);
-    tile.rotation.y = -Math.PI / 2; // Face inward
-  } else if (wallType === 'right') {
-    tile.position.set(wallX - depthVariation, yPosition, wallZ + finalZ);
-    tile.rotation.y = Math.PI / 2; // Face inward
-  }
-  
-  // Subtle random rotation for variety, but not too much
-  tile.rotation.z = (Math.random() - 0.5) * 0.2;
-  tile.rotation.x = (Math.random() - 0.5) * 0.2;
-  
-  tile.castShadow = true;
-  tile.receiveShadow = true;
-  scene.add(tile);
-  
-  // Add a very subtle point light near some tiles for additional highlights
-  if (Math.random() > 0.8) { // Only 20% of tiles get lights
-    const tileLight = new THREE.PointLight(0xffccaa, 0.2, 10);
-    tileLight.position.copy(tile.position);
-    
-    // Move light slightly toward room center
-    if (wallType === 'front') {
-      tileLight.position.z -= 2;
-    } else if (wallType === 'back') {
-      tileLight.position.z += 2;
-    } else if (wallType === 'left') {
-      tileLight.position.x += 2;
-    } else if (wallType === 'right') {
-      tileLight.position.x -= 2;
-    }
-    
-    scene.add(tileLight);
-  }
-}
 
 function createLighting() {
   // Ambient light - increased intensity for larger room
