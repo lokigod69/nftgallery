@@ -25,3 +25,6 @@ dist-ssr
 
 # Claude AI local cache and plugin data
 .claude/
+
+# Asset files (images should not be tracked in git)
+public/assets/

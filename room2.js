@@ -6,7 +6,7 @@ import { initSpeedControl } from './src/ui/speed-control.js';
 import { initMobileControls } from './src/core/mobile-controls.js';
 import { initUnifiedNFTViewer, MAX_NFT_INTERACTION_DISTANCE } from './src/core/nft-viewer.js';
 
-// Room 2 NFT files (44 PNG images from Room2 folder - randomized order)
+// Room 2 NFT files (44 WebP images from Room2 folder - randomized order)
 const ROOM2_NFTS = [
   'ComfyUI_03653_', 'ComfyUI_00374_', 'ComfyUI_03942_', 'ComfyUI_00190_',
   'ComfyUI_00516_', 'ComfyUI_03557_', 'ComfyUI_00344_', 'ComfyUI_01032_',
@@ -23,9 +23,9 @@ const ROOM2_NFTS = [
 
 function getRoom2NftUrl(index) {
   if (index >= 0 && index < ROOM2_NFTS.length) {
-    return `/assets/Room2/${ROOM2_NFTS[index]}.png`;
+    return `/assets/Room2/${ROOM2_NFTS[index]}.webp`;
   }
-  return `/assets/Room2/${ROOM2_NFTS[0]}.png`; // Fallback
+  return `/assets/Room2/${ROOM2_NFTS[0]}.webp`; // Fallback
 }
 
 // ----------------------------------------------------------------------
@@ -818,8 +818,6 @@ function animate() {
       isJumping = false;
       jumpVelocity = 0;
     }
-  } else {
-    player.position.y = groundLevel;
   }
 
   // Update mobile controls

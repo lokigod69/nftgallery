@@ -175,20 +175,26 @@ export const ASSET_CONFIG = {
 /**
  * Get the URL for a texture/image asset
  *
- * All gallery image assets are stored as WebP format for optimal performance.
- * This centralizes image format selection - change .webp to another format here
+ * Most gallery image assets are stored as WebP format for optimal performance.
+ * Wood floor textures remain as JPEG for compatibility.
+ * This centralizes image format selection - change extensions here
  * instead of hunting through every room file.
  *
  * @param {string} relativePathWithoutExt - Path relative to /assets/ WITHOUT extension
- * @returns {string} Full URL with .webp extension
+ * @returns {string} Full URL with appropriate extension (.webp for most, .jpeg for wood textures)
  *
  * @example
  * getTextureUrl('RoomB/b1') → '/assets/RoomB/b1.webp'
  * getTextureUrl('RoomX/5') → '/assets/RoomX/5.webp'
  * getTextureUrl('nft42') → '/assets/nft42.webp'
- * getTextureUrl('Room7/lokigod69._A_female_model_...') → '/assets/Room7/lokigod69._A_female_model_....webp'
+ * getTextureUrl('wood_floor1') → '/assets/wood_floor1.jpeg'
+ * getTextureUrl('wood_floor2') → '/assets/wood_floor2.jpeg'
  */
 export function getTextureUrl(relativePathWithoutExt) {
+  // Wood floor textures use JPEG format
+  if (relativePathWithoutExt === 'wood_floor1' || relativePathWithoutExt === 'wood_floor2') {
+    return `/assets/${relativePathWithoutExt}.jpeg`;
+  }
   return `/assets/${relativePathWithoutExt}.webp`;
 }
 
@@ -225,10 +231,10 @@ export function getRoomBNftUrl(index) {
  * @returns {string} Full URL to RoomB1 image
  *
  * @example
- * getRoomB1ArtUrl('ComfyUI_03174_') → '/assets/RoomB1/ComfyUI_03174_.png'
+ * getRoomB1ArtUrl('ComfyUI_03174_') → '/assets/RoomB1/ComfyUI_03174_.webp'
  */
 export function getRoomB1ArtUrl(filename) {
-  return `/assets/RoomB1/${filename}.png`;
+  return `/assets/RoomB1/${filename}.webp`;
 }
 
 /**
@@ -238,10 +244,10 @@ export function getRoomB1ArtUrl(filename) {
  * @returns {string} Full URL to Room7 image
  *
  * @example
- * getRoom7ArtUrl('ComfyUI_03027_') → '/assets/Room7/ComfyUI_03027_.png'
+ * getRoom7ArtUrl('ComfyUI_03027_') → '/assets/Room7/ComfyUI_03027_.webp'
  */
 export function getRoom7ArtUrl(filename) {
-  return `/assets/Room7/${filename}.png`;
+  return `/assets/Room7/${filename}.webp`;
 }
 
 /**

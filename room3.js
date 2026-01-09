@@ -1155,9 +1155,6 @@ function checkCollisions() {
     camera.position.z = cubicStructure.dimensions.shortSide / 2 + (camera.position.z < cubicStructure.dimensions.shortSide / 2 ? -1 : 1);
   }
   
-  // Maintain player height (use player object, not camera directly)
-  const player = controls.getObject();
-  player.position.y = isJumping ? player.position.y : groundLevels[1];
 }
 
 // ----------------------------------------------------------------------

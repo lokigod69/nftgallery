@@ -35,13 +35,13 @@ const SPAWN_Z = ROOM_DEPTH / 2 - 10;  // Near south wall/portal, facing forward 
 const NFT_SPACING = 12;  // Reduced spacing to fit 40 NFTs (20 per wall)
 const ROOM_C_NFTS = [
   // 6a through 6z (26 images)
-  '6a.png', '6b.png', '6c.png', '6d.png', '6e.png', '6f.png', '6g.png', '6h.png',
-  '6i.png', '6j.png', '6k.png', '6l.png', '6m.png', '6n.png', '6o.png', '6p.png',
-  '6q.png', '6r.png', '6s.png', '6t.png', '6u.png', '6v.png', '6w.png', '6x.png',
-  '6y.png', '6z.png',
+  '6a.webp', '6b.webp', '6c.webp', '6d.webp', '6e.webp', '6f.webp', '6g.webp', '6h.webp',
+  '6i.webp', '6j.webp', '6k.webp', '6l.webp', '6m.webp', '6n.webp', '6o.webp', '6p.webp',
+  '6q.webp', '6r.webp', '6s.webp', '6t.webp', '6u.webp', '6v.webp', '6w.webp', '6x.webp',
+  '6y.webp', '6z.webp',
   // 7a through 7n (14 images)
-  '7a.png', '7b.png', '7c.png', '7d.png', '7e.png', '7f.png', '7g.png', '7h.png',
-  '7i.png', '7j.png', '7k.png', '7l.png', '7m.png', '7n.png'
+  '7a.webp', '7b.webp', '7c.webp', '7d.webp', '7e.webp', '7f.webp', '7g.webp', '7h.webp',
+  '7i.webp', '7j.webp', '7k.webp', '7l.webp', '7m.webp', '7n.webp'
 ];
 
 // Fall reset configuration
@@ -787,8 +787,6 @@ function animate() {
           isJumping = false;
           jumpVelocity = 0;
         }
-      } else {
-        player.position.y = groundLevel;
       }
 
       // Reset fall state

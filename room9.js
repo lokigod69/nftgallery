@@ -698,7 +698,7 @@ function placeNFTs(path) {
     // Get the image filename for this position
     const imageIndex = index % totalImages;
     const filename = room9NftFiles[imageIndex];
-    const nftUrl = `/assets/Room9/${filename}.png`;
+    const nftUrl = `/assets/Room9/${filename}.webp`;
 
     // Start with black placeholder
     const placeholderMaterial = new THREE.MeshBasicMaterial({
@@ -1116,9 +1116,6 @@ function animate() {
         isJumping = false;
         jumpVelocity = 0;
       }
-    } else {
-      // Not jumping - ensure Y is locked to floor level
-      player.position.y = eyeHeight;
     }
 
     velocity.x -= velocity.x * 10.0 * delta;

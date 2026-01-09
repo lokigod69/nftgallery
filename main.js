@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { createLinkedPortal, animateLinkedPortal, createMultiPortalChecker } from './src/core/portal-utils.js';
-// Room 1 NFT files (28 PNG images from Room1 folder)
-// Special placement: 1-4.png on divider front side (visible when spawning)
-// Divider front order: 3.png (left), 1.png (left-center), 2.png (right-center), 4.png (right)
+// Room 1 NFT files (28 WebP images from Room1 folder)
+// Special placement: 1-4.webp on divider front side (visible when spawning)
+// Divider front order: 3.webp (left), 1.webp (left-center), 2.webp (right-center), 4.webp (right)
 // Wall layout: back wall (0-4), left wall (5-9), right wall (10-14), front wall (15-19), dividers (20-27)
 const ROOM1_NFTS = [
   // Back wall (indices 0-4)
@@ -22,9 +22,9 @@ const ROOM1_NFTS = [
 
 function getRoom1NftUrl(index) {
   if (index >= 0 && index < ROOM1_NFTS.length) {
-    return `/assets/Room1/${ROOM1_NFTS[index]}.png`;
+    return `/assets/Room1/${ROOM1_NFTS[index]}.webp`;
   }
-  return `/assets/Room1/${ROOM1_NFTS[0]}.png`; // Fallback
+  return `/assets/Room1/${ROOM1_NFTS[0]}.webp`; // Fallback
 }
 import { MOVEMENT_CONFIG } from './src/core/movement-config.js';
 import { initSpeedControl } from './src/ui/speed-control.js';
@@ -301,7 +301,7 @@ function createNFT(index, position, rotation) {
     },
     undefined,
     (err) => {
-      console.error(`Error loading texture: ${ROOM1_NFTS[index]}.png`, err);
+      console.error(`Error loading texture: ${ROOM1_NFTS[index]}.webp`, err);
     }
   );
 
@@ -411,7 +411,7 @@ function createDivider() {
         picturePlanes.push(picturePlane);
       },
       undefined,
-      (err) => { console.error(`Error loading texture: ${ROOM1_NFTS[nftIndex]}.png`, err); }
+      (err) => { console.error(`Error loading texture: ${ROOM1_NFTS[nftIndex]}.webp`, err); }
     );
     frameGroup.position.set(localX, 0.5, localZ);
     frameGroup.rotation.y = rotationY;
@@ -737,8 +737,6 @@ function animate() {
       isJumping = false;
       jumpVelocity = 0;
     }
-  } else {
-    player.position.y = groundLevel;
   }
 
   // Mobile controls update (auto-level and camera rotation)
