@@ -868,8 +868,9 @@ function addMixedDecorationsToWalls() {
   // NFT Loading System - Load images first to get dimensions, then place with correct aspect ratio
   // This ensures all artwork is displayed in its original proportions
 
-  // Room B NFT files (59 webp images from RoomB folder: ComfyUI_02966_ - ComfyUI_03025_)
+  // Room B NFT files (60 webp images from RoomB folder)
   const nftFiles = [
+    'RoomB/ComfyUI_02571_',
     'RoomB/ComfyUI_02966_',
     'RoomB/ComfyUI_02967_',
     'RoomB/ComfyUI_02968_',
