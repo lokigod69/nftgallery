@@ -6,19 +6,17 @@ import { initSpeedControl } from './src/ui/speed-control.js';
 import { initMobileControls } from './src/core/mobile-controls.js';
 import { initUnifiedNFTViewer, MAX_NFT_INTERACTION_DISTANCE } from './src/core/nft-viewer.js';
 
-// Room 2 NFT files (44 WebP images from Room2 folder - randomized order)
+// Room 2 NFT files (44 WebP images from Room2 folder - sorted order)
+// Outer walls (0-27): Back (0-6), Left (7-13), Right (14-20), Front (21-27)
+// Dividers (28-43): Left front (28-31), Left back (32-35), Right front (36-39), Right back (40-43)
 const ROOM2_NFTS = [
-  'ComfyUI_03653_', 'ComfyUI_00374_', 'ComfyUI_03942_', 'ComfyUI_00190_',
-  'ComfyUI_00516_', 'ComfyUI_03557_', 'ComfyUI_00344_', 'ComfyUI_01032_',
-  'ComfyUI_00977_', 'ComfyUI_03700_', 'ComfyUI_00389_', 'ComfyUI_00215_',
-  'ComfyUI_03592_', 'ComfyUI_00427_', 'ComfyUI_03664_', 'ComfyUI_00166_',
-  'ComfyUI_03470_', 'ComfyUI_00450_', 'ComfyUI_00913_', 'ComfyUI_03421_',
-  'ComfyUI_00336_', 'ComfyUI_03772_', 'ComfyUI_00497_', 'ComfyUI_00981_',
-  'ComfyUI_03444_', 'ComfyUI_00179_', 'ComfyUI_03905_', 'ComfyUI_00335_',
-  'ComfyUI_03615_', 'ComfyUI_00388_', 'ComfyUI_03559_', 'ComfyUI_00992_',
-  'ComfyUI_00577_', 'ComfyUI_03874_', 'ComfyUI_00369_', 'ComfyUI_03660_',
-  'ComfyUI_00433_', 'ComfyUI_00961_', 'ComfyUI_00243_', 'ComfyUI_03442_',
-  'ComfyUI_00340_', 'ComfyUI_00404_', 'ComfyUI_03697_', 'ComfyUI_00514_'
+  'ComfyUI_00166_', 'ComfyUI_00179_', 'ComfyUI_00190_', 'ComfyUI_00215_', 'ComfyUI_00243_', 'ComfyUI_00335_', 'ComfyUI_00336_',
+  'ComfyUI_00340_', 'ComfyUI_00344_', 'ComfyUI_00388_', 'ComfyUI_00389_', 'ComfyUI_00433_', 'ComfyUI_00497_', 'ComfyUI_00514_',
+  'ComfyUI_00516_', 'ComfyUI_00913_', 'ComfyUI_00961_', 'ComfyUI_00977_', 'ComfyUI_00992_', 'ComfyUI_03358_', 'ComfyUI_03409_',
+  'ComfyUI_03421_', 'ComfyUI_03442_', 'ComfyUI_03444_', 'ComfyUI_03472_', 'ComfyUI_03507_', 'ComfyUI_03557_', 'ComfyUI_03580_',
+  'ComfyUI_03585_', 'ComfyUI_03592_', 'ComfyUI_03615_', 'ComfyUI_03653_', 'ComfyUI_03660_', 'ComfyUI_03664_', 'ComfyUI_03670_',
+  'ComfyUI_03672_', 'ComfyUI_03674_', 'ComfyUI_03675_', 'ComfyUI_03690_', 'ComfyUI_03697_', 'ComfyUI_03700_', 'ComfyUI_03874_',
+  'ComfyUI_03931_', 'ComfyUI_03942_'
 ];
 
 function getRoom2NftUrl(index) {
