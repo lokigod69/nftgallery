@@ -31,7 +31,7 @@ import { initScene } from './src/core/scene-setup.js';
 import { initUnifiedNFTViewer, MAX_NFT_INTERACTION_DISTANCE } from './src/core/nft-viewer.js';
 import { initMobileControls } from './src/core/mobile-controls.js';
 
-// Room 4 NFT Files - 23 PNG images from Room4 folder
+// Room 4 NFT Files - 23 WebP images from Room4 folder
 const room4NftFiles = [
   'ComfyUI_03074_',
   'ComfyUI_03075_',
@@ -61,7 +61,7 @@ const room4NftFiles = [
 // Helper function to get Room4 NFT URL by index (0-22)
 function getRoom4NftUrl(index) {
   const filename = room4NftFiles[index % room4NftFiles.length];
-  return `/assets/Room4/${filename}.png`;
+  return `/assets/Room4/${filename}.webp`;
 }
 
 // ----------------------------------------------------------------------

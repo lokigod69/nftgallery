@@ -868,11 +868,68 @@ function addMixedDecorationsToWalls() {
   // NFT Loading System - Load images first to get dimensions, then place with correct aspect ratio
   // This ensures all artwork is displayed in its original proportions
 
-  // Room B NFT files (60 webp images from RoomB folder: b1.webp - b60.webp)
-  const nftFiles = [];
-  for (let i = 1; i <= 60; i++) {
-    nftFiles.push(`RoomB/b${i}`);
-  }
+  // Room B NFT files (59 webp images from RoomB folder: ComfyUI_02966_ - ComfyUI_03025_)
+  const nftFiles = [
+    'RoomB/ComfyUI_02966_',
+    'RoomB/ComfyUI_02967_',
+    'RoomB/ComfyUI_02968_',
+    'RoomB/ComfyUI_02969_',
+    'RoomB/ComfyUI_02970_',
+    'RoomB/ComfyUI_02971_',
+    'RoomB/ComfyUI_02972_',
+    'RoomB/ComfyUI_02973_',
+    'RoomB/ComfyUI_02974_',
+    'RoomB/ComfyUI_02975_',
+    'RoomB/ComfyUI_02976_',
+    'RoomB/ComfyUI_02977_',
+    'RoomB/ComfyUI_02978_',
+    'RoomB/ComfyUI_02979_',
+    'RoomB/ComfyUI_02980_',
+    'RoomB/ComfyUI_02981_',
+    'RoomB/ComfyUI_02982_',
+    'RoomB/ComfyUI_02983_',
+    'RoomB/ComfyUI_02984_',
+    'RoomB/ComfyUI_02985_',
+    'RoomB/ComfyUI_02986_',
+    'RoomB/ComfyUI_02987_',
+    'RoomB/ComfyUI_02988_',
+    'RoomB/ComfyUI_02989_',
+    'RoomB/ComfyUI_02990_',
+    'RoomB/ComfyUI_02991_',
+    'RoomB/ComfyUI_02992_',
+    'RoomB/ComfyUI_02993_',
+    'RoomB/ComfyUI_02994_',
+    'RoomB/ComfyUI_02995_',
+    'RoomB/ComfyUI_02996_',
+    'RoomB/ComfyUI_02998_',
+    'RoomB/ComfyUI_02999_',
+    'RoomB/ComfyUI_03000_',
+    'RoomB/ComfyUI_03001_',
+    'RoomB/ComfyUI_03002_',
+    'RoomB/ComfyUI_03003_',
+    'RoomB/ComfyUI_03004_',
+    'RoomB/ComfyUI_03005_',
+    'RoomB/ComfyUI_03006_',
+    'RoomB/ComfyUI_03007_',
+    'RoomB/ComfyUI_03008_',
+    'RoomB/ComfyUI_03009_',
+    'RoomB/ComfyUI_03010_',
+    'RoomB/ComfyUI_03011_',
+    'RoomB/ComfyUI_03012_',
+    'RoomB/ComfyUI_03013_',
+    'RoomB/ComfyUI_03014_',
+    'RoomB/ComfyUI_03015_',
+    'RoomB/ComfyUI_03016_',
+    'RoomB/ComfyUI_03017_',
+    'RoomB/ComfyUI_03018_',
+    'RoomB/ComfyUI_03019_',
+    'RoomB/ComfyUI_03020_',
+    'RoomB/ComfyUI_03021_',
+    'RoomB/ComfyUI_03022_',
+    'RoomB/ComfyUI_03023_',
+    'RoomB/ComfyUI_03024_',
+    'RoomB/ComfyUI_03025_'
+  ];
 
   const minHeight = 5;
   const maxHeight = roomHeight - 5;

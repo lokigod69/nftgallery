@@ -150,7 +150,7 @@ function createMixedFloor() {
   const textureLoader = new THREE.TextureLoader();
 
   // Load b1floor2 texture for the main floor
-  const floorTexture = textureLoader.load('/assets/RoomB1/b1floor2.png', function(texture) {
+  const floorTexture = textureLoader.load('/assets/RoomB1/b1floor2.webp', function(texture) {
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
     texture.repeat.set(4, 4);  // Tile the texture 4x4 across the floor
@@ -298,7 +298,7 @@ function placeNFTsOnWalls() {
 
     for (let i = 0; i < nftsOnThisWall && nftIndex < nftFiles.length; i++) {
       const filename = nftFiles[nftIndex];
-      const imgPath = `/assets/RoomB1/${filename}.png`;
+      const imgPath = `/assets/RoomB1/${filename}.webp`;
       const currentIndex = i;
       const currentWall = wall;
 
@@ -996,7 +996,7 @@ function addMixedDecorationsToWalls() {
       if (position) {
         // Load the actual texture
         textureLoader.load(
-          `/assets/RoomB1/${filename}.png`,
+          `/assets/RoomB1/${filename}.webp`,
           function(tex) {
             tex.colorSpace = THREE.SRGBColorSpace;
 
@@ -1025,7 +1025,7 @@ function addMixedDecorationsToWalls() {
           const tryPos = findUnoccupiedPosition(tryWall, frameWidth, frameHeight, minHeight, maxHeight);
           if (tryPos) {
             textureLoader.load(
-              `/assets/RoomB1/${filename}.png`,
+              `/assets/RoomB1/${filename}.webp`,
               function(tex) {
                 tex.colorSpace = THREE.SRGBColorSpace;
                 const artMaterial = new THREE.MeshBasicMaterial({
@@ -1060,7 +1060,7 @@ function addMixedDecorationsToWalls() {
     };
 
     // Start loading the image to get dimensions
-    img.src = `/assets/RoomB1/${filename}.png`;
+    img.src = `/assets/RoomB1/${filename}.webp`;
   }
 
   // Start loading NFTs (multiple concurrent loaders for faster loading)

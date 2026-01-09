@@ -150,7 +150,7 @@ function createMixedFloor() {
   const textureLoader = new THREE.TextureLoader();
 
   // Load floor1 texture for the main floor
-  const floorTexture = textureLoader.load('/assets/RoomB2/floor1.png', function(texture) {
+  const floorTexture = textureLoader.load('/assets/RoomB2/floor1.webp', function(texture) {
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
     texture.repeat.set(4, 4);  // Tile the texture 4x4 across the floor
@@ -192,7 +192,7 @@ function createBaseWalls(thickness) {
   const textureLoader = new THREE.TextureLoader();
 
   // Load wall1 texture for front/back walls
-  const wall1Texture = textureLoader.load('/assets/RoomB2/wall1.png', function(texture) {
+  const wall1Texture = textureLoader.load('/assets/RoomB2/wall1.webp', function(texture) {
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
     texture.repeat.set(4, 2); // Tile across wall
@@ -201,7 +201,7 @@ function createBaseWalls(thickness) {
   });
 
   // Load wall2 texture for left/right walls
-  const wall2Texture = textureLoader.load('/assets/RoomB2/wall2.png', function(texture) {
+  const wall2Texture = textureLoader.load('/assets/RoomB2/wall2.webp', function(texture) {
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
     texture.repeat.set(4, 2); // Tile across wall
@@ -395,7 +395,7 @@ function placeNFTsOnWalls() {
   console.log('Analyzing NFT dimensions to separate landscape/portrait...');
 
   nftFiles.forEach((filename, index) => {
-    const imgPath = `/assets/RoomB2/${filename}.png`;
+    const imgPath = `/assets/RoomB2/${filename}.webp`;
     const img = new Image();
 
     img.onload = function() {
@@ -1101,7 +1101,7 @@ function addMixedDecorationsToWalls() {
       if (position) {
         // Load the actual texture
         textureLoader.load(
-          `/assets/${filename}.png`,
+          `/assets/${filename}.webp`,
           function(tex) {
             tex.colorSpace = THREE.SRGBColorSpace;
 
@@ -1130,7 +1130,7 @@ function addMixedDecorationsToWalls() {
           const tryPos = findUnoccupiedPosition(tryWall, frameWidth, frameHeight, minHeight, maxHeight);
           if (tryPos) {
             textureLoader.load(
-              `/assets/${filename}.png`,
+              `/assets/${filename}.webp`,
               function(tex) {
                 tex.colorSpace = THREE.SRGBColorSpace;
                 const artMaterial = new THREE.MeshBasicMaterial({
@@ -1165,7 +1165,7 @@ function addMixedDecorationsToWalls() {
     };
 
     // Start loading the image to get dimensions
-    img.src = `/assets/${filename}.png`;
+    img.src = `/assets/${filename}.webp`;
   }
 
   // Start loading NFTs (multiple concurrent loaders for faster loading)

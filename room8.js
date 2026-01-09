@@ -780,7 +780,7 @@ function createShaft() {
   // Floor (bottom of shaft) with hieroglyphics texture
   const floorGeometry = new THREE.CircleGeometry(cfg.baseRadius, 32);
   const textureLoader = new THREE.TextureLoader();
-  const floorTexture = textureLoader.load('/assets/Room8/floor.png', (texture) => {
+  const floorTexture = textureLoader.load('/assets/Room8/floor.webp', (texture) => {
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
     texture.repeat.set(2, 2);  // Tile the texture
@@ -1111,7 +1111,7 @@ function createWallNFTs() {
     for (let s = 0; s < perRing; s++) {
       const angle = (s / perRing) * Math.PI * 2;  // Angle around circle
       const filename = room8NftFiles[count];
-      const nftUrl = `/assets/Room8/${filename}.png`;
+      const nftUrl = `/assets/Room8/${filename}.webp`;
 
       // Create a pivot group at the center
       const pivot = new THREE.Group();
