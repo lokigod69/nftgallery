@@ -73,7 +73,8 @@ camera.rotation.y = Math.PI;  // Face forward (toward +Z where the platforms and
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.outputEncoding = THREE.sRGBEncoding;
+// Modern Three.js uses outputColorSpace instead of outputEncoding
+// Removed deprecated: renderer.outputEncoding = THREE.sRGBEncoding;
 document.body.appendChild(renderer.domElement);
 
 const controls = new PointerLockControls(camera, document.body);
