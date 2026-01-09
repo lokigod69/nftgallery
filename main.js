@@ -284,7 +284,8 @@ function createNFT(index, position, rotation) {
   loader.load(
     nftUrl,
     (tex) => {
-      tex.encoding = THREE.LinearEncoding;
+      // Modern Three.js uses colorSpace instead of encoding
+      // Removed deprecated: tex.encoding = THREE.LinearEncoding;
       const picturePlane = new THREE.Mesh(
         new THREE.PlaneGeometry(pictureWidth, pictureHeight),
         new THREE.MeshBasicMaterial({
@@ -395,7 +396,8 @@ function createDivider() {
     loader.load(
       nftUrl,
       (tex) => {
-        tex.encoding = THREE.LinearEncoding;
+        // Modern Three.js uses colorSpace instead of encoding
+        // Removed deprecated: tex.encoding = THREE.LinearEncoding;
         const picturePlane = new THREE.Mesh(
           new THREE.PlaneGeometry(pictureWidth, pictureHeight),
           new THREE.MeshBasicMaterial({

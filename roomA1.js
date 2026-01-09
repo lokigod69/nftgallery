@@ -196,7 +196,8 @@ function createMixedFloor() {
     // Instead of repeating the whole texture 10x10 times, we'll use a smaller repeat
     // to make the individual tiles more visible for our mosaic pattern
     texture.repeat.set(12, 12);
-    texture.encoding = THREE.sRGBEncoding;
+    // Modern Three.js uses colorSpace instead of encoding
+    // Removed deprecated: texture.encoding = THREE.sRGBEncoding;
     console.log('Wood floor 2 texture loaded successfully');
   }, undefined, function(error) {
     console.error('Error loading wood floor 2 texture:', error);
@@ -207,7 +208,8 @@ function createMixedFloor() {
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
     texture.repeat.set(12, 12);
-    texture.encoding = THREE.sRGBEncoding;
+    // Modern Three.js uses colorSpace instead of encoding
+    // Removed deprecated: texture.encoding = THREE.sRGBEncoding;
     console.log('Wood floor 1 texture loaded successfully');
   }, undefined, function(error) {
     console.error('Error loading wood floor 1 texture:', error);
@@ -403,7 +405,8 @@ function addArtworkToWalls() {
   // Preload all NFT images
   for (const filename of nftFiles) {
     const texture = textureLoader.load(getTextureUrl(filename), function(tex) {
-      tex.encoding = THREE.sRGBEncoding;
+      // Modern Three.js uses colorSpace instead of encoding
+      // Removed deprecated: tex.encoding = THREE.sRGBEncoding;
       console.log(`Loaded NFT texture: ${filename}`);
     }, undefined, function(error) {
       console.error(`Error loading NFT texture ${filename}:`, error);

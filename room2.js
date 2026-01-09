@@ -60,7 +60,8 @@ const clock = new THREE.Clock();
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.outputEncoding = THREE.LinearEncoding;
+// Modern Three.js uses outputColorSpace instead of outputEncoding
+// Removed deprecated: renderer.outputEncoding = THREE.LinearEncoding;
 document.body.appendChild(renderer.domElement);
 
 // ----------------------------------------------------------------------
@@ -307,7 +308,8 @@ function createNFT(index, position, rotation) {
   loader.load(
     imageUrl,
     (tex) => {
-      tex.encoding = THREE.LinearEncoding;
+      // Modern Three.js uses colorSpace instead of encoding
+      // Removed deprecated: tex.encoding = THREE.LinearEncoding;
       const picturePlane = new THREE.Mesh(
         new THREE.PlaneGeometry(pictureWidth, pictureHeight),
         new THREE.MeshBasicMaterial({
@@ -367,7 +369,8 @@ function createDividerNFT(nftIndex, localX, localZ, rotationY, parentGroup) {
   loader.load(
     textureUrl,
     (tex) => {
-      tex.encoding = THREE.LinearEncoding;
+      // Modern Three.js uses colorSpace instead of encoding
+      // Removed deprecated: tex.encoding = THREE.LinearEncoding;
       const picturePlane = new THREE.Mesh(
         new THREE.PlaneGeometry(pictureWidth, pictureHeight),
         new THREE.MeshBasicMaterial({
