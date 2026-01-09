@@ -1277,9 +1277,15 @@ let mobileControls = null;
 mobileControls = initMobileControls({
   camera,
   controls,
-  sensitivity: { look: 0.04, move: 1.0 },
-  pitchLimits: { min: -Math.PI / 3, max: Math.PI / 4 },
-  autoLevel: { enabled: true, speed: 0.3, threshold: 0.1 },
+  sensitivity: { look: 0.05, move: 1.0 },
+  pitchLimits: { min: -Math.PI / 2, max: Math.PI / 2 },
+  autoLevel: { enabled: false, speed: 0.3, threshold: 0.1 },
+  joystickOptions: {
+    color: 'white',
+    size: 120,
+    moveDeadZone: 0.3,
+    lookDeadZone: 0.0
+  },
   onInteract: (raycaster) => {
     const intersects = raycaster.intersectObjects(picturePlanes, false);
     if (intersects.length > 0) {

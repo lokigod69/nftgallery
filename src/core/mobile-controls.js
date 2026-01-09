@@ -84,6 +84,12 @@ export function initMobileControls(config) {
   // Mobile detected - notify caller
   config.onMobileDetected?.();
 
+  // Setup camera for mobile (YXZ rotation order prevents gimbal lock)
+  // MUST be inside mobile check - desktop PointerLockControls expects default rotation order
+  if (config.camera) {
+    config.camera.rotation.order = 'YXZ';
+  }
+
   // Parse configuration with defaults - OPTIMIZED for smooth controls
   const sensitivity = {
     look: config.sensitivity?.look ?? 0.05,    // Increased for more responsive camera
@@ -119,11 +125,6 @@ export function initMobileControls(config) {
   window.moveBackward = window.moveBackward || false;
   window.moveLeft = window.moveLeft || false;
   window.moveRight = window.moveRight || false;
-
-  // Setup camera for mobile (YXZ rotation order prevents gimbal lock)
-  if (config.camera) {
-    config.camera.rotation.order = 'YXZ';
-  }
 
   // Create mock controls if desktop-style controls not suitable for mobile
   // (Mobile uses direct camera manipulation, not PointerLock)

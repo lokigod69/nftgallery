@@ -437,17 +437,21 @@ const mobileControls = initMobileControls({
   camera,
   controls,
   sensitivity: {
-    look: 0.04,
+    look: 0.05,  // Increased from 0.04 to match Room 0
     move: 1.0
   },
   pitchLimits: {
-    min: -Math.PI / 3,  // -60°
-    max: Math.PI / 4    // +45°
+    min: -Math.PI / 2,  // Changed from -Math.PI / 3 to ±90° (match Room 0)
+    max: Math.PI / 2    // Changed from Math.PI / 4 to ±90° (match Room 0)
   },
   autoLevel: {
-    enabled: true,
+    enabled: false,  // CRITICAL: Disabled - was causing camera fighting
     speed: 0.3,
     threshold: 0.1
+  },
+  joystickOptions: {
+    moveDeadZone: 0.3,  // Changed from 0.15 to match Room 0
+    lookDeadZone: 0.0   // Changed from 0.08 to match Room 0 (disabled)
   },
   onJump: () => {
     // Tap left joystick to jump
@@ -755,10 +759,10 @@ function animate() {
     // Store previous position before movement
     prevPosition.copy(player.position);
 
-    // Apply mobile speed scaling: reduce to 30% on mobile for better control
+    // Apply mobile speed scaling: reduce to 50% on mobile for better control (middle ground)
     const isMobileActive = mobileControls && mobileControls.enabled;
     const baseSpeed = MOVEMENT_CONFIG.getEffectiveSpeed('room1');
-    const effectiveSpeed = isMobileActive ? baseSpeed * 0.3 : baseSpeed;
+    const effectiveSpeed = isMobileActive ? baseSpeed * 0.5 : baseSpeed;
     const speedDelta = effectiveSpeed * delta;
     velocity.x = 0;
     velocity.z = 0;
