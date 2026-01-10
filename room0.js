@@ -683,8 +683,9 @@ function animate() {
   });
   
   if (controls.isLocked === true) {
-    // Get player object (camera parent in PointerLockControls)
-    const player = controls.getObject();
+    // Get player object - on desktop it's the PointerLockControls yaw object,
+    // on mobile we use the camera directly
+    const player = isMobile ? camera : controls.getObject();
 
     // Handle jumping and gravity
     if (isMobile) {
