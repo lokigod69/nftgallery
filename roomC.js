@@ -76,6 +76,8 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   1000
 );
+// Set rotation order to YXZ to prevent gimbal lock with PointerLockControls
+camera.rotation.order = 'YXZ';
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -85,6 +87,11 @@ document.body.appendChild(renderer.domElement);
 // Controls
 // ============================================
 const controls = new PointerLockControls(camera, document.body);
+
+// Set pitch limits to prevent gimbal lock (polar angles)
+controls.minPolarAngle = Math.PI * 0.05;  // Can look almost straight up (9°)
+controls.maxPolarAngle = Math.PI * 0.95;  // Can look almost straight down (171°)
+
 scene.add(controls.getObject());
 
 let moveForward = false, moveBackward = false;

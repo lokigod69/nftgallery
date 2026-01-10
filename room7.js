@@ -68,6 +68,8 @@ scene.background = new THREE.Color(0x000000);  // Original black background
 // Spawn position: on spawn platform
 const spawnY = ROOM7_CONFIG.platformHeight + ROOM7_CONFIG.platformThickness / 2 + eyeHeight;
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+// Set rotation order to YXZ to prevent gimbal lock with PointerLockControls
+camera.rotation.order = 'YXZ';
 camera.position.set(0, spawnY, ROOM7_CONFIG.spawnZ);
 camera.rotation.y = Math.PI;  // Face forward (toward +Z where the platforms and portal are)
 
@@ -78,6 +80,11 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
 const controls = new PointerLockControls(camera, document.body);
+
+// Set pitch limits to prevent gimbal lock (polar angles)
+controls.minPolarAngle = Math.PI * 0.05;  // Can look almost straight up (9°)
+controls.maxPolarAngle = Math.PI * 0.95;  // Can look almost straight down (171°)
+
 scene.add(controls.getObject());
 
 document.addEventListener('click', () => {

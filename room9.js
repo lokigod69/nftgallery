@@ -376,6 +376,8 @@ scene.background = new THREE.Color(0x0a0f1a); // Deep midnight blue
 scene.fog = new THREE.Fog(0x0a0f1a, 18, 40);
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+// Set rotation order to YXZ to prevent gimbal lock with PointerLockControls
+camera.rotation.order = 'YXZ';
 // Entrance position (left edge, middle of room)
 const entranceX = -ROOM9_CONFIG.roomSize / 2 + 3;
 const entranceZ = 0;
@@ -385,6 +387,11 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
 const controls = new PointerLockControls(camera, document.body);
+
+// Set pitch limits to prevent gimbal lock (polar angles)
+controls.minPolarAngle = Math.PI * 0.05;  // Can look almost straight up (9°)
+controls.maxPolarAngle = Math.PI * 0.95;  // Can look almost straight down (171°)
+
 scene.add(controls.getObject());
 
 // CRITICAL: Set camera local position to (0,0,0) so it doesn't orbit when rotating

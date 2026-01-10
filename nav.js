@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Section: Dome
     { type: 'header', text: 'Dome' },
-    { href: 'roomA1.html', text: 'Dome 1', indent: true },
+    { href: 'roomA.html', text: 'Dome 1', indent: true },
 
     // Section: Box
     { type: 'header', text: 'Box' },

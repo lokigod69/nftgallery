@@ -76,6 +76,8 @@ scene.background = new THREE.Color(0x000510); // Deep space blue-black
 scene.fog = new THREE.Fog(0x000510, 30, SPHERE_RADIUS * 0.9);
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+// Set rotation order to YXZ to prevent gimbal lock with PointerLockControls
+camera.rotation.order = 'YXZ';
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -89,6 +91,14 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 
 const controls = new PointerLockControls(camera, document.body);
+
+// Set pitch limits to prevent gimbal lock (polar angles)
+// These limit how far up/down the user can look
+// minPolarAngle: 0 = look straight up, Math.PI = look straight down
+// Limit to prevent reaching ±90° pitch where gimbal lock occurs
+controls.minPolarAngle = Math.PI * 0.05;  // Can look almost straight up (9°)
+controls.maxPolarAngle = Math.PI * 0.95;  // Can look almost straight down (171°)
+
 scene.add(controls.getObject());
 
 // CRITICAL: Camera must be at (0,0,0) local position within yaw object
@@ -1399,35 +1409,9 @@ function animate() {
       });
     }
 
-    // B. Collect Hive Tile candidates
-    for (const hiveTile of hiveTileData) {
-      const hdx = playerPos.x - hiveTile.position.x;
-      const hdz = playerPos.z - hiveTile.position.z;
-      const hDist = Math.sqrt(hdx * hdx + hdz * hdz);
-      const hiveTileFloorY = hiveTile.topY + PLAYER_HEIGHT;
-
-      if (hDist < hiveTile.radius) {
-        // CRITICAL: Hard floor constraint for hive tiles
-        // Prevent falling through individual tiles
-        if (playerPos.y < hiveTileFloorY) {
-          playerPos.y = hiveTileFloorY;
-          velocity.y = 0;
-          canJump = true;
-          grounded = true;
-          lastSafePosition.copy(playerPos);
-        }
-
-        potentialGrounds.push({
-          targetY: hiveTileFloorY,
-          type: 'hive'
-        });
-      } else if (hDist < hiveTile.radius + 0.1) {
-        potentialGrounds.push({
-          targetY: hiveTileFloorY,
-          type: 'hive'
-        });
-      }
-    }
+    // B. Hive tiles are decorative - no separate collision needed
+    // They sit on the main platform, which handles ground collision
+    // Removing per-tile collision prevents jitter from height differences
 
     // C. Collect Floating Platform candidates
     for (const platform of platforms) {

@@ -461,6 +461,8 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0a0a0f); // Dark background, no blinding white
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+// Set rotation order to YXZ to prevent gimbal lock with PointerLockControls
+camera.rotation.order = 'YXZ';
 camera.position.set(0, eyeHeight, -5);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -469,6 +471,11 @@ renderer.outputColorSpace = THREE.SRGBColorSpace; // Use proper color space
 document.body.appendChild(renderer.domElement);
 
 const controls = new PointerLockControls(camera, document.body);
+
+// Set pitch limits to prevent gimbal lock (polar angles)
+controls.minPolarAngle = Math.PI * 0.05;  // Can look almost straight up (9°)
+controls.maxPolarAngle = Math.PI * 0.95;  // Can look almost straight down (171°)
+
 scene.add(controls.getObject());
 
 document.addEventListener('click', () => {

@@ -309,6 +309,8 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   1000
 );
+// Set rotation order to YXZ to prevent gimbal lock with PointerLockControls
+camera.rotation.order = 'YXZ';
 
 // Define safe spawn positions that are away from NFTs and walls
 const spawnPositions = {
@@ -341,6 +343,10 @@ document.body.appendChild(renderer.domElement);
 // Controls & Movement Setup
 // ----------------------------------------------------------------------
 const controls = new PointerLockControls(camera, document.body);
+
+// Set pitch limits to prevent gimbal lock (polar angles)
+controls.minPolarAngle = Math.PI * 0.05;  // Can look almost straight up (9°)
+controls.maxPolarAngle = Math.PI * 0.95;  // Can look almost straight down (171°)
 
 // Centralized click handler to prevent conflicts
 function handleClick(event) {

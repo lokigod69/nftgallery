@@ -29,6 +29,9 @@ export function initScene(options = {}) {
   const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
   camera.position.set(spawnPosition.x, spawnPosition.y, spawnPosition.z);
 
+  // Set rotation order to YXZ to prevent gimbal lock with PointerLockControls
+  camera.rotation.order = 'YXZ';
+
   // Create renderer with sRGB encoding
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -39,6 +42,11 @@ export function initScene(options = {}) {
   const controls = new PointerLockControls(camera, document.body);
   scene.add(controls.getObject());
   controls.getObject().position.copy(camera.position);
+
+  // Set pitch limits to prevent gimbal lock (polar angles)
+  // minPolarAngle: 0 = look straight up, Math.PI = look straight down
+  controls.minPolarAngle = Math.PI * 0.05;  // Can look almost straight up (9°)
+  controls.maxPolarAngle = Math.PI * 0.95;  // Can look almost straight down (171°)
 
   // Auto-lock on click
   document.addEventListener('click', () => {
