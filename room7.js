@@ -453,9 +453,10 @@ function generateSCurvePath() {
   const endZ = cfg.portalZ - 3;   // Last platform before end
   const pathLength = endZ - startZ;
 
-  // S-curve amplitude - reduced for jumpable distances
-  // With arc-length spacing, we can use moderate amplitude
-  const amplitude = 20;
+  // S-curve amplitude - balanced for jumpable distances without overlap
+  // Previous: 38 (too far), 20 (too close/overlapping)
+  // Middle ground: 30 units gives good spacing with jumpable distances
+  const amplitude = 30;
 
   // Target jump distance between consecutive platforms (horizontal + vertical)
   const targetJumpDistance = 5.0;
