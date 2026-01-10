@@ -1063,14 +1063,17 @@ function animate() {
     }
 
     // C. Collect Floating Platform candidates
+    // IMPORTANT: Use mesh.position.y (animated) not platform.position.y (static base)
     for (const platform of platforms) {
       const pdx = playerPos.x - platform.position.x;
       const pdz = playerPos.z - platform.position.z;
       const pHorizDist = Math.sqrt(pdx * pdx + pdz * pdz);
 
       if (pHorizDist < platform.radius) {
+        // Use the mesh's current animated Y position for accurate collision
+        const animatedY = platform.mesh.position.y;
         potentialGrounds.push({
-          targetY: platform.position.y + PLAYER_HEIGHT,
+          targetY: animatedY + PLAYER_HEIGHT,
           type: 'platform',
           mesh: platform.mesh
         });
