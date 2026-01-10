@@ -453,9 +453,10 @@ function generateSCurvePath() {
   const endZ = cfg.portalZ - 3;   // Last platform before end
   const pathLength = endZ - startZ;
 
-  // S-curve amplitude - balanced for jumpable distances without overlap
-  // With double S-curve (2 cycles), path is longer so we can use moderate amplitude
-  const amplitude = 25;
+  // S-curve amplitude - extend closer to walls for longer path and better spacing
+  // Room walls at ±50, amplitude of 32 reaches close without touching
+  // With double S-curve, this creates sufficient spacing for actual jumping
+  const amplitude = 32;
 
   // First, sample the DOUBLE S-curve densely to calculate arc length
   // Double S-curve = 2 full cycles = longer total path = better platform spacing
