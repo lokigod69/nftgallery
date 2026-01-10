@@ -618,7 +618,7 @@ const portalToRoom2 = createLinkedPortal({
   y: 2,
   z: -18,
   rotationY: -Math.PI / 4,
-  createLabel: true
+  createLabel: false
 });
 
 // Portal back to Room 0 (back-right corner) - Using standardized portal system
@@ -630,7 +630,7 @@ const portalToRoom0 = createLinkedPortal({
   y: 2,
   z: -18,
   rotationY: Math.PI / 4,
-  createLabel: true
+  createLabel: false
 });
 
 // Set up multi-portal proximity checker

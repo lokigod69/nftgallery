@@ -849,7 +849,7 @@ const portal8Obj = createLinkedPortal({
   y: portalY,
   z: ROOM7_CONFIG.portalZ,
   rotationY: 0,
-  createLabel: true
+  createLabel: false
 });
 
 const portalToRoom8 = portal8Obj.portal;
@@ -864,7 +864,7 @@ const portal6Obj = createLinkedPortal({
   y: portalY,
   z: ROOM7_CONFIG.spawnZ - 5,  // Behind spawn position (player must turn around to see it)
   rotationY: 0,  // Face +Z direction (toward player when they turn around)
-  createLabel: true
+  createLabel: false
 });
 
 const portalToRoom6 = portal6Obj.portal;
@@ -879,7 +879,7 @@ const portal0Obj = createLinkedPortal({
   y: portalY,
   z: ROOM7_CONFIG.spawnZ + 5,  // Near spawn, slightly forward
   rotationY: Math.PI / 2,  // Face toward center
-  createLabel: true
+  createLabel: false
 });
 
 const portalToRoom0 = portal0Obj.portal;

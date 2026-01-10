@@ -1176,7 +1176,7 @@ const portalToRoom2 = createLinkedPortal({
   y: 1.2,
   z: -23,
   rotationX: -Math.PI / 2,  // Flat on ground (horizontal orientation)
-  createLabel: true
+  createLabel: false
 });
 
 // Portal to Room 4 (ground portal in opposite corner)
@@ -1188,7 +1188,7 @@ const portalToRoom4Obj = createLinkedPortal({
   y: 1.2,
   z: 23,
   rotationX: -Math.PI / 2,  // Flat on ground (horizontal orientation)
-  createLabel: true
+  createLabel: false
 });
 
 // Add particle effects for Room 4 portal (preserve existing behavior)

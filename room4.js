@@ -559,7 +559,7 @@ const portalToRoom3Obj = createLinkedPortal({
   y: 3,
   z: 15,
   rotationY: 0,  // Vertical orientation
-  createLabel: true
+  createLabel: false
 });
 
 // Portal to Room 5 (vertical floating portal)
@@ -571,7 +571,7 @@ const portalToRoom5Obj = createLinkedPortal({
   y: 3,
   z: -15,
   rotationY: 0,  // Vertical orientation
-  createLabel: true
+  createLabel: false
 });
 
 // Add particle effects for Room 5 portal (preserve existing behavior)

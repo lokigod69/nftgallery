@@ -906,7 +906,7 @@ const portal10Obj = createLinkedPortal({
   y: eyeHeight,
   z: 3,  // Just beyond center chamber
   rotationY: 0,
-  createLabel: true
+  createLabel: false
 });
 
 const portalToRoom10 = portal10Obj.portal;
@@ -924,7 +924,7 @@ const portal8Obj = createLinkedPortal({
   y: eyeHeight,
   z: entranceZ,
   rotationY: Math.PI / 2,  // Face +X (toward player at entrance)
-  createLabel: true
+  createLabel: false
 });
 
 const portalToRoom8 = portal8Obj.portal;

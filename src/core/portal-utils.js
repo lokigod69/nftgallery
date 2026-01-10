@@ -137,10 +137,7 @@ export function createPortalProximityChecker(options) {
     const desc = document.getElementById(controlsId);
 
     if (distance < showDistance && distance >= triggerDistance) {
-      // Show approach message
-      if (desc) {
-        desc.textContent = `Approach portal to enter ${portalName}`;
-      }
+      // Player is near portal - no message shown (user requested removal)
     } else if (distance < triggerDistance) {
       // Trigger navigation
       hasTriggered = true;
@@ -196,11 +193,8 @@ export function createMultiPortalChecker(options) {
       const distance = camera.position.distanceTo(portal.position);
 
       if (distance < showDist && distance >= triggerDist) {
-        const desc = document.getElementById(controlsId);
-        if (desc) {
-          desc.textContent = `Approach portal to enter ${portal.name}`;
-        }
-        return; // Show message for closest portal
+        // Player is near portal - no message shown (user requested removal)
+        return;
       } else if (distance < triggerDist) {
         hasTriggered = true;
 

@@ -1612,11 +1612,10 @@ function checkPortalProximity() {
   const portalA1Position = new THREE.Vector3(5, groundLevel + eyeHeight, roomRadius - 5);
   const distanceA1 = camera.position.distanceTo(portalA1Position);
   
-  // When player is within 3 units of the Room 0 portal, show prompt
+  // When player is within 3 units of the Room 0 portal, no message shown
   if (distance < 3) {
-    document.getElementById('controls-description').textContent = 'Approach portal to return to Ocean';
-    document.getElementById('controls-description').style.display = 'block';
-    
+    // Player is near portal - no message shown (user requested removal)
+
     // When player is within 1.5 units of the portal, teleport automatically
     if (distance < 1.5) {
       console.log('Teleporting to Room 0');
@@ -1633,11 +1632,10 @@ function checkPortalProximity() {
       }, 100);
     }
   }
-  // When player is within 3 units of the Room A1 portal, show prompt
+  // When player is within 3 units of the Room A1 portal, no message shown
   else if (distanceA1 < 3) {
-    document.getElementById('controls-description').textContent = 'Approach portal to enter Open Space';
-    document.getElementById('controls-description').style.display = 'block';
-    
+    // Player is near portal - no message shown (user requested removal)
+
     // When player is within 1.5 units of the portal, teleport automatically
     if (distanceA1 < 1.5) {
       console.log('Teleporting to Room A1');

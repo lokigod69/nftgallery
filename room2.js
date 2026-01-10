@@ -600,7 +600,7 @@ const portalToRoom1 = createLinkedPortal({
   y: 2,
   z: 0,
   rotationY: 0,
-  createLabel: true
+  createLabel: false
 });
 
 // Portal to Room 3 (vertical portal in corner at NFT height)
@@ -612,7 +612,7 @@ const portalToRoom3 = createLinkedPortal({
   y: 4,
   z: -18,
   rotationY: -Math.PI / 4,  // Angled to face center of room
-  createLabel: true
+  createLabel: false
 });
 
 // Set up multi-portal proximity checker

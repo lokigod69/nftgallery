@@ -704,11 +704,10 @@ function checkPortalProximity() {
   const portalPosition = new THREE.Vector3(0, groundLevel + eyeHeight, roomLength/2 - 15);
   const distance = camera.position.distanceTo(portalPosition);
   
-  // When player is within 7 units of the portal (increased for larger room), show prompt
+  // When player is within 7 units of the portal (increased for larger room), no message shown
   if (distance < 7) {
-    document.getElementById('controls-description').textContent = 'Approach portal to return to Observatory (Room A)';
-    document.getElementById('controls-description').style.display = 'block';
-    
+    // Player is near portal - no message shown (user requested removal)
+
     // When player is within 3.5 units of the portal, teleport automatically
     if (distance < 3.5) {
       console.log('Teleporting to Room A');

@@ -1344,7 +1344,7 @@ const portal7Obj = createLinkedPortal({
   y: eyeHeight,
   z: -corridorLength + 2,
   rotationY: 0,
-  createLabel: true
+  createLabel: false
 });
 
 const portalToRoom7 = portal7Obj.portal;
@@ -1361,7 +1361,7 @@ const portal5Obj = createLinkedPortal({
   y: eyeHeight,
   z: 2,
   rotationY: Math.PI,  // Face opposite direction
-  createLabel: true
+  createLabel: false
 });
 
 const portalToRoom5 = portal5Obj.portal;

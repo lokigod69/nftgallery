@@ -665,8 +665,7 @@ function checkPortalProximity() {
   const controlsDesc = document.getElementById('controls-description');
 
   if (distance < 3.0) {
-    controlsDesc.textContent = 'Approach portal to return to Ocean Hub (Room 0)';
-    controlsDesc.style.display = 'block';
+    // Player is near portal - no message shown (user requested removal)
 
     if (distance < 1.8) {
       const loadingOverlay = document.getElementById('loading-overlay');

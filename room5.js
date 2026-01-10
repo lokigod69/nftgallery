@@ -674,7 +674,7 @@ function createAllPortals() {
     y: groundLevel + eyeHeight,
     z: roomRadius - 5,
     rotationX: 0.1,
-    createLabel: true,
+    createLabel: false,
     overrideColor: 0xaa1122,    // Deep blood red
     overrideOpacity: 0.85        // Slightly more solid
   });
@@ -689,7 +689,7 @@ function createAllPortals() {
     y: eyeHeight,
     z: -(roomRadius - 5),
     rotationX: 0.1,
-    createLabel: true,
+    createLabel: false,
     overrideColor: 0x330000,     // Very dark red (almost black)
     overrideOpacity: 0.95         // Nearly opaque
   });
@@ -735,13 +735,9 @@ function checkPortalProximity() {
   for (const portal of portalConfigs) {
     const dist = playerPos.distanceTo(portal.position);
 
-    // Show prompt when near
+    // Player near portal - no message shown (user requested removal)
     if (dist < portal.showDistance && dist >= portal.triggerDistance) {
-      const desc = document.getElementById('controls-description');
-      if (desc) {
-        desc.textContent = `Approach ${portal.name}`;
-        desc.style.display = 'block';
-      }
+      // No message displayed
     }
 
     // Trigger portal

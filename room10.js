@@ -487,7 +487,7 @@ function createTopPortal(exitPlatformPos) {
     y: portalY,
     z: exitPlatformPos.z,
     rotationY: 0,
-    createLabel: true
+    createLabel: false
   });
 
   // Add a floating "COMPLETE!" text above portal

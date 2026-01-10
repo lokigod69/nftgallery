@@ -549,7 +549,7 @@ function createHubDoors() {
       name: config.name,
       destination: config.destination,
       groundLevel: waterLevel,  // Doors sit on platform at waterLevel
-      createLabel: true
+      createLabel: false
     });
 
     // Add letter label above door if specified (e.g., "B", "C")
