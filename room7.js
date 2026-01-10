@@ -454,22 +454,21 @@ function generateSCurvePath() {
   const pathLength = endZ - startZ;
 
   // S-curve amplitude - balanced for jumpable distances without overlap
-  // Previous: 38 (too far), 20 (too close/overlapping)
-  // Middle ground: 30 units gives good spacing with jumpable distances
-  const amplitude = 30;
+  // With double S-curve (2 cycles), path is longer so we can use moderate amplitude
+  const amplitude = 25;
 
-  // Target jump distance between consecutive platforms (horizontal + vertical)
-  const targetJumpDistance = 5.0;
-
-  // First, sample the S-curve densely to calculate arc length
+  // First, sample the DOUBLE S-curve densely to calculate arc length
+  // Double S-curve = 2 full cycles = longer total path = better platform spacing
   const numSamples = 1000;
   const samplePoints = [];
 
   for (let i = 0; i <= numSamples; i++) {
     const t = i / numSamples;
     const z = startZ + t * pathLength;
-    // Single S-curve: sin(2π * t) creates: 0 → +max → 0 → -max → 0
-    const x = amplitude * Math.sin(2 * Math.PI * t);
+    // Double S-curve: sin(4π * t) creates TWO full cycles
+    // Path: 0 → +max → 0 → -max → 0 → +max → 0 → -max → 0
+    // This doubles the total path length compared to single S-curve
+    const x = amplitude * Math.sin(4 * Math.PI * t);
     samplePoints.push({ x, z, t });
   }
 
