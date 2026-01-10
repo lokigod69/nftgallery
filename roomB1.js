@@ -266,67 +266,49 @@ function placeNFTsOnWalls() {
     'ComfyUI_03231_', 'ComfyUI_03232_', 'ComfyUI_03233_', 'ComfyUI_03234_'
   ];
 
-  const minY = 10;
-  const maxY = roomHeight - 8;
-  const columns = 2;
+  const minHeight = 8;
+  const maxHeight = roomHeight - 8;
+  const wallMargin = 10;
+  const spacingBuffer = 3; // Min gap between frames
+  const maxFrameDimension = 10; // Smaller frames to fit more NFTs without overlap
+  const minFrameDimension = 6;
+  const wallTypes = ['front', 'back', 'left', 'right'];
   const nftsPerWall = 15;
-  const wallMargin = 15;
-  const spacingBuffer = 2; // Min gap between frames
-  const defaultFrameSize = 12; // Default size (updated when image loads)
 
-  // Position registry for collision detection
+  // Position registry for collision detection (same as Room B)
   const positionRegistry = { front: [], back: [], left: [], right: [] };
 
-  const walls = [
-    { name: 'front', pos: new THREE.Vector3(0, 0, roomLength/2),  normal: new THREE.Vector3(0, 0, -1), width: roomWidth },
-    { name: 'back',  pos: new THREE.Vector3(0, 0, -roomLength/2), normal: new THREE.Vector3(0, 0, 1),  width: roomWidth },
-    { name: 'left',  pos: new THREE.Vector3(-roomWidth/2, 0, 0),  normal: new THREE.Vector3(1, 0, 0),  width: roomLength },
-    { name: 'right', pos: new THREE.Vector3(roomWidth/2, 0, 0),   normal: new THREE.Vector3(-1, 0, 0), width: roomLength }
-  ];
-
-  function getGridPosition(wall, index, totalOnWall) {
-    const col = index % columns;
-    const row = Math.floor(index / columns);
-    const actualRows = Math.ceil(totalOnWall / columns);
-    const usableWidth = wall.width - (wallMargin * 2);
-    const usableHeight = maxY - minY;
-    const colSpacing = usableWidth / (columns + 1);
-    const rowSpacing = usableHeight / (actualRows + 1);
-    const xPos = -wall.width/2 + wallMargin + colSpacing * (col + 1);
-    const yPos = minY + rowSpacing * (row + 1);
-    return { x: xPos, y: yPos };
-  }
-
-  function calculateFrameSize(aspectRatio) {
-    const maxDim = 14;
-    if (aspectRatio > 1.5) {
-      return { width: maxDim, height: maxDim / aspectRatio };
-    } else if (aspectRatio < 0.67) {
-      return { width: maxDim * aspectRatio, height: maxDim };
-    } else {
-      const avgDim = 12;
-      return {
-        width: avgDim * Math.sqrt(aspectRatio),
-        height: avgDim / Math.sqrt(aspectRatio)
-      };
+  // Get wall dimensions helper
+  function getWallDimensions(wallType) {
+    switch(wallType) {
+      case 'front':
+      case 'back':
+        return { width: roomWidth, height: roomHeight };
+      case 'left':
+      case 'right':
+        return { width: roomLength, height: roomHeight };
+      default:
+        return { width: 0, height: 0 };
     }
   }
 
-  function isPositionOccupied(wallName, centerX, centerY, width, height) {
+  // Check if position is occupied
+  function isPositionOccupied(wallType, centerX, centerY, width, height) {
     const rect1 = {
       left: centerX - width / 2 - spacingBuffer,
       right: centerX + width / 2 + spacingBuffer,
       top: centerY - height / 2 - spacingBuffer,
       bottom: centerY + height / 2 + spacingBuffer
     };
-    return positionRegistry[wallName].some(rect2 => {
+    return positionRegistry[wallType].some(rect2 => {
       return !(rect1.right < rect2.left || rect1.left > rect2.right ||
                rect1.bottom < rect2.top || rect1.top > rect2.bottom);
     });
   }
 
-  function registerPosition(wallName, centerX, centerY, width, height) {
-    positionRegistry[wallName].push({
+  // Register occupied position
+  function registerOccupiedPosition(wallType, centerX, centerY, width, height) {
+    positionRegistry[wallType].push({
       left: centerX - width / 2 - spacingBuffer,
       right: centerX + width / 2 + spacingBuffer,
       top: centerY - height / 2 - spacingBuffer,
@@ -334,132 +316,125 @@ function placeNFTsOnWalls() {
     });
   }
 
-  function findNearbyPosition(wallName, basePos, frameSize, maxOffset = 3) {
-    const attempts = [
-      basePos,
-      { x: basePos.x + maxOffset, y: basePos.y },
-      { x: basePos.x - maxOffset, y: basePos.y },
-      { x: basePos.x, y: basePos.y + maxOffset },
-      { x: basePos.x, y: basePos.y - maxOffset }
-    ];
+  // Find unoccupied position using random placement (same as Room B)
+  function findUnoccupiedPosition(wallType, itemWidth, itemHeight) {
+    const wallDimensions = getWallDimensions(wallType);
+    let attempts = 0;
+    const maxAttempts = 100;
 
-    for (const pos of attempts) {
-      if (!isPositionOccupied(wallName, pos.x, pos.y, frameSize.width, frameSize.height)) {
-        return pos;
+    while (attempts < maxAttempts) {
+      attempts++;
+
+      // Generate random position within wall bounds
+      const buffer = itemWidth * 0.5;
+      const randomX = Math.random() * (wallDimensions.width - (itemWidth + buffer * 2) - wallMargin * 2)
+                      - wallDimensions.width/2 + itemWidth/2 + buffer + wallMargin;
+
+      const randomY = Math.random() * (maxHeight - minHeight - itemHeight) + minHeight + itemHeight/2;
+
+      if (!isPositionOccupied(wallType, randomX, randomY, itemWidth, itemHeight)) {
+        registerOccupiedPosition(wallType, randomX, randomY, itemWidth, itemHeight);
+        return { x: randomX, y: randomY };
       }
     }
-    return basePos;
+
+    console.warn(`Could not find unoccupied position for ${wallType} wall after ${maxAttempts} attempts`);
+    return null;
   }
 
-  let nftIndex = 0;
+  // Place frame on wall (adapted from Room B)
+  function placeFrameOnWall(wallType, placeholderMaterial, upgradePromise, frameWidth, frameHeight, position, textureUrl, nftIndex) {
+    // Determine wall position and orientation
+    let wallX, wallZ, rotationY;
+    switch(wallType) {
+      case 'front':
+        wallX = 0; wallZ = roomLength/2 - 0.3; rotationY = 0;
+        break;
+      case 'back':
+        wallX = 0; wallZ = -roomLength/2 + 0.3; rotationY = Math.PI;
+        break;
+      case 'left':
+        wallX = -roomWidth/2 + 0.3; wallZ = 0; rotationY = Math.PI / 2;
+        break;
+      case 'right':
+        wallX = roomWidth/2 - 0.3; wallZ = 0; rotationY = -Math.PI / 2;
+        break;
+    }
 
-  walls.forEach((wall) => {
-    const nftsOnThisWall = Math.min(nftsPerWall, nftFiles.length - nftIndex);
+    // Calculate final position based on wall orientation
+    let finalX, finalZ;
+    if (wallType === 'front' || wallType === 'back') {
+      finalX = position.x;
+      finalZ = 0;
+    } else {
+      finalX = 0;
+      finalZ = position.x;
+    }
 
-    for (let i = 0; i < nftsOnThisWall && nftIndex < nftFiles.length; i++) {
-      const filename = nftFiles[nftIndex];
-      const imgPath = `/assets/RoomB1/${filename}.webp`;
-      const gridIndex = nftIndex;
-      const currentWall = wall;
+    // Create frame backing
+    const frameBackGeometry = new THREE.BoxGeometry(frameWidth + 0.6, frameHeight + 0.6, 0.2);
+    const frameBackMat = new THREE.MeshStandardMaterial({
+      color: 0x222222,
+      roughness: 0.8,
+      metalness: 0.2
+    });
+    const frameBack = new THREE.Mesh(frameBackGeometry, frameBackMat);
+    frameBack.position.set(wallX + finalX, position.y, wallZ + finalZ);
+    frameBack.rotation.y = rotationY;
+    frameBack.castShadow = true;
+    scene.add(frameBack);
 
-      // STEP 1: Calculate position using DEFAULT size (before image loads)
-      const basePos = getGridPosition(currentWall, i, nftsOnThisWall);
-      const defaultSize = { width: defaultFrameSize, height: defaultFrameSize };
+    // Create artwork with placeholder material
+    const artGeometry = new THREE.PlaneGeometry(frameWidth, frameHeight);
+    const artwork = new THREE.Mesh(artGeometry, placeholderMaterial);
 
-      // Check collisions with default size
-      let finalPos = basePos;
-      if (isPositionOccupied(currentWall.name, basePos.x, basePos.y, defaultSize.width, defaultSize.height)) {
-        finalPos = findNearbyPosition(currentWall.name, basePos, defaultSize, 3);
-      }
-      registerPosition(currentWall.name, finalPos.x, finalPos.y, defaultSize.width, defaultSize.height);
+    // Position just in front of frame backing
+    let zOffset = 0, xOffset = 0;
+    if (rotationY === 0) zOffset = -0.15;
+    else if (rotationY === Math.PI) zOffset = 0.15;
+    else if (rotationY === Math.PI / 2) xOffset = 0.15;
+    else if (rotationY === -Math.PI / 2) xOffset = -0.15;
 
-      // STEP 2: Get placeholder material IMMEDIATELY
-      const { placeholderMaterial, upgradePromise } = progressiveLoader.loadWithPlaceholder(imgPath, {
+    artwork.position.set(wallX + finalX + xOffset, position.y, wallZ + finalZ + zOffset);
+    artwork.rotation.y = rotationY;
+    artwork.userData = { isNFT: true, index: nftIndex, imageUrl: textureUrl };
+    scene.add(artwork);
+    picturePlanes.push(artwork);
+
+    // Upgrade to full-res when ready
+    upgradePromise.then((fullResMaterial) => {
+      artwork.material = fullResMaterial;
+      artwork.material.needsUpdate = true;
+    }).catch(err => {
+      console.error(`Failed to load texture for NFT ${nftIndex}:`, err);
+    });
+  }
+
+  console.log('Room B1: Placing NFTs with random placement and collision detection...');
+
+  // Place NFTs with random placement (same approach as Room B)
+  nftFiles.forEach((filename, index) => {
+    const frameSize = maxFrameDimension; // Use consistent frame size
+    const textureUrl = `/assets/RoomB1/${filename}.webp`;
+    const wallType = wallTypes[index % 4]; // Distribute across all walls
+
+    // Find unoccupied position
+    const position = findUnoccupiedPosition(wallType, frameSize, frameSize);
+
+    if (position) {
+      // Get placeholder material immediately
+      const { placeholderMaterial, upgradePromise } = progressiveLoader.loadWithPlaceholder(textureUrl, {
         side: THREE.DoubleSide
       });
 
-      // STEP 3: Create frame group with PLACEHOLDER geometry (instant, visible immediately)
-      const frameGroup = new THREE.Group();
-
-      // Frame backing with default size
-      const backingGeometry = new THREE.BoxGeometry(defaultSize.width, defaultSize.height, 0.2);
-      const backingMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 });
-      const frameBacking = new THREE.Mesh(backingGeometry, backingMaterial);
-      frameGroup.add(frameBacking);
-
-      // Plane with placeholder material
-      const planeGeometry = new THREE.PlaneGeometry(defaultSize.width * 0.95, defaultSize.height * 0.95);
-      const plane = new THREE.Mesh(planeGeometry, placeholderMaterial);
-      plane.position.z = 0.5;
-      plane.userData = { isNFT: true, index: gridIndex, imageUrl: imgPath };
-      frameGroup.add(plane);
-      picturePlanes.push(plane);
-
-      // Position on wall
-      let x = finalPos.x, y = finalPos.y, z;
-      if (currentWall.name === 'front' || currentWall.name === 'back') {
-        z = currentWall.pos.z + currentWall.normal.z * 0.25;
-      } else {
-        z = finalPos.x;
-        x = currentWall.pos.x + currentWall.normal.x * 0.25;
-      }
-
-      frameGroup.position.set(x, y, z);
-
-      // Rotate to face room
-      if (currentWall.name === 'front') frameGroup.rotation.y = 0;
-      else if (currentWall.name === 'back') frameGroup.rotation.y = Math.PI;
-      else if (currentWall.name === 'left') frameGroup.rotation.y = Math.PI / 2;
-      else if (currentWall.name === 'right') frameGroup.rotation.y = -Math.PI / 2;
-
-      // ADD TO SCENE IMMEDIATELY (placeholder visible)
-      scene.add(frameGroup);
-
-      // STEP 4: Load image asynchronously to get real dimensions
-      const img = new Image();
-      img.onload = () => {
-        try {
-          const aspectRatio = img.width / img.height;
-          const newSize = calculateFrameSize(aspectRatio);
-
-          // Only resize if dimensions differ significantly from default
-          if (Math.abs(newSize.width - defaultSize.width) > 0.5 ||
-              Math.abs(newSize.height - defaultSize.height) > 0.5) {
-
-            // Update backing geometry
-            backingGeometry.dispose();
-            const newBackingGeometry = new THREE.BoxGeometry(newSize.width, newSize.height, 0.2);
-            frameBacking.geometry = newBackingGeometry;
-
-            // Update plane geometry
-            planeGeometry.dispose();
-            const newPlaneGeometry = new THREE.PlaneGeometry(newSize.width * 0.95, newSize.height * 0.95);
-            plane.geometry = newPlaneGeometry;
-          }
-        } catch (err) {
-          console.error(`Error processing image dimensions for ${filename}:`, err);
-        }
-      };
-
-      img.onerror = () => {
-        console.warn(`Failed to load image ${filename} - using placeholder`);
-      };
-
-      img.src = imgPath;
-
-      // STEP 5: Upgrade material when texture loads
-      upgradePromise.then((fullResMaterial) => {
-        plane.material = fullResMaterial;
-        plane.material.needsUpdate = true;
-      }).catch(err => {
-        console.error(`Failed to load texture for ${filename}:`, err);
-      });
-
-      nftIndex++;
+      // Place frame on wall
+      placeFrameOnWall(wallType, placeholderMaterial, upgradePromise, frameSize, frameSize, position, textureUrl, index);
+    } else {
+      console.warn(`Skipping NFT ${index} (${filename}) - no position available`);
     }
   });
 
-  console.log(`Room B1: Placing ${nftFiles.length} NFTs in organized grid with progressive loading`);
+  console.log(`Room B1: Placed ${nftFiles.length} NFTs with random placement`);
 }
 
 function createMirrorCeiling() {

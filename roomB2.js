@@ -315,7 +315,7 @@ function createMirrorCeiling() {
 
 // Organized NFT placement with progressive loading (15 per wall, 2 columns)
 function placeNFTsOnWalls() {
-  console.log('Placing NFTs with progressive loading...');
+  console.log('Room B2: Placing NFTs with random placement and collision detection...');
 
   const progressiveLoader = new ProgressiveTextureLoader((loaded, total) => {
     console.log(`Room B2: Loaded ${loaded}/${total} NFTs`);
@@ -384,59 +384,111 @@ function placeNFTsOnWalls() {
     'Street-fashion_capture_of_a_woman_crossing_zebra_stripes_fabr_34b3d99c-065e-4f18-ab38-186e8562ab3b_0'
   ];
 
-  const nftsPerWall = 15;
-  const wallMargin = 15;
-  const minY = 10;
-  const maxY = roomHeight - 8;
-  const columns = 2;
-  const defaultFrameSize = 12;
+  const minHeight = 8;
+  const maxHeight = roomHeight - 8;
+  const wallMargin = 10;
+  const spacingBuffer = 3; // Min gap between frames
+  const maxFrameDimension = 10; // Smaller frames to fit more NFTs without overlap
+  const wallTypes = ['front', 'back', 'left', 'right'];
 
-  const wallNames = ['front', 'back', 'left', 'right'];
-  const wallDims = {
-    front: { width: roomWidth },
-    back: { width: roomWidth },
-    left: { width: roomLength },
-    right: { width: roomLength }
-  };
+  // Position registry for collision detection (same as Room B)
+  const positionRegistry = { front: [], back: [], left: [], right: [] };
 
-  // Place 60 NFTs with instant placeholders
+  // Get wall dimensions helper
+  function getWallDimensions(wallType) {
+    switch(wallType) {
+      case 'front':
+      case 'back':
+        return { width: roomWidth, height: roomHeight };
+      case 'left':
+      case 'right':
+        return { width: roomLength, height: roomHeight };
+      default:
+        return { width: 0, height: 0 };
+    }
+  }
+
+  // Check if position is occupied
+  function isPositionOccupied(wallType, centerX, centerY, width, height) {
+    const rect1 = {
+      left: centerX - width / 2 - spacingBuffer,
+      right: centerX + width / 2 + spacingBuffer,
+      top: centerY - height / 2 - spacingBuffer,
+      bottom: centerY + height / 2 + spacingBuffer
+    };
+    return positionRegistry[wallType].some(rect2 => {
+      return !(rect1.right < rect2.left || rect1.left > rect2.right ||
+               rect1.bottom < rect2.top || rect1.top > rect2.bottom);
+    });
+  }
+
+  // Register occupied position
+  function registerOccupiedPosition(wallType, centerX, centerY, width, height) {
+    positionRegistry[wallType].push({
+      left: centerX - width / 2 - spacingBuffer,
+      right: centerX + width / 2 + spacingBuffer,
+      top: centerY - height / 2 - spacingBuffer,
+      bottom: centerY + height / 2 + spacingBuffer
+    });
+  }
+
+  // Find unoccupied position using random placement (same as Room B)
+  function findUnoccupiedPosition(wallType, itemWidth, itemHeight) {
+    const wallDimensions = getWallDimensions(wallType);
+    let attempts = 0;
+    const maxAttempts = 100;
+
+    while (attempts < maxAttempts) {
+      attempts++;
+
+      // Generate random position within wall bounds
+      const buffer = itemWidth * 0.5;
+      const randomX = Math.random() * (wallDimensions.width - (itemWidth + buffer * 2) - wallMargin * 2)
+                      - wallDimensions.width/2 + itemWidth/2 + buffer + wallMargin;
+
+      const randomY = Math.random() * (maxHeight - minHeight - itemHeight) + minHeight + itemHeight/2;
+
+      if (!isPositionOccupied(wallType, randomX, randomY, itemWidth, itemHeight)) {
+        registerOccupiedPosition(wallType, randomX, randomY, itemWidth, itemHeight);
+        return { x: randomX, y: randomY };
+      }
+    }
+
+    console.warn(`Could not find unoccupied position for ${wallType} wall after ${maxAttempts} attempts`);
+    return null;
+  }
+
+  // Place NFTs with random placement (same approach as Room B)
   nftFiles.forEach((filename, index) => {
-    const wallIndex = Math.floor(index / nftsPerWall) % 4;
-    const wallName = wallNames[wallIndex];
-    const posInWall = index % nftsPerWall;
-    const wallDim = wallDims[wallName];
-
-    // Calculate grid position
-    const col = posInWall % columns;
-    const row = Math.floor(posInWall / columns);
-    const usableWidth = wallDim.width - (wallMargin * 2);
-    const usableHeight = maxY - minY;
-    const colSpacing = usableWidth / (columns + 1);
-    const actualRows = Math.ceil(nftsPerWall / columns);
-    const rowSpacing = usableHeight / (actualRows + 1);
-    const xPos = -wallDim.width / 2 + wallMargin + colSpacing * (col + 1);
-    const yPos = minY + rowSpacing * (row + 1);
-
+    const frameSize = maxFrameDimension;
     const textureUrl = `/assets/RoomB2/${filename}.webp`;
+    const wallType = wallTypes[index % 4]; // Distribute across all walls
 
-    // Get placeholder material immediately
-    const { placeholderMaterial, upgradePromise } = progressiveLoader.loadWithPlaceholder(textureUrl, {
-      side: THREE.DoubleSide
-    });
+    // Find unoccupied position
+    const position = findUnoccupiedPosition(wallType, frameSize, frameSize);
 
-    // Create frame with placeholder (instant visible)
-    placeArtFrameOnWallWithMaterial(wallName, placeholderMaterial, defaultFrameSize, defaultFrameSize, xPos, yPos);
-
-    // Upgrade when texture loads
-    upgradePromise.then((fullResMaterial) => {
-      const planes = picturePlanes.filter(p => p.userData && p.userData.imageUrl === textureUrl);
-      planes.forEach(plane => {
-        plane.material = fullResMaterial;
-        plane.material.needsUpdate = true;
+    if (position) {
+      // Get placeholder material immediately
+      const { placeholderMaterial, upgradePromise } = progressiveLoader.loadWithPlaceholder(textureUrl, {
+        side: THREE.DoubleSide
       });
-    }).catch(err => {
-      console.error(`Failed to load texture for ${filename}:`, err);
-    });
+
+      // Place frame on wall using existing function
+      placeArtFrameOnWallWithMaterial(wallType, placeholderMaterial, frameSize, frameSize, position.x, position.y, textureUrl, index);
+
+      // Upgrade when texture loads
+      upgradePromise.then((fullResMaterial) => {
+        const planes = picturePlanes.filter(p => p.userData && p.userData.imageUrl === textureUrl);
+        planes.forEach(plane => {
+          plane.material = fullResMaterial;
+          plane.material.needsUpdate = true;
+        });
+      }).catch(err => {
+        console.error(`Failed to load texture for ${filename}:`, err);
+      });
+    } else {
+      console.warn(`Skipping NFT ${index} (${filename}) - no position available`);
+    }
   });
 
   // DEFER COPPER LOADING by 2 seconds
@@ -445,7 +497,7 @@ function placeNFTsOnWalls() {
     addCopperWavePatterns();
   }, 2000);
 
-  console.log(`Room B2: Placed ${nftFiles.length} NFTs in organized grid`);
+  console.log(`Room B2: Placed ${nftFiles.length} NFTs with random placement`);
 }
 
 function addCopperWavePatterns() {
@@ -1164,7 +1216,7 @@ function addMixedDecorationsToWalls() {
 }
 
 // Function to place an art frame with a pre-created material (for progressive loading)
-function placeArtFrameOnWallWithMaterial(wallType, artMaterial, frameWidth, frameHeight, xPosition, yPosition) {
+function placeArtFrameOnWallWithMaterial(wallType, artMaterial, frameWidth, frameHeight, xPosition, yPosition, textureUrl = null, nftIndex = -1) {
   // Determine the wall position and orientation
   let wallX, wallZ, rotationY;
 
@@ -1240,6 +1292,17 @@ function placeArtFrameOnWallWithMaterial(wallType, artMaterial, frameWidth, fram
     artwork.rotation.y = rotationY + Math.PI;
   } else {
     artwork.rotation.y = rotationY;
+  }
+
+  // Add userData for NFT identification and texture upgrade tracking
+  if (textureUrl) {
+    artwork.userData = {
+      isNFT: true,
+      index: nftIndex,
+      imageUrl: textureUrl
+    };
+    // Add to picturePlanes for texture upgrade tracking
+    picturePlanes.push(artwork);
   }
 
   scene.add(artwork);

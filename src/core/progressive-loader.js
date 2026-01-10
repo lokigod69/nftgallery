@@ -119,6 +119,10 @@ export class ProgressiveTextureLoader {
       this.textureLoader.load(
         item.url,
         (texture) => {
+          // CRITICAL: Set colorSpace to SRGB for correct color display
+          // Without this, colors appear washed out or incorrect
+          texture.colorSpace = THREE.SRGBColorSpace;
+
           // PHASE 2A: Loaded - create blurred intermediate version
           const blurred = this.createBlurredVersion(texture);
           const blurredMat = new THREE.MeshBasicMaterial({
