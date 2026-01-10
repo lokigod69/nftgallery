@@ -579,7 +579,8 @@ function createDoubleSidedNFT(index, position, angle) {
         console.log(`Successfully loaded NFT texture ${index} from ${path}`);
 
         // ANTI-FLICKER: Apply best possible texture settings
-        texture.encoding = THREE.sRGBEncoding; // Correct color representation
+        // CRITICAL: Set colorSpace to SRGB for correct color display
+        texture.colorSpace = THREE.SRGBColorSpace;
         texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
         texture.minFilter = THREE.LinearFilter;
         texture.magFilter = THREE.LinearFilter;

@@ -918,6 +918,8 @@ function createNFT(index, position, rotation) {
     textureLoader.load(
       nftPath,
       function(texture) {
+        // CRITICAL: Set colorSpace to SRGB for correct color display
+        texture.colorSpace = THREE.SRGBColorSpace;
         planeMaterial.map = texture;
         planeMaterial.needsUpdate = true;
         console.log(`Successfully loaded NFT texture ${index}`);
@@ -938,6 +940,8 @@ function createNFT(index, position, rotation) {
           textureLoader.load(
             alternatePath,
             function(texture) {
+              // CRITICAL: Set colorSpace to SRGB for correct color display
+              texture.colorSpace = THREE.SRGBColorSpace;
               planeMaterial.map = texture;
               planeMaterial.needsUpdate = true;
               console.log(`Successfully loaded NFT 107 from alternate path`);

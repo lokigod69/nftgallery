@@ -484,7 +484,8 @@ function createFloatingNFT(displayIndex, position, rotation) {
       nftPath,
       function(texture) {
         // Success - use the loaded texture
-        texture.encoding = THREE.sRGBEncoding; // Correct color representation
+        // CRITICAL: Set colorSpace to SRGB for correct color display
+        texture.colorSpace = THREE.SRGBColorSpace;
         material.map = texture;
         material.needsUpdate = true;
         console.log(`Successfully loaded NFT texture ${displayIndex}`);

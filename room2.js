@@ -314,8 +314,9 @@ function createNFT(index, position, rotation) {
   loader.load(
     imageUrl,
     (tex) => {
-      // Modern Three.js uses colorSpace instead of encoding
-      // Removed deprecated: tex.encoding = THREE.LinearEncoding;
+      // CRITICAL: Set colorSpace to SRGB for correct color display
+      // Without this, colors appear washed out or too bright
+      tex.colorSpace = THREE.SRGBColorSpace;
       const picturePlane = new THREE.Mesh(
         new THREE.PlaneGeometry(pictureWidth, pictureHeight),
         new THREE.MeshBasicMaterial({
@@ -375,8 +376,9 @@ function createDividerNFT(nftIndex, localX, localZ, rotationY, parentGroup) {
   loader.load(
     textureUrl,
     (tex) => {
-      // Modern Three.js uses colorSpace instead of encoding
-      // Removed deprecated: tex.encoding = THREE.LinearEncoding;
+      // CRITICAL: Set colorSpace to SRGB for correct color display
+      // Without this, colors appear washed out or too bright
+      tex.colorSpace = THREE.SRGBColorSpace;
       const picturePlane = new THREE.Mesh(
         new THREE.PlaneGeometry(pictureWidth, pictureHeight),
         new THREE.MeshBasicMaterial({
