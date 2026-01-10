@@ -1413,6 +1413,15 @@ function animate() {
     // They sit on the main platform, which handles ground collision
     // Removing per-tile collision prevents jitter from height differences
 
+    // B2. SAFETY: Double-check we haven't somehow fallen below main platform
+    // This catches any edge cases from sphere collision or other physics
+    if (horizDist < startingPlatform.radius && playerPos.y < mainPlatformFloorY - 0.1) {
+      playerPos.y = mainPlatformFloorY;
+      velocity.y = 0;
+      canJump = true;
+      grounded = true;
+    }
+
     // C. Collect Floating Platform candidates
     for (const platform of platforms) {
       const pdx = playerPos.x - platform.position.x;
