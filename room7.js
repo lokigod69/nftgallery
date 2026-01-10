@@ -454,9 +454,9 @@ function generateSCurvePath() {
   const pathLength = endZ - startZ;
 
   // S-curve amplitude - extend closer to walls for longer path and better spacing
-  // Room walls at ±50, amplitude of 32 reaches close without touching
+  // Room walls at ±50, amplitude of 38 reaches close without touching
   // With double S-curve, this creates sufficient spacing for actual jumping
-  const amplitude = 32;
+  const amplitude = 38;
 
   // First, sample the DOUBLE S-curve densely to calculate arc length
   // Double S-curve = 2 full cycles = longer total path = better platform spacing
