@@ -67,6 +67,11 @@ let picturePlanes = [];
 // Create controls
 const controls = new PointerLockControls(camera, document.body);
 
+// Set pitch limits to prevent gimbal lock (polar angles)
+// These limit how far up/down the user can look
+controls.minPolarAngle = Math.PI * 0.05;  // Can look almost straight up (9°)
+controls.maxPolarAngle = Math.PI * 0.95;  // Can look almost straight down (171°)
+
 scene.add(controls.getObject());
 
 // Key handlers
@@ -128,13 +133,8 @@ window.addEventListener('resize', function () {
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
   
-  // Update mirror camera when window is resized
-  if (mirrorCubeRenderTarget) {
-    mirrorCubeRenderTarget.setSize(
-      window.innerWidth * window.devicePixelRatio,
-      window.innerHeight * window.devicePixelRatio
-    );
-  }
+  // Note: mirrorCubeRenderTarget must stay square (cube maps require square faces)
+  // Keep it at its original 1024x1024 size - no resize needed
 });
 
 // ----------------------------------------------------------------------
@@ -465,10 +465,10 @@ function placeNFTsOnWalls() {
 function createMirrorCeiling() {
   // Create a dynamic cube render target with HDR format for better reflections
   const cubeRenderTarget = new THREE.WebGLCubeRenderTarget(1024, {
-    format: THREE.RGBFormat,
     generateMipmaps: true,
     minFilter: THREE.LinearMipmapLinearFilter,
   });
+  // Note: RGBFormat is deprecated in Three.js r152+, omitting format to use default
   
   // Create cube camera for environment mapping
   const cubeCamera = new THREE.CubeCamera(0.1, 1000, cubeRenderTarget);

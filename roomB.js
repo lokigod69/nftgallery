@@ -78,6 +78,13 @@ let picturePlanes = [];
 // Create controls
 const controls = new PointerLockControls(camera, document.body);
 
+// Set pitch limits to prevent gimbal lock (polar angles)
+// These limit how far up/down the user can look
+// minPolarAngle: 0 = look straight up, Math.PI = look straight down
+// Limit to prevent reaching ±90° pitch where gimbal lock occurs
+controls.minPolarAngle = Math.PI * 0.05;  // Can look almost straight up (9°)
+controls.maxPolarAngle = Math.PI * 0.95;  // Can look almost straight down (171°)
+
 scene.add(controls.getObject());
 
 // Key handlers
@@ -139,13 +146,8 @@ window.addEventListener('resize', function () {
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
   
-  // Update mirror camera when window is resized
-  if (mirrorCubeRenderTarget) {
-    mirrorCubeRenderTarget.setSize(
-      window.innerWidth * window.devicePixelRatio,
-      window.innerHeight * window.devicePixelRatio
-    );
-  }
+  // Note: mirrorCubeRenderTarget must stay square (cube maps require square faces)
+  // Keep it at its original 1024x1024 size - no resize needed
 });
 
 // ----------------------------------------------------------------------
@@ -366,9 +368,9 @@ function createBaseWalls(thickness) {
 }
 
 function createMirrorCeiling() {
-  // Create a dynamic cube render target with HDR format for better reflections
+  // Create a dynamic cube render target for reflections
+  // Note: RGBFormat is deprecated in Three.js r152+, omitting format to use default
   const cubeRenderTarget = new THREE.WebGLCubeRenderTarget(1024, {
-    format: THREE.RGBFormat,
     generateMipmaps: true,
     minFilter: THREE.LinearMipmapLinearFilter,
   });
@@ -968,7 +970,8 @@ function addMixedDecorationsToWalls() {
       });
 
       // Create frame with placeholder (instant, visible immediately)
-      placeArtFrameOnWallWithMaterial(wallType, placeholderMaterial, frameSize, frameSize, position.x, position.y);
+      // Pass textureUrl and index for proper tracking and texture upgrades
+      placeArtFrameOnWallWithMaterial(wallType, placeholderMaterial, frameSize, frameSize, position.x, position.y, textureUrl, index);
 
       // Upgrade to full-res when ready
       upgradePromise.then((fullResMaterial) => {
@@ -1059,7 +1062,7 @@ function addMixedDecorationsToWalls() {
 }
 
 // Function to place an art frame with a pre-created material (for progressive loading)
-function placeArtFrameOnWallWithMaterial(wallType, artMaterial, frameWidth, frameHeight, xPosition, yPosition) {
+function placeArtFrameOnWallWithMaterial(wallType, artMaterial, frameWidth, frameHeight, xPosition, yPosition, textureUrl = null, nftIndex = -1) {
   // Determine the wall position and orientation
   let wallX, wallZ, rotationY;
 
@@ -1134,6 +1137,17 @@ function placeArtFrameOnWallWithMaterial(wallType, artMaterial, frameWidth, fram
     artwork.rotation.y = rotationY + Math.PI;
   } else {
     artwork.rotation.y = rotationY;
+  }
+
+  // Add userData for NFT identification and texture upgrade tracking
+  if (textureUrl) {
+    artwork.userData = {
+      isNFT: true,
+      index: nftIndex,
+      imageUrl: textureUrl
+    };
+    // Add to picturePlanes for texture upgrade tracking
+    picturePlanes.push(artwork);
   }
 
   scene.add(artwork);
