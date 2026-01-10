@@ -31,6 +31,8 @@ scene.background = new THREE.Color(0x87ceeb); // Light blue sky background
 
 // Camera setup
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+// Set rotation order to YXZ to prevent gimbal lock with PointerLockControls
+camera.rotation.order = 'YXZ';
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
@@ -69,6 +71,9 @@ let modelLoadingError = false;
 let mirrorCubeCamera = null;
 let mirrorCubeRenderTarget = null;
 let ceilingMirror = null;
+
+// Global reference for NFT planes (for texture upgrades)
+let picturePlanes = [];
 
 // Create controls
 const controls = new PointerLockControls(camera, document.body);
