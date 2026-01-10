@@ -74,6 +74,10 @@ controls.maxPolarAngle = Math.PI * 0.95;  // Can look almost straight down (171Â
 
 scene.add(controls.getObject());
 
+// CRITICAL: Camera must be at (0,0,0) local position within yaw object
+// Otherwise rotating the camera causes it to orbit instead of rotate in place
+camera.position.set(0, 0, 0);
+
 // Key handlers
 const onKeyDown = function (event) {
   switch (event.code) {
@@ -1660,8 +1664,9 @@ function createHolePortal() {
 // Check if Player is Over the Hole
 // ----------------------------------------------------------------------
 function isOverHole() {
-  const dx = camera.position.x - holePosition.x;
-  const dz = camera.position.z - holePosition.z;
+  const playerPos = controls.getObject().position;
+  const dx = playerPos.x - holePosition.x;
+  const dz = playerPos.z - holePosition.z;
   const distance = Math.sqrt(dx * dx + dz * dz);
   return distance < holeRadius;
 }
@@ -1676,14 +1681,14 @@ function handleHoleFalling(delta) {
     if (!isFallingInHole) {
       // Start falling into the hole
       isFallingInHole = true;
-      fallStartY = camera.position.y;
+      fallStartY = controls.getObject().position.y;
       isJumping = true; // Use the existing jump/fall system
       jumpVelocity = 0; // Start with no velocity, gravity will pull down
       console.log('Falling into the hole...');
     }
 
     // Check if we've fallen far enough to trigger teleport
-    const fallDistance = fallStartY - camera.position.y;
+    const fallDistance = fallStartY - controls.getObject().position.y;
     if (fallDistance > fallDepthToTeleport && !teleportTriggered) {
       teleportTriggered = true;
       console.log('Teleporting to Ocean Room after falling', fallDistance.toFixed(1), 'units');
@@ -1970,9 +1975,9 @@ window.addEventListener('error', function(event) {
   }
 });
 
-// Initial camera position - raised height
-camera.position.set(0, groundLevel + eyeHeight, 0);
-camera.lookAt(0, groundLevel + eyeHeight, 10);
+// Initial player position - use controls.getObject() (yaw object), not camera directly
+// Camera must stay at local (0,0,0) to prevent orbiting when rotating
+controls.getObject().position.set(0, groundLevel + eyeHeight, 0);
 
 // Click handler to lock controls
 window.addEventListener('click', () => {
