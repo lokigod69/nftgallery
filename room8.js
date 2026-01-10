@@ -1572,8 +1572,16 @@ function animate() {
     if (moveForward || moveBackward) velocity.z -= direction.z * speed * delta;
     if (moveLeft || moveRight) velocity.x -= direction.x * speed * delta;
 
+    // CRITICAL: Save Y before horizontal movement
+    // PointerLockControls can affect Y when looking up/down, which causes
+    // the player to drift off moving platforms
+    const savedY = player.position.y;
+
     controls.moveRight(-velocity.x * delta);
     controls.moveForward(-velocity.z * delta);
+
+    // Restore Y after horizontal movement - only gravity/grounding should affect Y
+    player.position.y = savedY;
 
     // Keep player inside shaft bounds (radial clamp)
     const maxRadius = ROOM8_CONFIG.baseRadius - 1.0;
