@@ -141,6 +141,11 @@ const { scene, camera, renderer, controls } = initScene({
   fog: { color: 0x2a1f15, near: 20, far: 65 }  // Extended fog for better NFT visibility
 });
 
+// Reinforce gimbal lock prevention (ensure settings are applied)
+camera.rotation.order = 'YXZ';
+controls.minPolarAngle = Math.PI * 0.05;  // Can look almost straight up (9°)
+controls.maxPolarAngle = Math.PI * 0.95;  // Can look almost straight down (171°)
+
 // ----------------------------------------------------------------------
 // Lighting - Egyptian Torch/Brazier System
 // ----------------------------------------------------------------------

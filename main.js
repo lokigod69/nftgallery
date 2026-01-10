@@ -56,6 +56,11 @@ const { scene, camera, renderer, controls } = initScene({
   outputEncoding: 'Linear'
 });
 
+// Reinforce gimbal lock prevention (ensure settings are applied)
+camera.rotation.order = 'YXZ';
+controls.minPolarAngle = Math.PI * 0.05;  // Can look almost straight up (9°)
+controls.maxPolarAngle = Math.PI * 0.95;  // Can look almost straight down (171°)
+
 // Room 1 uses FogExp2 (not regular Fog)
 scene.fog = new THREE.FogExp2(0x0a0a0a, 0.02);
 

@@ -81,6 +81,11 @@ const { scene, camera, renderer, controls } = initScene({
   background: 0x000000
 });
 
+// Reinforce gimbal lock prevention (ensure settings are applied)
+camera.rotation.order = 'YXZ';
+controls.minPolarAngle = Math.PI * 0.05;  // Can look almost straight up (9°)
+controls.maxPolarAngle = Math.PI * 0.95;  // Can look almost straight down (171°)
+
 // Room 5 uses FogExp2 for subtle depth effect
 scene.fog = new THREE.FogExp2(0x000000, 0.015);
 
