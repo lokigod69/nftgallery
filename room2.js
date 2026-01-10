@@ -781,8 +781,15 @@ function handleNFTClick(event) {
     return;
   }
 
-  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  // When pointer lock is active, raycast from center of screen (crosshair)
+  // When not locked, use actual mouse position
+  if (controls.isLocked) {
+    mouse.x = 0;
+    mouse.y = 0;
+  } else {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  }
 
   raycaster.setFromCamera(mouse, camera);
   const intersects = raycaster.intersectObjects(picturePlanes, false);

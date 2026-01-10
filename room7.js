@@ -37,7 +37,7 @@ const ROOM7_CONFIG = {
   eyeHeight: 4.0,            // Raised eye height for better view of platform photos
   speed: 80.0,
   gravity: -30,
-  jumpVelocity: 14,          // Increased for longer jumps
+  jumpVelocity: 18,          // Increased for longer jumps between platforms
 
   // Spawn and portal positions
   spawnZ: -45,               // Start position (negative Z)
@@ -441,41 +441,85 @@ console.log(`✓ Added ${wallTiles.length} scattered color tiles on walls`);
 
 /**
  * Generate S-curve path positions for exactly 35 platforms
+ * Uses ARC-LENGTH spacing so platforms are evenly jumpable
  * Pattern: center → curve right → middle → curve left → center
- * Uses sine wave: x = amplitude * sin(4π * t)
- * This creates: 0 → +max → 0 → -max → 0
  */
 function generateSCurvePath() {
   const cfg = ROOM7_CONFIG;
   const positions = [];
 
   const numPlatforms = 35;  // Exactly 35 platforms
-  const startZ = cfg.spawnZ + 3;  // First platform after spawn (extended path)
-  const endZ = cfg.portalZ - 3;   // Last platform before end (extended path)
+  const startZ = cfg.spawnZ + 3;  // First platform after spawn
+  const endZ = cfg.portalZ - 3;   // Last platform before end
   const pathLength = endZ - startZ;
-  const zSpacing = pathLength / (numPlatforms - 1);  // Equal spacing
 
-  // S-curve amplitude - how far left/right the path goes
-  // Room walls are at ±49, so amplitude of 38 reaches close to walls
-  const amplitude = 38;
+  // S-curve amplitude - reduced for jumpable distances
+  // With arc-length spacing, we can use moderate amplitude
+  const amplitude = 20;
+
+  // Target jump distance between consecutive platforms (horizontal + vertical)
+  const targetJumpDistance = 5.0;
+
+  // First, sample the S-curve densely to calculate arc length
+  const numSamples = 1000;
+  const samplePoints = [];
+
+  for (let i = 0; i <= numSamples; i++) {
+    const t = i / numSamples;
+    const z = startZ + t * pathLength;
+    // Single S-curve: sin(2π * t) creates: 0 → +max → 0 → -max → 0
+    const x = amplitude * Math.sin(2 * Math.PI * t);
+    samplePoints.push({ x, z, t });
+  }
+
+  // Calculate cumulative arc lengths
+  const arcLengths = [0];
+  for (let i = 1; i < samplePoints.length; i++) {
+    const dx = samplePoints[i].x - samplePoints[i-1].x;
+    const dz = samplePoints[i].z - samplePoints[i-1].z;
+    const dist = Math.sqrt(dx * dx + dz * dz);
+    arcLengths.push(arcLengths[i-1] + dist);
+  }
+  const totalArcLength = arcLengths[arcLengths.length - 1];
+
+  // Place platforms at equal arc-length intervals
+  const arcSpacing = totalArcLength / (numPlatforms - 1);
 
   for (let i = 0; i < numPlatforms; i++) {
-    // Normalized position (0 to 1)
-    const t = i / (numPlatforms - 1);
+    const targetArcLength = i * arcSpacing;
 
-    // Z position - evenly spaced from start to end
-    const z = startZ + i * zSpacing;
+    // Binary search to find the sample point closest to target arc length
+    let low = 0, high = arcLengths.length - 1;
+    while (low < high - 1) {
+      const mid = Math.floor((low + high) / 2);
+      if (arcLengths[mid] < targetArcLength) {
+        low = mid;
+      } else {
+        high = mid;
+      }
+    }
 
-    // X position - S-curve using sine wave
-    // sin(4π * t) creates: 0 → +max → 0 → -max → 0
-    const x = amplitude * Math.sin(4 * Math.PI * t);
+    // Interpolate between low and high sample points
+    const lowArc = arcLengths[low];
+    const highArc = arcLengths[high];
+    const ratio = (highArc === lowArc) ? 0 : (targetArcLength - lowArc) / (highArc - lowArc);
+
+    const x = samplePoints[low].x + ratio * (samplePoints[high].x - samplePoints[low].x);
+    const z = samplePoints[low].z + ratio * (samplePoints[high].z - samplePoints[low].z);
 
     positions.push({ x: x, z: z, index: i });
   }
 
-  console.log(`Generated ${positions.length} platform positions in S-curve pattern`);
-  console.log(`Z-spacing: ${zSpacing.toFixed(2)} units, Platform depth: ${cfg.platformSize} units`);
-  console.log(`Amplitude: ±${amplitude} units (room walls at ±${cfg.roomSize/2})`);
+  // Log spacing info
+  if (positions.length >= 2) {
+    const dx = positions[1].x - positions[0].x;
+    const dz = positions[1].z - positions[0].z;
+    const actualSpacing = Math.sqrt(dx * dx + dz * dz);
+    console.log(`Generated ${positions.length} platform positions in S-curve pattern`);
+    console.log(`Arc-length spacing: ${arcSpacing.toFixed(2)} units between platforms`);
+    console.log(`Amplitude: ±${amplitude} units (room walls at ±${cfg.roomSize/2})`);
+  }
+
   return positions;
 }
 

@@ -170,23 +170,29 @@ controls.maxPolarAngle = Math.PI * 0.95;  // Can look almost straight down (171Â
 
 // Centralized click handler to prevent conflicts
 function handleClick(event) {
-  // If the viewer is open, the click is handled by the viewer's event listener
-  if (viewerOverlay.style.display === 'flex') return;
-  
+  // If the viewer is open, let the viewer handle clicks
+  if (nftViewer && nftViewer.isOpen()) return;
+
   // Check if we clicked on an NFT
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
-  
-  // Calculate mouse position in normalized device coordinates
-  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-  
+
+  // When pointer lock is active, raycast from center of screen (crosshair)
+  // When not locked, use actual mouse position
+  if (controls.isLocked) {
+    mouse.x = 0;
+    mouse.y = 0;
+  } else {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  }
+
   // Update the picking ray with the camera and mouse position
   raycaster.setFromCamera(mouse, camera);
-  
+
   // Calculate objects intersecting the picking ray
   const intersects = raycaster.intersectObjects(picturePlanes, false);
-  
+
   if (intersects.length > 0) {
     const object = intersects[0].object;
     if (object.userData && object.userData.isNFT && nftViewer) {
@@ -197,7 +203,7 @@ function handleClick(event) {
       return;
     }
   }
-  
+
   // If we didn't click on an NFT and controls are not locked, lock them
   // Only if the click is on the canvas element to avoid unexpected camera jumps
   if (!controls.isLocked && event.target === renderer.domElement) {
