@@ -1212,6 +1212,10 @@ function animate() {
     // Get time delta for smooth movement
     const speedDelta = speed * delta;
 
+    // CRITICAL: Save Y before horizontal movement
+    // PointerLockControls can affect Y when looking up/down
+    const savedY = player.position.y;
+
     // Apply movement in the direction the camera is facing
     if (moveForward) {
       controls.moveForward(speedDelta);
@@ -1225,6 +1229,9 @@ function animate() {
     if (moveRight) {
       controls.moveRight(speedDelta);
     }
+
+    // Restore Y after horizontal movement - only gravity/jumping should affect Y
+    player.position.y = savedY;
 
     // Handle jumping and gravity with hover zone near ceiling (use player.position)
     if (isJumping) {
