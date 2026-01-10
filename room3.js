@@ -32,11 +32,56 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { createLinkedPortal, animateLinkedPortal, createMultiPortalChecker } from './src/core/portal-utils.js';
-import { getNftUrl } from './src/core/asset-utils.js';
 import { MOVEMENT_CONFIG } from './src/core/movement-config.js';
 import { initSpeedControl } from './src/ui/speed-control.js';
 import { initMobileControls } from './src/core/mobile-controls.js';
 import { initUnifiedNFTViewer } from './src/core/nft-viewer.js';
+
+// Room3 NFT filenames (32 total)
+const ROOM3_NFTS = [
+  'ComfyUI_02929_',
+  'ComfyUI_02930_',
+  'ComfyUI_02932_',
+  'ComfyUI_02934_',
+  'ComfyUI_02935_',
+  'ComfyUI_02936_',
+  'ComfyUI_02938_',
+  'ComfyUI_02939_',
+  'ComfyUI_02940_',
+  'ComfyUI_02941_',
+  'ComfyUI_02942_',
+  'ComfyUI_02943_',
+  'ComfyUI_02944_',
+  'ComfyUI_02945_',
+  'ComfyUI_02946_',
+  'ComfyUI_02947_',
+  'ComfyUI_02949_',
+  'ComfyUI_02950_',
+  'ComfyUI_02951_',
+  'ComfyUI_02952_',
+  'ComfyUI_02953_',
+  'ComfyUI_02954_',
+  'ComfyUI_02955_',
+  'ComfyUI_02956_',
+  'ComfyUI_02957_',
+  'ComfyUI_02958_',
+  'ComfyUI_02959_',
+  'ComfyUI_02961_',
+  'ComfyUI_02962_',
+  'ComfyUI_02963_',
+  'ComfyUI_02964_',
+  'ComfyUI_02965_'
+];
+
+/**
+ * Get Room3 NFT URL by array index (0-31)
+ */
+function getRoom3NftUrl(arrayIndex) {
+  if (arrayIndex >= 0 && arrayIndex < ROOM3_NFTS.length) {
+    return `/assets/Room3/${ROOM3_NFTS[arrayIndex]}.webp`;
+  }
+  return `/assets/Room3/${ROOM3_NFTS[0]}.webp`; // Fallback
+}
 
 // ----------------------------------------------------------------------
 // Global Variables for Jump Physics
@@ -882,11 +927,11 @@ function getPositionsForShortWalls(totalWidth, numFrames) {
   return positions;
 }
 
-function createNFT(index, position, rotation) {
+function createNFT(arrayIndex, position, rotation) {
   // Calculate dimensions based on the aspect ratio of 0.564 (width:height)
   const frameHeight = 3.2; // Keep the height the same
   const frameWidth = frameHeight * 0.564; // Apply the aspect ratio
-  
+
   // Grey frame for NFTs as requested
   const frameGeometry = new THREE.BoxGeometry(frameWidth, frameHeight, 0.1);
   const frameMaterial = new THREE.MeshStandardMaterial({
@@ -903,18 +948,18 @@ function createNFT(index, position, rotation) {
   const planeHeight = 3.0; // Slightly smaller than the frame
   const planeWidth = planeHeight * 0.564; // Apply the aspect ratio
   const planeGeometry = new THREE.PlaneGeometry(planeWidth, planeHeight);
-  
-  // Create a material with the NFT texture
-  const nftPath = getNftUrl(index);
+
+  // Create a material with the NFT texture using Room3 assets
+  const nftPath = getRoom3NftUrl(arrayIndex);
   const planeMaterial = new THREE.MeshBasicMaterial({
     color: 0xffffff,
     side: THREE.DoubleSide
   });
-  
-  // Enhanced texture loading with better error handling for higher-numbered NFTs
+
+  // Enhanced texture loading with better error handling
   const loadTexture = (attempts = 0) => {
-    console.log(`Attempting to load NFT texture ${index}, attempt ${attempts + 1}`);
-    
+    console.log(`Attempting to load Room3 NFT ${arrayIndex} (${ROOM3_NFTS[arrayIndex] || 'unknown'}), attempt ${attempts + 1}`);
+
     textureLoader.load(
       nftPath,
       function(texture) {
@@ -922,52 +967,31 @@ function createNFT(index, position, rotation) {
         texture.colorSpace = THREE.SRGBColorSpace;
         planeMaterial.map = texture;
         planeMaterial.needsUpdate = true;
-        console.log(`Successfully loaded NFT texture ${index}`);
+        console.log(`Successfully loaded Room3 NFT ${arrayIndex}`);
       },
       // Progress callback
       function(xhr) {
-        console.log(`${index} loading: ${(xhr.loaded / xhr.total * 100)}%`);
+        if (xhr.total > 0) {
+          console.log(`Room3 NFT ${arrayIndex} loading: ${(xhr.loaded / xhr.total * 100).toFixed(0)}%`);
+        }
       },
       // Error callback
       function(err) {
-        console.error(`Error loading NFT texture ${index}:`, err);
-        
-        // Special handling for NFT 107 - if it fails to load from the normal path
-        if (index === 107 && attempts === 0) {
-          console.log("Trying alternate path for NFT 107");
-          // Try an alternate path or use a default texture
-          const alternatePath = getNftUrl(107); // Try WebP (unified format)
-          textureLoader.load(
-            alternatePath,
-            function(texture) {
-              // CRITICAL: Set colorSpace to SRGB for correct color display
-              texture.colorSpace = THREE.SRGBColorSpace;
-              planeMaterial.map = texture;
-              planeMaterial.needsUpdate = true;
-              console.log(`Successfully loaded NFT 107 from alternate path`);
-            },
-            undefined,
-            function(err) {
-              console.error(`Error loading NFT 107 from alternate path:`, err);
-              // Set a default color to make it visible even if texture fails
-              planeMaterial.color.set(0xaaaaaa);
-              planeMaterial.needsUpdate = true;
-              console.log("Using default color for NFT 107");
-            }
-          );
-        } else if (attempts < 3) {
-          console.log(`Retrying load for NFT texture ${index}, attempt ${attempts + 1}`);
-          setTimeout(() => loadTexture(attempts + 1), 500 * (attempts + 1)); // Increasing delay with each retry
+        console.error(`Error loading Room3 NFT ${arrayIndex}:`, err);
+
+        if (attempts < 3) {
+          console.log(`Retrying load for Room3 NFT ${arrayIndex}, attempt ${attempts + 1}`);
+          setTimeout(() => loadTexture(attempts + 1), 500 * (attempts + 1));
         } else {
           // After multiple failures, set a default color
           planeMaterial.color.set(0xaaaaaa);
           planeMaterial.needsUpdate = true;
-          console.log(`Using default color for NFT ${index} after multiple failed loading attempts`);
+          console.log(`Using default color for Room3 NFT ${arrayIndex} after multiple failed loading attempts`);
         }
       }
     );
   };
-  
+
   loadTexture();
   
   const plane = new THREE.Mesh(planeGeometry, planeMaterial);
@@ -983,7 +1007,7 @@ function createNFT(index, position, rotation) {
   // Store the plane for click detection
   plane.userData = {
     isNFT: true,
-    index: index,
+    index: arrayIndex,
     imageUrl: nftPath
   };
   picturePlanes.push(plane);
@@ -1076,58 +1100,61 @@ function createCubicStructure() {
 // ----------------------------------------------------------------------
 // Create NFTs on Walls
 // ----------------------------------------------------------------------
-// Back wall NFTs - updated NFT numbers to avoid conflicts
+// Using array indices 0-31 that map to ROOM3_NFTS filenames
+
+// Back wall NFTs - array indices 0-4
 const backWallPositions = getPositions(45, 5);
 backWallPositions.forEach((x, i) => {
-  createNFT(i + 73, new THREE.Vector3(x, 4, -24.5), new THREE.Euler(0, 0, 0));
+  createNFT(i, new THREE.Vector3(x, 4, -24.5), new THREE.Euler(0, 0, 0));
 });
 
-// Left wall NFTs - updated NFT numbers to avoid conflicts
+// Left wall NFTs - array indices 5-9
 const leftWallPositions = getPositions(45, 5);
 leftWallPositions.forEach((z, i) => {
-  createNFT(i + 78, new THREE.Vector3(-24.5, 4, -z), new THREE.Euler(0, Math.PI / 2, 0));
+  createNFT(i + 5, new THREE.Vector3(-24.5, 4, -z), new THREE.Euler(0, Math.PI / 2, 0));
 });
 
-// Right wall NFTs - updated NFT numbers to avoid conflicts
+// Right wall NFTs - array indices 10-14
 const rightWallPositions = getPositions(45, 5);
 rightWallPositions.forEach((z, i) => {
-  createNFT(i + 83, new THREE.Vector3(24.5, 4, z), new THREE.Euler(0, -Math.PI / 2, 0));
+  createNFT(i + 10, new THREE.Vector3(24.5, 4, z), new THREE.Euler(0, -Math.PI / 2, 0));
 });
 
-// Front wall NFTs - updated NFT numbers to avoid conflicts
+// Front wall NFTs - array indices 15-19
 const frontWallPositions = getPositions(45, 5);
 frontWallPositions.forEach((x, i) => {
-  createNFT(i + 88, new THREE.Vector3(-x, 4, 24.5), new THREE.Euler(0, Math.PI, 0));
+  createNFT(i + 15, new THREE.Vector3(-x, 4, 24.5), new THREE.Euler(0, Math.PI, 0));
 });
 
 // Create cubic structure with only North and South walls
 const cubicStructure = createCubicStructure();
 
-// Add NFTs to the cubic structure (3 per wall)
-// Wall 1 (North wall) NFTs - facing outward (NFTs 93-95)
+// Add NFTs to the cubic structure (3 per wall, 4 surfaces = 12 NFTs, indices 20-31)
 const wall1Positions = getPositions(cubicStructure.dimensions.longSide * 0.8, 3);
-wall1Positions.forEach((x, i) => {
-  createNFT(i + 93, new THREE.Vector3(x, 4, -cubicStructure.dimensions.shortSide/2 - 0.3), new THREE.Euler(0, Math.PI, 0));
-});
-
-// Wall 1 (North wall) NFTs - facing inward (NFTs 102-104)
-wall1Positions.forEach((x, i) => {
-  createNFT(i + 102, new THREE.Vector3(x, 4, -cubicStructure.dimensions.shortSide/2 + 0.3), new THREE.Euler(0, 0, 0));
-});
-
-// Wall 3 (South wall) NFTs - facing outward (NFTs 99-101)
 const wall3Positions = getPositions(cubicStructure.dimensions.longSide * 0.8, 3);
-wall3Positions.forEach((x, i) => {
-  createNFT(i + 99, new THREE.Vector3(-x, 4, cubicStructure.dimensions.shortSide/2 + 0.3), new THREE.Euler(0, 0, 0));
+
+// Wall 1 (North wall) NFTs - facing outward - array indices 20-22
+wall1Positions.forEach((x, i) => {
+  createNFT(i + 20, new THREE.Vector3(x, 4, -cubicStructure.dimensions.shortSide/2 - 0.3), new THREE.Euler(0, Math.PI, 0));
 });
 
-// Wall 3 (South wall) NFTs - facing inward (NFTs 105-107)
+// Wall 1 (North wall) NFTs - facing inward - array indices 23-25
+wall1Positions.forEach((x, i) => {
+  createNFT(i + 23, new THREE.Vector3(x, 4, -cubicStructure.dimensions.shortSide/2 + 0.3), new THREE.Euler(0, 0, 0));
+});
+
+// Wall 3 (South wall) NFTs - facing outward - array indices 26-28
 wall3Positions.forEach((x, i) => {
-  // For the last NFT (107), flip it to face outward by using the same rotation as the outward-facing NFTs
-  if (i === 2) { // This is NFT 107 (third in the array, index 2)
-    createNFT(i + 105, new THREE.Vector3(-x, 4, cubicStructure.dimensions.shortSide/2 + 0.3), new THREE.Euler(0, 0, 0));
+  createNFT(i + 26, new THREE.Vector3(-x, 4, cubicStructure.dimensions.shortSide/2 + 0.3), new THREE.Euler(0, 0, 0));
+});
+
+// Wall 3 (South wall) NFTs - facing inward - array indices 29-31
+wall3Positions.forEach((x, i) => {
+  // For the last NFT (31), flip it to face outward
+  if (i === 2) {
+    createNFT(i + 29, new THREE.Vector3(-x, 4, cubicStructure.dimensions.shortSide/2 + 0.3), new THREE.Euler(0, 0, 0));
   } else {
-    createNFT(i + 105, new THREE.Vector3(-x, 4, cubicStructure.dimensions.shortSide/2 - 0.3), new THREE.Euler(0, Math.PI, 0));
+    createNFT(i + 29, new THREE.Vector3(-x, 4, cubicStructure.dimensions.shortSide/2 - 0.3), new THREE.Euler(0, Math.PI, 0));
   }
 });
 
@@ -1361,10 +1388,13 @@ function animate() {
 
     if (window.moveForward || window.moveBackward) velocity.z -= direction.z * speedDelta;
     if (window.moveLeft || window.moveRight) velocity.x -= direction.x * speedDelta;
-    
+
+    // CRITICAL: Save Y before movement to prevent vertical drift when looking up/down
+    const savedY = player.position.y;
     controls.moveRight(-velocity.x * delta);
     controls.moveForward(-velocity.z * delta);
-    
+    player.position.y = savedY;
+
     // Check for collisions
     checkCollisions();
 

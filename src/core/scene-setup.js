@@ -48,6 +48,9 @@ export function initScene(options = {}) {
   controls.minPolarAngle = Math.PI * 0.05;  // Can look almost straight up (9°)
   controls.maxPolarAngle = Math.PI * 0.95;  // Can look almost straight down (171°)
 
+  // Reduce camera sensitivity for smoother look controls (default is 1.0)
+  controls.pointerSpeed = 0.5;
+
   // Auto-lock on click
   document.addEventListener('click', () => {
     if (!controls.isLocked) controls.lock();

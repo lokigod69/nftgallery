@@ -84,6 +84,9 @@ document.body.appendChild(renderer.domElement);
 
 const controls = new PointerLockControls(camera, document.body);
 
+// Reduce camera sensitivity for smoother look controls (default is 1.0)
+controls.pointerSpeed = 0.5;
+
 // Set pitch limits to prevent gimbal lock (polar angles)
 // These limit how far up/down the user can look
 // minPolarAngle: 0 = look straight up, Math.PI = look straight down
@@ -1063,17 +1066,14 @@ function animate() {
     }
 
     // C. Collect Floating Platform candidates
-    // IMPORTANT: Use mesh.position.y (animated) not platform.position.y (static base)
     for (const platform of platforms) {
       const pdx = playerPos.x - platform.position.x;
       const pdz = playerPos.z - platform.position.z;
       const pHorizDist = Math.sqrt(pdx * pdx + pdz * pdz);
 
       if (pHorizDist < platform.radius) {
-        // Use the mesh's current animated Y position for accurate collision
-        const animatedY = platform.mesh.position.y;
         potentialGrounds.push({
-          targetY: animatedY + PLAYER_HEIGHT,
+          targetY: platform.position.y + PLAYER_HEIGHT,
           type: 'platform',
           mesh: platform.mesh
         });
@@ -1125,12 +1125,8 @@ function animate() {
     }
   }
 
-  // Animate platforms - subtle floating motion
-  platformMeshes.forEach((platform, index) => {
-    const floatOffset = Math.sin(time * 0.5 + index * 0.2) * 0.15;
-    platform.position.y = platforms[index].position.y + floatOffset;
-
-    // Fade emissive intensity back to normal
+  // Fade platform emissive intensity back to normal (no floating motion - keeps collision stable)
+  platformMeshes.forEach((platform) => {
     if (platform.material.emissiveIntensity > 0.3) {
       platform.material.emissiveIntensity -= delta * 0.5;
     }
