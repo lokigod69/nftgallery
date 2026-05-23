@@ -384,6 +384,8 @@ const entranceZ = 0;
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 document.body.appendChild(renderer.domElement);
 
 const controls = new PointerLockControls(camera, document.body);
@@ -710,6 +712,7 @@ function placeNFTs(path) {
     // Start with black placeholder
     const placeholderMaterial = new THREE.MeshBasicMaterial({
       color: 0x000000,
+      toneMapped: false,
       side: THREE.DoubleSide
     });
 
@@ -758,6 +761,7 @@ function placeNFTs(path) {
           nftPlane.material.dispose();
           nftPlane.material = new THREE.MeshBasicMaterial({
             map: texture,
+            toneMapped: false,
             side: THREE.DoubleSide
           });
 

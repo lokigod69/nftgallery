@@ -215,6 +215,18 @@ export const PORTAL_STYLES = {
     description: 'Return from Room 10 to Ocean Hub'
   },
 
+  '0-7': {
+    color: PORTAL_COLORS.GOLD,
+    orientation: 'vertical',
+    size: 1.8,
+    fxType: 'hub',
+    label: {
+      from0: 'Levels',
+      from7: '← Ocean Hub'
+    },
+    description: 'Ocean hub to Levels - Rooms 7-10 gallery path'
+  },
+
   // Special connections
   'A-A1': {
     color: PORTAL_COLORS.DEEP_BLUE,

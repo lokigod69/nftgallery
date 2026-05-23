@@ -145,23 +145,20 @@ export function createHubDoor(options) {
   // 4. INNER PORTAL (the actual gateway)
   // ============================================================================
 
-  const portalGeometry = new THREE.PlaneGeometry(3, 5);
-  const portalMaterial = new THREE.MeshStandardMaterial({
+  const portalGeometry = new THREE.PlaneGeometry(2.65, 4.65);
+  const portalMaterial = new THREE.MeshBasicMaterial({
     color: portalColor,
-    emissive: portalColor,
-    emissiveIntensity: 0.5,
-    roughness: 0.3,
-    metalness: 0.2,
     side: THREE.DoubleSide,
     transparent: true,
-    opacity: 0.85
+    opacity: 0.72,
+    toneMapped: false
   });
 
   const portal = new THREE.Mesh(portalGeometry, portalMaterial);
   portal.position.set(
     0,
     groundLevel - pos.y + 0.3 + pillarHeight / 2,  // Centered vertically in frame
-    0.01  // Slightly forward to avoid z-fighting
+    -0.03
   );
   portal.layers.set(1);  // Layer 1 = excluded from water reflections
 
@@ -187,14 +184,14 @@ export function createHubDoor(options) {
   // This is where custom door textures can be applied in the future
   // For now, it's a semi-transparent overlay that can receive a texture map
 
-  const panelGeometry = new THREE.PlaneGeometry(2.8, 4.8);
+  const panelGeometry = new THREE.PlaneGeometry(2.5, 4.5);
   const panelMaterial = new THREE.MeshStandardMaterial({
     color: 0xffffff,
     roughness: 0.5,
     metalness: 0.1,
     side: THREE.DoubleSide,
     transparent: true,
-    opacity: 0.15,  // Very subtle - will become opaque when texture is added
+    opacity: 0.06,  // Very subtle - will become opaque when texture is added
     // map: null,  // Future: doorTexture goes here
     // normalMap: null  // Future: normal map for surface detail
   });
@@ -203,7 +200,7 @@ export function createHubDoor(options) {
   panel.position.set(
     0,
     groundLevel - pos.y + 0.3 + pillarHeight / 2,
-    0.02  // In front of portal, behind player interaction plane
+    -0.02
   );
   panel.userData.isTexturePanel = true;  // Mark for future texture application
   panel.layers.set(1);  // Layer 1 = excluded from water reflections

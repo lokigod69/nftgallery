@@ -24,6 +24,8 @@ const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerH
 camera.rotation.order = 'YXZ';
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
@@ -495,11 +497,7 @@ function placeNFTsOnWalls() {
     }
   });
 
-  // DEFER COPPER LOADING by 2 seconds
-  setTimeout(() => {
-    console.log('Starting copper wave patterns...');
-    addCopperWavePatterns();
-  }, 2000);
+  // Copper wave patterns removed for a cleaner Box B2 room and faster startup.
 
   console.log(`Room B2: Placed ${nftFiles.length} NFTs with random placement`);
 }
@@ -1082,6 +1080,7 @@ function addMixedDecorationsToWalls() {
 
             const artMaterial = new THREE.MeshBasicMaterial({
               map: tex,
+              toneMapped: false,
               side: THREE.DoubleSide
             });
 
@@ -1110,6 +1109,7 @@ function addMixedDecorationsToWalls() {
                 tex.colorSpace = THREE.SRGBColorSpace;
                 const artMaterial = new THREE.MeshBasicMaterial({
                   map: tex,
+                  toneMapped: false,
                   side: THREE.DoubleSide
                 });
                 placeArtFrameOnWallWithMaterial(tryWall, artMaterial, frameWidth, frameHeight, tryPos.x, tryPos.y);
@@ -1385,6 +1385,7 @@ function placeArtFrameOnWall(wallType, texture, dimensions, frameWidth, frameHei
   const artGeometry = new THREE.PlaneGeometry(frameWidth, frameHeight);
   const artMaterial = new THREE.MeshBasicMaterial({
     map: texture,
+    toneMapped: false,
     side: THREE.DoubleSide // Allow viewing from both sides to be safe
   });
   const artwork = new THREE.Mesh(artGeometry, artMaterial);
@@ -1991,4 +1992,4 @@ window.addEventListener('click', () => {
   if (!controls.isLocked) {
     controls.lock();
   }
-}); 
+});

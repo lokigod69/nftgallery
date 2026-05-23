@@ -93,8 +93,8 @@ const gravity = -30;
 const speed = 100.0;
 const textureLoader = new THREE.TextureLoader();
 
-// Water level slightly below eye level so player appears to be standing on a platform
-const waterLevel = -1.0;
+// Keep water below the platform top so doors sit on dry, visible geometry.
+const waterLevel = -1.05;
 
 // Create scene, camera and renderer
 const scene = new THREE.Scene();
@@ -111,7 +111,8 @@ camera.position.set(0, groundLevel + eyeHeight + 0.5, 0);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.5;
 document.body.appendChild(renderer.domElement);
@@ -460,7 +461,8 @@ function createSky() {
 
 // Create central floating platform with flower of life pattern
 function createPlatform() {
-  const platformGeometry = new THREE.CylinderGeometry(22, 22, 1, 64);
+  const platformHeight = 0.8;
+  const platformGeometry = new THREE.CylinderGeometry(22, 22, platformHeight, 64);
   const platformMaterial = new THREE.MeshPhysicalMaterial({
     color: 0x88ccff,
     roughness: 0.1,
@@ -471,7 +473,7 @@ function createPlatform() {
   });
 
   const platform = new THREE.Mesh(platformGeometry, platformMaterial);
-  platform.position.y = waterLevel;
+  platform.position.y = groundLevel - platformHeight / 2;
   scene.add(platform);
 
   return platform;
@@ -482,13 +484,15 @@ function createPlatform() {
 // ----------------------------------------------------------------------
 function createHubDoors() {
   const doors = [];
+  const doorRadius = 20.75;
+  const diagonalDoorRadius = doorRadius / Math.sqrt(2);
 
   // Door configurations - positioned at platform edge (radius 22), facing inward
   // Display names use Roman numerals: I, II, III, IV, V
   const doorConfigs = [
     // I - Rooms (main gallery path 1-5) - north edge
     {
-      x: 0, z: 22,
+      x: 0, z: doorRadius,
       rotation: Math.PI,
       fromRoom: '0',
       toRoom: '1',
@@ -498,7 +502,7 @@ function createHubDoors() {
     },
     // II - Dome (Room A) - northeast
     {
-      x: 15.56, z: 15.56,
+      x: diagonalDoorRadius, z: diagonalDoorRadius,
       rotation: Math.PI + Math.PI / 4,
       fromRoom: '0',
       toRoom: 'A',
@@ -508,7 +512,7 @@ function createHubDoors() {
     },
     // III - Box (Room B) - southeast
     {
-      x: 15.56, z: -15.56,
+      x: diagonalDoorRadius, z: -diagonalDoorRadius,
       rotation: Math.PI + Math.PI / 1.25,
       fromRoom: '0',
       toRoom: 'B',
@@ -518,7 +522,7 @@ function createHubDoors() {
     },
     // IV - Soon (Room C) - southwest
     {
-      x: -15.56, z: -15.56,
+      x: -diagonalDoorRadius, z: -diagonalDoorRadius,
       rotation: Math.PI - Math.PI / 1.25,
       fromRoom: '0',
       toRoom: 'C',
@@ -528,7 +532,7 @@ function createHubDoors() {
     },
     // V - Levels (Rooms 7-10) - northwest
     {
-      x: -15.56, z: 15.56,
+      x: -diagonalDoorRadius, z: diagonalDoorRadius,
       rotation: Math.PI - Math.PI / 4,
       fromRoom: '0',
       toRoom: '7',
@@ -548,7 +552,7 @@ function createHubDoors() {
       toRoom: config.toRoom,
       name: config.name,
       destination: config.destination,
-      groundLevel: waterLevel,  // Doors sit on platform at waterLevel
+      groundLevel,
       createLabel: false
     });
 
@@ -577,8 +581,8 @@ function createHubDoors() {
 
       const labelSprite = new THREE.Sprite(labelMaterial);
       labelSprite.scale.set(3, 3, 1);
-      // Position above the door (door is ~5 units tall from waterLevel)
-      labelSprite.position.set(config.x, waterLevel + 6.5, config.z);
+      // Position above the door
+      labelSprite.position.set(config.x, groundLevel + 6.5, config.z);
       scene.add(labelSprite);
     }
 
@@ -587,7 +591,7 @@ function createHubDoors() {
       ...hubDoor,
       location: {
         x: config.x,
-        y: 2.5,  // Portal activation height (center of door)
+        y: groundLevel + 2.8,
         z: config.z,
         destination: config.destination,
         name: config.name
@@ -617,7 +621,7 @@ const portalConfigs = doors.map(door => {
   const distFromCenter = Math.sqrt(doorX * doorX + doorZ * doorZ);
 
   // Move portal position just past the door (triggers quickly when entering)
-  const offsetDistance = 1.5;
+  const offsetDistance = 1.25;
   const portalX = doorX + (doorX / distFromCenter) * offsetDistance;
   const portalZ = doorZ + (doorZ / distFromCenter) * offsetDistance;
 
@@ -673,7 +677,7 @@ function animate() {
   const time = Date.now() * 0.001; // Time in seconds
   
   // Update water animation
-  if (water) {
+  if (water?.material?.uniforms?.time) {
     water.material.uniforms['time'].value += delta * 0.5;
   }
 

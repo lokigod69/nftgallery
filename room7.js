@@ -75,6 +75,8 @@ camera.rotation.y = Math.PI;  // Face forward (toward +Z where the platforms and
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 // Modern Three.js uses outputColorSpace instead of outputEncoding
 // Removed deprecated: renderer.outputEncoding = THREE.sRGBEncoding;
 document.body.appendChild(renderer.domElement);
@@ -675,8 +677,9 @@ function createWallPlacements(images) {
     const geometry = new THREE.PlaneGeometry(4, 4);
     const texture = new THREE.TextureLoader().load(textureUrl);
     texture.colorSpace = THREE.SRGBColorSpace;
-    const material = new THREE.MeshStandardMaterial({
+    const material = new THREE.MeshBasicMaterial({
       map: texture,
+      toneMapped: false,
       side: THREE.FrontSide
     });
     const plane = new THREE.Mesh(geometry, material);
@@ -699,8 +702,9 @@ function createWallPlacements(images) {
     const geometry = new THREE.PlaneGeometry(4, 4);
     const texture = new THREE.TextureLoader().load(textureUrl);
     texture.colorSpace = THREE.SRGBColorSpace;
-    const material = new THREE.MeshStandardMaterial({
+    const material = new THREE.MeshBasicMaterial({
       map: texture,
+      toneMapped: false,
       side: THREE.FrontSide
     });
     const plane = new THREE.Mesh(geometry, material);

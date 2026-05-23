@@ -62,6 +62,8 @@ const clock = new THREE.Clock();
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 // Modern Three.js uses outputColorSpace instead of outputEncoding
 // Removed deprecated: renderer.outputEncoding = THREE.LinearEncoding;
 document.body.appendChild(renderer.domElement);
@@ -321,6 +323,7 @@ function createNFT(index, position, rotation) {
         new THREE.PlaneGeometry(pictureWidth, pictureHeight),
         new THREE.MeshBasicMaterial({
           map: tex,
+          toneMapped: false,
           side: THREE.DoubleSide
         })
       );
@@ -383,6 +386,7 @@ function createDividerNFT(nftIndex, localX, localZ, rotationY, parentGroup) {
         new THREE.PlaneGeometry(pictureWidth, pictureHeight),
         new THREE.MeshBasicMaterial({
           map: tex,
+          toneMapped: false,
           side: THREE.DoubleSide
         })
       );
@@ -619,7 +623,7 @@ const portalToRoom3 = createLinkedPortal({
 
 // Set up multi-portal proximity checker
 const allPortals = [
-  { ...portalToRoom1, name: 'Room 1 (Main Gallery)', url: 'index.html',
+  { ...portalToRoom1, name: 'Room 1 (Main Gallery)', url: 'room1.html',
     position: new THREE.Vector3(0, 2, 0) },
   { ...portalToRoom3, name: 'Room 3', url: 'room3.html',
     position: new THREE.Vector3(18, 4, -18) }

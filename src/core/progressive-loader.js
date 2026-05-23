@@ -20,7 +20,7 @@ export class ProgressiveTextureLoader {
     this.onProgress = onProgress || (() => {}); // Progress callback function
     this.loadQueue = [];
     this.activeLoads = 0;
-    this.maxConcurrent = 3; // Reduced from 4 to prevent browser throttling
+    this.maxConcurrent = 2; // Keep GPU uploads smooth in dense rooms
     this.totalLoaded = 0;
     this.totalQueued = 0;
   }
@@ -88,6 +88,7 @@ export class ProgressiveTextureLoader {
       map: texture,
       transparent: true,
       opacity: 0.8,
+      toneMapped: false,
       side: config.side || THREE.FrontSide,
       ...config
     });
@@ -123,19 +124,13 @@ export class ProgressiveTextureLoader {
           // Without this, colors appear washed out or incorrect
           texture.colorSpace = THREE.SRGBColorSpace;
 
-          // PHASE 2A: Loaded - create blurred intermediate version
-          const blurred = this.createBlurredVersion(texture);
-          const blurredMat = new THREE.MeshBasicMaterial({
-            map: blurred,
-            side: item.config.side || THREE.FrontSide,
-            ...item.config
-          });
-
-          // PHASE 2B: Upgrade to full-res after brief delay
+          // Upgrade to full-res after a brief delay so the browser can render
+          // between large texture uploads.
           // This gives time for the browser to render frames between upgrades
           setTimeout(() => {
             const fullResMat = new THREE.MeshBasicMaterial({
               map: texture,
+              toneMapped: false,
               side: item.config.side || THREE.FrontSide,
               ...item.config
             });

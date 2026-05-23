@@ -90,7 +90,8 @@ controls.maxPolarAngle = Math.PI * 0.95;  // Can look almost straight down (171Â
 scene.fog = new THREE.FogExp2(0x000000, 0.015);
 
 // Room 5 specific renderer settings
-renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Softer shadows for the eclipse effect
 
@@ -468,6 +469,7 @@ function createDoubleSidedNFT(index, position, angle) {
     color: 0xffffff,
     map: fallbackTexture,
     transparent: false,
+    toneMapped: false,
     side: THREE.FrontSide, // Only render front side for performance
     depthWrite: true,
     depthTest: true

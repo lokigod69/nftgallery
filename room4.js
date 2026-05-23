@@ -97,7 +97,8 @@ controls.minPolarAngle = Math.PI * 0.05;  // Can look almost straight up (9°)
 controls.maxPolarAngle = Math.PI * 0.95;  // Can look almost straight down (171°)
 
 // Room 4 specific renderer settings
-renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.shadowMap.enabled = true;
 
 // Note: Pointer lock controls, resize handling, and overlay management
@@ -454,6 +455,7 @@ function createFloatingNFT(displayIndex, position, rotation) {
   // Create a single material that works on both sides of the plane
   const material = new THREE.MeshBasicMaterial({
     map: fallbackTexture,
+    toneMapped: false,
     side: THREE.DoubleSide, // Make the material visible from both sides
     transparent: false,     // No transparency to ensure solid rendering
     depthWrite: true        // Ensure proper depth testing

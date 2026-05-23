@@ -291,10 +291,12 @@ function createNFT(index, position, rotation) {
     (tex) => {
       // Modern Three.js uses colorSpace instead of encoding
       // Removed deprecated: tex.encoding = THREE.LinearEncoding;
+      tex.colorSpace = THREE.SRGBColorSpace;
       const picturePlane = new THREE.Mesh(
         new THREE.PlaneGeometry(pictureWidth, pictureHeight),
         new THREE.MeshBasicMaterial({
           map: tex,
+          toneMapped: false,
           side: THREE.DoubleSide
         })
       );
@@ -401,14 +403,16 @@ function createDivider() {
     loader.load(
       nftUrl,
       (tex) => {
-        // Modern Three.js uses colorSpace instead of encoding
-        // Removed deprecated: tex.encoding = THREE.LinearEncoding;
-        const picturePlane = new THREE.Mesh(
-          new THREE.PlaneGeometry(pictureWidth, pictureHeight),
-          new THREE.MeshBasicMaterial({
-            map: tex,
-            side: THREE.DoubleSide
-          })
+      // Modern Three.js uses colorSpace instead of encoding
+      // Removed deprecated: tex.encoding = THREE.LinearEncoding;
+      tex.colorSpace = THREE.SRGBColorSpace;
+      const picturePlane = new THREE.Mesh(
+        new THREE.PlaneGeometry(pictureWidth, pictureHeight),
+        new THREE.MeshBasicMaterial({
+          map: tex,
+          toneMapped: false,
+          side: THREE.DoubleSide
+        })
         );
         picturePlane.userData.isNFT = true;
         picturePlane.userData.index = nftIndex;

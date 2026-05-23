@@ -187,14 +187,10 @@ export const ASSET_CONFIG = {
  * getTextureUrl('RoomB/b1') → '/assets/RoomB/b1.webp'
  * getTextureUrl('RoomX/5') → '/assets/RoomX/5.webp'
  * getTextureUrl('nft42') → '/assets/nft42.webp'
- * getTextureUrl('wood_floor1') → '/assets/wood_floor1.jpeg'
- * getTextureUrl('wood_floor2') → '/assets/wood_floor2.jpeg'
+ * getTextureUrl('wood_floor1') → '/assets/wood_floor1.webp'
+ * getTextureUrl('wood_floor2') → '/assets/wood_floor2.webp'
  */
 export function getTextureUrl(relativePathWithoutExt) {
-  // Wood floor textures use JPEG format
-  if (relativePathWithoutExt === 'wood_floor1' || relativePathWithoutExt === 'wood_floor2') {
-    return `/assets/${relativePathWithoutExt}.jpeg`;
-  }
   return `/assets/${relativePathWithoutExt}.webp`;
 }
 

@@ -35,6 +35,8 @@ const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerH
 camera.rotation.order = 'YXZ';
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
@@ -179,7 +181,7 @@ function createMixedFloor() {
     // Instead of repeating the whole texture 10x10 times, we'll use a smaller repeat
     // to make the individual tiles more visible for our mosaic pattern
     texture.repeat.set(12, 12);
-    texture.encoding = THREE.sRGBEncoding;
+    texture.colorSpace = THREE.SRGBColorSpace;
     console.log('Wood floor 2 texture loaded successfully');
   }, undefined, function(error) {
     console.error('Error loading wood floor 2 texture:', error);
@@ -190,7 +192,7 @@ function createMixedFloor() {
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
     texture.repeat.set(12, 12);
-    texture.encoding = THREE.sRGBEncoding;
+    texture.colorSpace = THREE.SRGBColorSpace;
     console.log('Wood floor 1 texture loaded successfully');
   }, undefined, function(error) {
     console.error('Error loading wood floor 1 texture:', error);
@@ -367,8 +369,7 @@ function createBaseWalls(thickness) {
   // Create mirror ceiling using dynamic cube camera
   createMirrorCeiling();
 
-  // Add copper wave pattern decorations to walls
-  addCopperWavePatterns();
+  // Copper tile decorations were removed to keep the walls clean and reduce load.
 }
 
 function createMirrorCeiling() {
@@ -992,13 +993,10 @@ function addMixedDecorationsToWalls() {
     }
   });
 
-  // STEP 2: Start loading copper textures AFTER 2 seconds (gives time for NFT placeholders)
-  setTimeout(() => {
-    console.log('Starting copper tile loading...');
-    loadCopperBatch(0);
-  }, 2000);
+  return;
 
-  // STEP 4: Place copper tiles in remaining spaces (after NFT positions are reserved)
+  // Copper tile loading/placement intentionally disabled for a cleaner Box room
+  // and faster startup.
 
   // Define copper tile dimensions
   const tileWidth = 3.5;
@@ -1006,7 +1004,7 @@ function addMixedDecorationsToWalls() {
   const phi = 1.618033988749895; // Golden ratio for reference
   
   // Calculate the number of copper tiles per wall (many more than NFTs)
-  const maxCopperTilesPerWall = 80; // Increased number for better filling
+  const maxCopperTilesPerWall = 0;
   
   // For each wall type, place copper tiles
   wallTypes.forEach(wallType => {
@@ -1230,6 +1228,7 @@ function placeArtFrameOnWall(wallType, texture, dimensions, frameWidth, frameHei
   const artGeometry = new THREE.PlaneGeometry(frameWidth, frameHeight);
   const artMaterial = new THREE.MeshBasicMaterial({
     map: texture,
+    toneMapped: false,
     side: THREE.DoubleSide // Allow viewing from both sides to be safe
   });
   const artwork = new THREE.Mesh(artGeometry, artMaterial);
@@ -1835,4 +1834,4 @@ window.addEventListener('click', () => {
   if (!controls.isLocked) {
     controls.lock();
   }
-}); 
+});

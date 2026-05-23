@@ -155,6 +155,8 @@ const clock = new THREE.Clock();
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 // Modern Three.js uses outputColorSpace instead of outputEncoding
 // Removed deprecated: renderer.outputEncoding = THREE.LinearEncoding;
 document.body.appendChild(renderer.domElement);
@@ -734,6 +736,7 @@ function createNFT(arrayIndex, position, rotation) {
   const nftPath = getRoom3NftUrl(arrayIndex);
   const planeMaterial = new THREE.MeshBasicMaterial({
     color: 0xffffff,
+    toneMapped: false,
     side: THREE.DoubleSide
   });
 
@@ -1253,4 +1256,4 @@ function animate() {
 animate();
 
 // Initialize speed control UI
-initSpeedControl(); 
+initSpeedControl();

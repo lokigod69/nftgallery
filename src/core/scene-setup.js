@@ -8,7 +8,7 @@ import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockCont
  * @param {Object} options - Configuration options
  * @param {Object} options.spawnPosition - Initial camera position {x, y, z}
  * @param {number} options.background - Background color (hex)
- * @param {string} options.outputEncoding - Renderer encoding ('sRGB', 'Linear', etc.)
+ * @param {string} options.outputEncoding - Renderer color space ('sRGB', 'LinearSRGB')
  * @param {Object} options.fog - Fog configuration {color, near, far}
  * @returns {Object} { scene, camera, renderer, controls }
  */
@@ -32,10 +32,13 @@ export function initScene(options = {}) {
   // Set rotation order to YXZ to prevent gimbal lock with PointerLockControls
   camera.rotation.order = 'YXZ';
 
-  // Create renderer with sRGB encoding
+  // Create renderer with explicit color space and capped pixel ratio for smoother dense rooms
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.outputEncoding = THREE[outputEncoding + 'Encoding'];
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.outputColorSpace = outputEncoding === 'Linear'
+    ? THREE.LinearSRGBColorSpace
+    : THREE.SRGBColorSpace;
   document.body.appendChild(renderer.domElement);
 
   // Create PointerLockControls
